@@ -202,12 +202,12 @@ Este proyecto fue creado como **herramienta forense para compartir con los compa
 
 ![SaaS Factory Community](saas-factory-logo.png)
 
-**SaaS Factory** es el lugar donde emprendedores comparten experiencias, herramientas y soluciones a problemas reales. Nómina Auditor es parte de esa filosofía: **código abierto, útil y accesible para todos.**
+**Nómina Auditor** nace de la filosofía SaaS Factory: **crear soluciones reales, prácticas y accesibles** para resolver problemas del día a día. En este caso, ayudarte a auditar tus nóminas, detectar errores y proteger tus derechos laborales.
 
-**Conecta con la comunidad:**
-- 🌐 Discord/Comunidad: donde compartimos proyectos
-- 📚 Recursos: tutoriales, guías y herramientas
-- 💼 Red de makers: colabora con otros SaaS builders
+La herramienta fue desarrollada pensando en los makers y emprendedores que necesitan control total sobre sus datos y un sistema de auditoría transparente sin depender de terceros.
+
+**Únete a la comunidad SaaS Factory:**
+→ [SaaS Factory - Comunidad de Makers](https://www.saasfactory.so/)
 
 ---
 
