@@ -124,6 +124,18 @@ BASES Y TOTALES
 
 ---
 
+## 📍 Ámbito Geográfico
+
+⚠️ **Esta aplicación está optimizada ÚNICAMENTE para nóminas españolas.**
+
+- ✅ Compatible con: Cálculos españoles (IRPF, Seguridad Social, bases de cotización españolas)
+- ❌ No compatible con: México, Colombia, Argentina, o cualquier otro país
+- ❌ Los cálculos y conceptos son específicos del sistema fiscal español
+
+**Si usas nóminas de otro país, la app NO extraerá ni calculará correctamente los datos**, ya que sus sistemas fiscales son completamente diferentes.
+
+---
+
 ## 💾 Privacidad y Datos
 
 🔒 **100% Privado**
