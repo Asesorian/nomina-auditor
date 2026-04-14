@@ -23,11 +23,11 @@
 
 ---
 
-## 🏛️ Arquitectura: decisión determinista + IA acotada
+## 🔬 Arquitectura: decisión determinista + IA acotada
 
-Este repo aplica la filosofía **"código teólogo, IA predicador"** a un caso real:
+Este repo aplica la filosofía **"código científico, IA divulgadora"** a un caso real:
 
-> **El código toma las decisiones críticas (cálculos, detección de anomalías, reglas). El LLM solo hace lo que es irreemplazable: OCR de imágenes mal escaneadas.**
+> **El código hace el trabajo del científico: calcula con rigor, verifica con datos, aplica reglas auditables. El LLM hace el trabajo del divulgador: comunica en lenguaje accesible lo que el código ha determinado. Cada uno en lo que es genuinamente bueno.**
 
 ### Pipeline técnico real
 
