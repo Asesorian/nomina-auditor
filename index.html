@@ -182,8 +182,16 @@ code { font-family:'JetBrains Mono',monospace; }
   th, td { padding:6px 8px; }
 }
 
+/* Modal duplicado */
+.modal-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px); }
+.modal-box { background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.5); }
+.modal-title { font-size:16px;font-weight:800;color:var(--warning);margin-bottom:8px; }
+.modal-body { font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:20px; }
+.modal-body strong { color:var(--text); }
+.modal-btns { display:flex;gap:10px;justify-content:flex-end; }
 .hidden { display:none !important; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 
@@ -252,11 +260,11 @@ code { font-family:'JetBrains Mono',monospace; }
   <!-- Upload phase -->
   <div id="uploadPhase">
     <div class="dropzone card" id="dropzone" onclick="document.getElementById('fileInput').click()">
-      <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleFile(this.files[0])">
+      <input type="file" id="fileInput" accept="image/*,.avif,.heic,.heif,.pdf,application/pdf" style="display:none" onchange="handleFile(this.files[0])">
       <div id="dropContent">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         <p class="dropzone-text" style="margin-top:12px">Arrastra una foto de tu nómina aquí o haz clic para seleccionar</p>
-        <p class="dropzone-hint">JPG, PNG, WebP — Procesado con Gemini 2.5 Flash (gratis, con fallback automático a otros modelos)</p>
+        <p class="dropzone-hint">Foto con el móvil (JPG, PNG, AVIF...) o PDF — detección automática de formato</p>
       </div>
       <img id="previewImg" class="hidden" alt="Nómina">
     </div>
@@ -288,7 +296,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <h2>Gestión de Datos</h2>
   <p class="subtitle">Backup automático, exportación manual y restauración de tus nóminas</p>
 
-  <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importBackup(this.files[0])">
+  <input type="file" id="importFileInput" accept=".json,.zip" style="display:none" onchange="importBackup(this.files[0])">
 
   <!-- Auto-backup status -->
   <div class="card" style="margin-bottom:14px">
@@ -336,7 +344,7 @@ code { font-family:'JetBrains Mono',monospace; }
     ondragover="event.preventDefault();this.classList.add('over')" 
     ondragleave="this.classList.remove('over')"
     ondrop="event.preventDefault();this.classList.remove('over');importBackup(event.dataTransfer.files[0])">
-    <p class="dropzone-text" style="font-size:13px">O arrastra aquí un archivo <code style="background:var(--bg2);padding:2px 6px;border-radius:4px">nominas-backup-*.json</code> para restaurar</p>
+    <p class="dropzone-text" style="font-size:13px">O arrastra aquí un archivo <code style="background:var(--bg2);padding:2px 6px;border-radius:4px">nominas-backup-*.json</code> o <code style="background:var(--bg2);padding:2px 6px;border-radius:4px">.zip</code> para restaurar</p>
   </div>
 
   <!-- Import result -->
@@ -356,6 +364,7 @@ code { font-family:'JetBrains Mono',monospace; }
   </div>
 </main>
 
+<div id="dupModal" class="modal-overlay hidden"><div class="modal-box"><div class="modal-title">⚠ Nómina ya existente</div><div class="modal-body" id="dupModalBody"></div><div class="modal-btns"><button class="btn btn-secondary" onclick="closeDupModal()">Cancelar</button><button class="btn" style="background:var(--warning);color:#0f1117" onclick="confirmOverwrite()">Sobreescribir</button></div></div></div>
 <script>
 // ═══════════ STATE ═══════════
 let payrolls = [];
@@ -447,8 +456,8 @@ REGLAS:
 
 const GEMINI_MODELS = [
   'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash'
+  'gemini-2.5-flash-lite',
+  'gemini-2.5-pro'
 ];
 
 async function callGemini(base64, mediaType) {
@@ -456,6 +465,7 @@ async function callGemini(base64, mediaType) {
   if (!key) throw new Error('Configura tu API Key de Gemini primero (barra superior).\n\n→ Consigue una gratis en aistudio.google.com/apikey\n→ Si te da error de cuota (limit: 0), crea un proyecto NUEVO en console.cloud.google.com, habilita "Generative Language API", y genera la key desde ese proyecto.');
 
   let lastError = null;
+  const allErrors = [];
 
   for (const model of GEMINI_MODELS) {
     try {
@@ -477,12 +487,10 @@ async function callGemini(base64, mediaType) {
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         const msg = err.error?.message || `Error ${res.status}`;
-        // If quota error, try next model
-        if (res.status === 429) {
-          lastError = new Error(`${model}: Cuota agotada — probando siguiente modelo...`);
-          continue;
-        }
-        throw new Error(`${model}: ${msg}`);
+        lastError = new Error(`${model}: ${msg}`);
+        allErrors.push(`❌ ${model}: ${msg}`);
+        updateProcessStatus(`${model} falló (${res.status}), probando siguiente...`);
+        continue;
       }
 
       const data = await res.json();
@@ -524,12 +532,13 @@ async function callGemini(base64, mediaType) {
       return parsed;
     } catch (e) {
       lastError = e;
-      if (e.message?.includes('Cuota agotada')) continue;
-      throw e;
+      allErrors.push(`❌ ${model}: ${e.message?.split("\n")[0]}`);
+      updateProcessStatus(`${model} error, probando siguiente...`);
+      continue;
     }
   }
 
-  throw new Error(`Todos los modelos fallaron. Último error: ${lastError?.message}\n\n🔧 SOLUCIÓN:\n1. Ve a console.cloud.google.com\n2. Crea un proyecto NUEVO\n3. Habilita "Generative Language API"\n4. Ve a aistudio.google.com/apikey\n5. Crea una key con ese proyecto nuevo`);
+  throw new Error(`Todos los modelos fallaron:\n${allErrors.join("\n")}\n\n🔧 Si ves "limit: 0": crea un proyecto NUEVO en console.cloud.google.com, habilita "Generative Language API" y genera una API key nueva desde ese proyecto en aistudio.google.com/apikey`);
 }
 
 function updateProcessStatus(msg) {
@@ -538,20 +547,80 @@ function updateProcessStatus(msg) {
 }
 
 // ═══════════ FILE HANDLING ═══════════
+function isPDF(arrayBuffer) {
+  const bytes = new Uint8Array(arrayBuffer.slice(0, 5));
+  return bytes[0]===0x25 && bytes[1]===0x50 && bytes[2]===0x44 && bytes[3]===0x46; // %PDF
+}
+
+function showPreviewPDF() {
+  const preview = document.getElementById('previewImg');
+  // Mostrar icono PDF en lugar de imagen
+  preview.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 260' width='200' height='260'%3E%3Crect width='200' height='260' rx='12' fill='%2314161f' stroke='%23c9a227' stroke-width='2'/%3E%3Ctext x='100' y='100' text-anchor='middle' font-size='60'%3E%F0%9F%93%84%3C/text%3E%3Ctext x='100' y='150' text-anchor='middle' font-size='18' fill='%23c9a227' font-family='monospace' font-weight='bold'%3EPDF%3C/text%3E%3Ctext x='100' y='180' text-anchor='middle' font-size='11' fill='%238b8d95'%3EListo para procesar%3C/text%3E%3C/svg%3E";
+  preview.classList.remove('hidden');
+}
+
 function handleFile(file) {
   if (!file) return;
-  imageMediaType = file.type || 'image/jpeg';
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    imageBase64 = e.target.result.split(',')[1];
-    const img = document.getElementById('previewImg');
-    img.src = e.target.result;
-    img.classList.remove('hidden');
-    document.getElementById('dropContent').classList.add('hidden');
-    document.getElementById('uploadBtns').classList.remove('hidden');
-    document.getElementById('uploadError').innerHTML = '';
+
+  // Leer primero como ArrayBuffer para detectar magic bytes
+  const sniffer = new FileReader();
+  sniffer.onload = (sniffEvt) => {
+    const isPdf = isPDF(sniffEvt.target.result);
+
+    if (isPdf) {
+      // ── PDF ── leer como base64 y enviar como application/pdf
+      const pdfReader = new FileReader();
+      pdfReader.onload = (e) => {
+        imageBase64 = e.target.result.split(',')[1];
+        imageMediaType = 'application/pdf';
+        showPreviewPDF();
+        document.getElementById('dropContent').classList.add('hidden');
+        document.getElementById('uploadBtns').classList.remove('hidden');
+        document.getElementById('uploadError').innerHTML =
+          '<div class="alert alert-info" style="margin-top:8px">📄 PDF detectado — se enviará directamente a Gemini</div>';
+      };
+      pdfReader.readAsDataURL(file);
+
+    } else {
+      // ── IMAGEN ── convertir a JPEG via Canvas (AVIF, HEIC, WebP, PNG, BMP...)
+      const imgReader = new FileReader();
+      imgReader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          // Redimensionar si es muy grande (>2500px) para no saturar la API
+          const MAX = 2500;
+          let w = img.naturalWidth, h = img.naturalHeight;
+          if (w > MAX || h > MAX) {
+            const ratio = Math.min(MAX/w, MAX/h);
+            w = Math.round(w * ratio);
+            h = Math.round(h * ratio);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          const jpeg = canvas.toDataURL('image/jpeg', 0.92);
+          imageBase64 = jpeg.split(',')[1];
+          imageMediaType = 'image/jpeg';
+          const preview = document.getElementById('previewImg');
+          preview.src = jpeg;
+          preview.classList.remove('hidden');
+          document.getElementById('dropContent').classList.add('hidden');
+          document.getElementById('uploadBtns').classList.remove('hidden');
+          document.getElementById('uploadError').innerHTML = '';
+        };
+        img.onerror = () => {
+          document.getElementById('uploadError').innerHTML =
+            '<div class="alert alert-error" style="margin-top:16px"><b>Formato no reconocido</b><br>Prueba con JPG, PNG o PDF.</div>';
+        };
+        img.src = e.target.result;
+      };
+      imgReader.readAsDataURL(file);
+    }
   };
-  reader.readAsDataURL(file);
+  sniffer.readAsArrayBuffer(file.slice(0, 5));
 }
 
 function clearUpload() {
@@ -757,18 +826,32 @@ function confirmAndSave() {
   if (!extractedData) return;
   const monthIdx = MONTHS.indexOf(extractedData.period?.month);
   const id = `${extractedData.period?.year}-${String(monthIdx + 1).padStart(2, '0')}`;
-  const payroll = { ...extractedData, id, savedAt: new Date().toISOString() };
-
-  payrolls = payrolls.filter(p => p.id !== id);
+  const existing = payrolls.find(p => p.id === id);
+  if (existing) {
+    document.getElementById('dupModalBody').innerHTML =
+      `Ya tienes guardada la nómina de <strong>${existing.period?.month} ${existing.period?.year}</strong>.<br><br>` +
+      `¿Quieres sobreescribirla con la nueva?<br>` +
+      `<span style="color:var(--danger);font-size:11px;margin-top:6px;display:block">⚠ Esta acción no se puede deshacer.</span>`;
+    document.getElementById('dupModal').classList.remove('hidden');
+    window._pendingPayroll = { ...extractedData, id, savedAt: new Date().toISOString() };
+  } else {
+    doSave({ ...extractedData, id, savedAt: new Date().toISOString() });
+  }
+}
+function closeDupModal() {
+  document.getElementById('dupModal').classList.add('hidden');
+  window._pendingPayroll = null;
+}
+function confirmOverwrite() {
+  closeDupModal();
+  if (window._pendingPayroll) doSave(window._pendingPayroll);
+}
+function doSave(payroll) {
+  payrolls = payrolls.filter(p => p.id !== payroll.id);
   payrolls.push(payroll);
   payrolls.sort((a, b) => a.id.localeCompare(b.id));
   saveData();
-
-  // Auto-backup
-  if (isAutoBackupEnabled()) {
-    autoBackup();
-  }
-
+  if (isAutoBackupEnabled()) autoBackup();
   clearUpload();
   showReport(payroll);
 }
@@ -1090,78 +1173,81 @@ function exportBackup() {
   }
 }
 
+function isZIP(arrayBuffer) {
+  const b = new Uint8Array(arrayBuffer.slice(0,4));
+  return b[0]===0x50 && b[1]===0x4B && b[2]===0x03 && b[3]===0x04;
+}
+
+function processImportedJSON(jsonText, resultDiv) {
+  try {
+    const data = JSON.parse(jsonText);
+    let importedPayrolls = [];
+    if (Array.isArray(data)) {
+      importedPayrolls = data;
+    } else if (data.payrolls && Array.isArray(data.payrolls)) {
+      importedPayrolls = data.payrolls;
+    } else {
+      throw new Error('Formato no reconocido');
+    }
+    if (importedPayrolls.length === 0) {
+      resultDiv.innerHTML = '<div class="alert alert-error">El archivo no contiene nóminas.</div>';
+      return;
+    }
+    const existingIds = new Set(payrolls.map(p => p.id));
+    let newCount = 0, updatedCount = 0;
+    importedPayrolls.forEach(p => {
+      if (!p.id) return;
+      if (existingIds.has(p.id)) { payrolls = payrolls.filter(x => x.id !== p.id); updatedCount++; }
+      else newCount++;
+      payrolls.push(p);
+    });
+    payrolls.sort((a, b) => a.id.localeCompare(b.id));
+    saveData();
+    const meta = data._meta ? `<br><span style="color:var(--text-muted)">Backup del: ${new Date(data._meta.exportedAt).toLocaleString('es-ES')}</span>` : '';
+    resultDiv.innerHTML = `<div class="alert alert-info" style="margin-top:0"><div>
+      <b>✓ Importación completada</b>
+      <div style="margin-top:4px">
+        ${newCount > 0 ? `<span style="color:var(--success)">+${newCount} nóminas nuevas &nbsp;</span>` : ''}
+        ${updatedCount > 0 ? `<span style="color:var(--warning)">${updatedCount} actualizadas</span>` : ''}
+        ${meta}
+      </div></div></div>`;
+    renderDashboard();
+    document.getElementById('importFileInput').value = '';
+  } catch(e) {
+    resultDiv.innerHTML = `<div class="alert alert-error"><b>Error al importar</b><br>${e.message}</div>`;
+  }
+}
+
 function importBackup(file) {
   if (!file) return;
   const resultDiv = document.getElementById('importResult');
+  resultDiv.innerHTML = '<div class="alert alert-info">⏳ Procesando archivo...</div>';
 
-  if (!file.name.endsWith('.json')) {
-    resultDiv.innerHTML = '<div class="alert alert-error">El archivo debe ser un .json</div>';
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const data = JSON.parse(e.target.result);
-      let importedPayrolls = [];
-
-      // Support both formats: direct array or wrapped object
-      if (Array.isArray(data)) {
-        importedPayrolls = data;
-      } else if (data.payrolls && Array.isArray(data.payrolls)) {
-        importedPayrolls = data.payrolls;
-      } else {
-        throw new Error('Formato no reconocido');
-      }
-
-      if (importedPayrolls.length === 0) {
-        resultDiv.innerHTML = '<div class="alert alert-error">El archivo no contiene nóminas.</div>';
-        return;
-      }
-
-      // Merge: imported payrolls override existing ones with same id
-      const existingIds = new Set(payrolls.map(p => p.id));
-      let newCount = 0;
-      let updatedCount = 0;
-
-      importedPayrolls.forEach(p => {
-        if (!p.id) return;
-        if (existingIds.has(p.id)) {
-          payrolls = payrolls.filter(x => x.id !== p.id);
-          updatedCount++;
-        } else {
-          newCount++;
+  const sniffer = new FileReader();
+  sniffer.onload = async (sniffEvt) => {
+    if (isZIP(sniffEvt.target.result)) {
+      // ── ZIP ── extraer el primer .json que encuentre dentro
+      try {
+        const zip = await JSZip.loadAsync(file);
+        const jsonFiles = Object.keys(zip.files).filter(n => n.endsWith('.json') && !zip.files[n].dir);
+        if (jsonFiles.length === 0) {
+          resultDiv.innerHTML = '<div class="alert alert-error">El ZIP no contiene ningún archivo .json</div>';
+          return;
         }
-        payrolls.push(p);
-      });
-
-      payrolls.sort((a, b) => a.id.localeCompare(b.id));
-      saveData();
-
-      const meta = data._meta ? `<br><span style="color:var(--text-muted)">Backup del: ${new Date(data._meta.exportedAt).toLocaleString('es-ES')}</span>` : '';
-
-      resultDiv.innerHTML = `
-        <div class="alert alert-info" style="margin-top:0">
-          <div>
-            <b>✓ Importación completada</b>
-            <div style="margin-top:4px">
-              ${newCount > 0 ? `<span style="color:var(--success)">+${newCount} nóminas nuevas</span>` : ''}
-              ${updatedCount > 0 ? `<span style="color:var(--warning);margin-left:8px">${updatedCount} actualizadas</span>` : ''}
-              ${newCount === 0 && updatedCount === 0 ? '<span>Todas las nóminas ya existían</span>' : ''}
-              <br>Total ahora: <strong>${payrolls.length} nóminas</strong>
-              ${meta}
-            </div>
-          </div>
-        </div>`;
-
-      renderBackupView();
-    } catch (err) {
-      resultDiv.innerHTML = `<div class="alert alert-error"><b>Error al importar</b><br>${esc(err.message)}</div>`;
+        const jsonText = await zip.files[jsonFiles[0]].async('string');
+        resultDiv.innerHTML = `<div class="alert alert-info">📦 ZIP descomprimido — procesando <em>${jsonFiles[0]}</em>...</div>`;
+        processImportedJSON(jsonText, resultDiv);
+      } catch(e) {
+        resultDiv.innerHTML = `<div class="alert alert-error"><b>Error leyendo ZIP</b><br>${e.message}</div>`;
+      }
+    } else {
+      // ── JSON ── leer como texto directamente
+      const reader = new FileReader();
+      reader.onload = (e) => processImportedJSON(e.target.result, resultDiv);
+      reader.readAsText(file);
     }
   };
-  reader.readAsText(file);
-  // Reset input so same file can be re-imported
-  document.getElementById('importFileInput').value = '';
+  sniffer.readAsArrayBuffer(file.slice(0,4));
 }
 
 function clearAllData() {
