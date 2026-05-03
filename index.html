@@ -192,6 +192,7 @@ code { font-family:'JetBrains Mono',monospace; }
 .hidden { display:none !important; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -229,7 +230,7 @@ code { font-family:'JetBrains Mono',monospace; }
 <!-- API Key Bar -->
 <div class="api-bar">
   <label>🔑 Gemini API Key</label>
-  <input type="password" id="apiKeyInput" placeholder="Pega tu API Key de Google AI Studio aquí..." oninput="saveApiKey(this.value)">
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="password" id="apiKeyInput" placeholder="Pega tu API Key de Google AI Studio aqui..." oninput="saveApiKey(this.value)" style="flex:1;min-width:200px"><button onclick="toggleKeyVis()" id="eyeBtn" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">👁</button><button onclick="showApiQR()" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">📱 QR</button></div>
   <span id="apiStatus" class="status no">Sin Key</span>
   <a href="https://aistudio.google.com/apikey" target="_blank">Obtener gratis →</a>
   <span style="font-size:10px;color:var(--text-muted);margin-left:4px">Si da error "limit:0" → crear proyecto nuevo en console.cloud.google.com</span>
@@ -547,6 +548,80 @@ function updateProcessStatus(msg) {
 }
 
 // ═══════════ FILE HANDLING ═══════════
+
+// QR PATCH - se inyectará en index.html
+
+// Leer apikey desde URL (para QR móvil)
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var keyFromUrl = params.get('apikey');
+  if (keyFromUrl) {
+    localStorage.setItem('nomina-auditor-apikey', keyFromUrl);
+    window.history.replaceState({}, document.title, window.location.pathname);
+    // Recargar para que la app lo detecte
+    window.location.reload();
+  }
+})();
+
+function toggleKeyVis() {
+  var inp = document.getElementById('apiKeyInput');
+  var btn = document.getElementById('eyeBtn');
+  if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+  else { inp.type = 'password'; btn.textContent = '👁'; }
+}
+
+function showApiQR() {
+  var key = localStorage.getItem('nomina-auditor-apikey') || '';
+  if (!key) { alert('Primero guarda una API Key válida'); return; }
+  var url = 'https://asesorian.github.io/nomina-auditor/?apikey=' + encodeURIComponent(key);
+  
+  // Crear o reutilizar modal
+  var existing = document.getElementById('qrModalDiv');
+  if (existing) existing.remove();
+  
+  var modal = document.createElement('div');
+  modal.id = 'qrModalDiv';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
+  
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;max-width:320px;width:90%;text-align:center';
+  
+  var title = document.createElement('div');
+  title.style.cssText = 'font-size:16px;font-weight:800;color:var(--warning);margin-bottom:8px';
+  title.textContent = '📱 Escanea desde el móvil';
+  
+  var desc = document.createElement('p');
+  desc.style.cssText = 'font-size:12px;color:var(--text-dim);margin-bottom:16px;line-height:1.5';
+  desc.textContent = 'Abre la cámara y apunta al QR. La app se abrirá con la key ya configurada.';
+  
+  var qrDiv = document.createElement('div');
+  qrDiv.id = 'qrRenderDiv';
+  qrDiv.style.cssText = 'display:flex;justify-content:center;margin-bottom:16px;padding:12px;background:#fff;border-radius:8px';
+  
+  var preview = document.createElement('p');
+  preview.style.cssText = 'font-size:10px;color:var(--text-muted);margin-bottom:16px';
+  preview.textContent = key.substring(0,8) + '...' + key.slice(-4);
+  
+  var closeBtn = document.createElement('button');
+  closeBtn.className = 'btn btn-secondary';
+  closeBtn.textContent = 'Cerrar';
+  closeBtn.onclick = function() { modal.remove(); };
+  
+  box.appendChild(title);
+  box.appendChild(desc);
+  box.appendChild(qrDiv);
+  box.appendChild(preview);
+  box.appendChild(closeBtn);
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+  
+  // Cerrar al clicar fuera
+  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+  
+  new QRCode(qrDiv, { text: url, width: 200, height: 200, colorDark: '#000000', colorLight: '#ffffff' });
+}
+
+
 function isPDF(arrayBuffer) {
   const bytes = new Uint8Array(arrayBuffer.slice(0, 5));
   return bytes[0]===0x25 && bytes[1]===0x50 && bytes[2]===0x44 && bytes[3]===0x46; // %PDF
