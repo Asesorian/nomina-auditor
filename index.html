@@ -230,7 +230,7 @@ code { font-family:'JetBrains Mono',monospace; }
 <!-- API Key Bar -->
 <div class="api-bar">
   <label>🔑 Gemini API Key</label>
-  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="password" id="apiKeyInput" placeholder="Pega tu API Key de Google AI Studio aqui..." oninput="saveApiKey(this.value)" style="flex:1;min-width:200px"><button onclick="toggleKeyVis()" id="eyeBtn" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">👁</button><button onclick="showApiQR()" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">📱 QR</button></div>
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="password" id="apiKeyInput" placeholder="Pega tu API Key de Google AI Studio aqui..." oninput="saveApiKey(this.value)" style="flex:1;min-width:200px"><button onclick="toggleKeyVis()" id="eyeBtn" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">👁</button><button onclick="showApiQR()" title="Genera un QR para transferir la key al móvil sin teclear" style="background:var(--warning);color:#0f1117;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap">📱 Enviar al móvil</button></div>
   <span id="apiStatus" class="status no">Sin Key</span>
   <a href="https://aistudio.google.com/apikey" target="_blank">Obtener gratis →</a>
   <span style="font-size:10px;color:var(--text-muted);margin-left:4px">Si da error "limit:0" → crear proyecto nuevo en console.cloud.google.com</span>

@@ -162,9 +162,24 @@ Abre `index.html` directamente en cualquier navegador moderno. Es un archivo ún
 1. Ve a [Google AI Studio](https://aistudio.google.com/apikey)
 2. Crea una API Key — **importante: selecciona un proyecto nuevo de Google Cloud**, no el proyecto por defecto (en cuentas europeas el proyecto por defecto suele tener `limit: 0` en la capa gratuita)
 3. Si no tienes proyecto nuevo: crea uno en [Google Cloud Console](https://console.cloud.google.com) → habilita "Generative Language API" → genera la key con ese proyecto
-4. Pega la key en la barra superior de la app
+4. Pega la key en la barra superior de la app → aparece `✓ Configurada` en verde
 
 La key se guarda en `localStorage` del navegador, nunca sale del dispositivo.
+
+### 📱 Transferir la key al móvil (sin teclear)
+
+Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige caracteres, cambia mayúsculas o sustituye letras similares (`l`, `I`, `1`).
+
+**Solución: botón "📱 Enviar al móvil"**
+
+1. En el **ordenador** (donde ya funciona): pulsa el botón amarillo **"📱 Enviar al móvil"** junto al campo de la key
+2. Aparece un **código QR** en pantalla
+3. En el **móvil**: abre la cámara y apunta al QR
+4. La app se abre automáticamente con la key ya guardada — sin teclear nada
+
+> El QR contiene una URL con la key codificada como parámetro. Al abrirse en el móvil, la app la lee, la guarda en `localStorage` y limpia la URL. La key nunca aparece en el historial del navegador.
+
+**Botón 👁:** muestra u oculta la key en el campo para verificar que está correctamente introducida.
 
 ---
 
