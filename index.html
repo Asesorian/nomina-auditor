@@ -189,6 +189,22 @@ code { font-family:'JetBrains Mono',monospace; }
 .modal-body { font-size:13px;color:var(--text-dim);line-height:1.6;margin-bottom:20px; }
 .modal-body strong { color:var(--text); }
 .modal-btns { display:flex;gap:10px;justify-content:flex-end; }
+.modal-box { max-height:90vh;overflow-y:auto; }
+.modal-btns.stack { flex-direction:column;align-items:stretch; }
+.modal-btns.stack .btn { justify-content:center;width:100%; }
+.btn-warn { background:transparent;color:var(--warning);border:1px solid var(--warning); }
+.btn-warn:hover { background:var(--warning-bg); }
+/* Tipos de nómina */
+.type-badge { display:inline-block;margin-left:6px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;vertical-align:middle;white-space:nowrap; }
+.type-badge.extra { background:var(--warning-bg);color:var(--warning);border:1px solid rgba(245,158,11,0.35); }
+.type-badge.atrasos { background:rgba(96,165,250,0.08);color:#60a5fa;border:1px solid rgba(96,165,250,0.35); }
+.type-picker { display:flex;gap:8px;flex-wrap:wrap; }
+.type-opt { flex:1;min-width:100px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text-dim);cursor:pointer;font-size:12px;font-weight:700;font-family:'Inter',sans-serif; }
+.type-opt.active { border-color:var(--accent);color:var(--accent);background:var(--accent-glow); }
+.cmp { width:100%;min-width:0 !important;font-size:12px;margin-top:12px;border-collapse:collapse; }
+.cmp th, .cmp td { padding:5px 6px;border-bottom:1px solid var(--border);text-align:left; }
+.cmp td.r, .cmp th.r { text-align:right;font-family:'JetBrains Mono',monospace; }
+.obs-item.info { color:var(--text-dim); }
 .hidden { display:none !important; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -201,7 +217,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.0</span>
+    <span class="logo-badge">Forense v2.3</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -365,7 +381,7 @@ code { font-family:'JetBrains Mono',monospace; }
   </div>
 </main>
 
-<div id="dupModal" class="modal-overlay hidden"><div class="modal-box"><div class="modal-title">⚠ Nómina ya existente</div><div class="modal-body" id="dupModalBody"></div><div class="modal-btns"><button class="btn btn-secondary" onclick="closeDupModal()">Cancelar</button><button class="btn" style="background:var(--warning);color:#0f1117" onclick="confirmOverwrite()">Sobreescribir</button></div></div></div>
+<div id="dupModal" class="modal-overlay hidden"><div class="modal-box"><div class="modal-title" id="dupModalTitle">⚠ Nómina ya existente</div><div class="modal-body" id="dupModalBody"></div><div class="modal-btns stack" id="dupModalBtns"></div></div></div>
 <script>
 // ═══════════ STATE ═══════════
 let payrolls = [];
@@ -375,6 +391,100 @@ let imageBase64 = null;
 let imageMediaType = 'image/jpeg';
 
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+// ═══════════ TIPOS DE NÓMINA ═══════════
+// Un mismo mes puede tener varias nóminas (mensual + paga extra, atrasos...).
+// La clave (id) incluye el tipo para que nunca se pisen:
+//   ordinaria → "2026-07"            (formato de siempre: los backups antiguos siguen valiendo)
+//   extra     → "2026-07-extra"      (2ª del mismo mes: "2026-07-extra-2")
+//   atrasos   → "2026-07-atrasos"
+// Ordenadas por id quedan juntas y en orden: 2026-07, 2026-07-atrasos, 2026-07-extra, 2026-08...
+const PAY_TYPES = {
+  ordinaria: { label: 'Ordinaria',  icon: '📄' },
+  extra:     { label: 'Paga extra', icon: '💰' },
+  atrasos:   { label: 'Atrasos',    icon: '📎' }
+};
+let typeDetection = null; // { type, reason, manual } de la nómina que se está verificando
+
+function normalizeMonth(m) {
+  const k = String(m ?? '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  if (/^\d{1,2}$/.test(k) && +k >= 1 && +k <= 12) return MONTHS[+k - 1];
+  if (k === 'setiembre') return 'Septiembre';
+  const idx = MONTHS.findIndex(x => x.toLowerCase() === k);
+  return idx >= 0 ? MONTHS[idx] : null;
+}
+
+function payTypeOf(p) { return PAY_TYPES[p?.payType] ? p.payType : 'ordinaria'; }
+
+function defaultPayLabel(type, month) {
+  if (type === 'atrasos') return 'Atrasos';
+  if (['Junio', 'Julio'].includes(month)) return 'Paga extra de verano';
+  if (['Noviembre', 'Diciembre'].includes(month)) return 'Paga extra de Navidad';
+  return 'Paga extra';
+}
+
+function payLabelOf(p) {
+  const t = payTypeOf(p);
+  if (t === 'ordinaria') return '';
+  const custom = String(p.payLabel ?? '').trim();
+  return custom || defaultPayLabel(t, p.period?.month);
+}
+
+function payName(p) {
+  const base = `${p.period?.month || '?'} ${p.period?.year || '?'}`;
+  const lbl = payLabelOf(p);
+  return lbl ? `${base} · ${lbl}` : base;
+}
+
+function typeBadge(p) {
+  const t = payTypeOf(p);
+  return t === 'ordinaria' ? '' : `<span class="type-badge ${t}">${esc(payLabelOf(p))}</span>`;
+}
+
+function monthKey(p) {
+  const idx = MONTHS.indexOf(p.period?.month);
+  return `${p.period?.year}-${String(idx + 1).padStart(2, '0')}`;
+}
+
+function payrollId(p, n = 1) {
+  const t = payTypeOf(p);
+  if (t === 'ordinaria') return monthKey(p);
+  return `${monthKey(p)}-${t}${n > 1 ? '-' + n : ''}`;
+}
+
+// Primer id libre para ese mes y tipo. Para ordinaria solo hay un hueco: null si está ocupado.
+function freePayrollId(p, ignoreId) {
+  const taken = new Set(payrolls.filter(x => x.id !== ignoreId).map(x => x.id));
+  if (payTypeOf(p) === 'ordinaria') return taken.has(monthKey(p)) ? null : monthKey(p);
+  let n = 1;
+  while (taken.has(payrollId(p, n))) n++;
+  return payrollId(p, n);
+}
+
+function sortPayrolls() { payrolls.sort((a, b) => a.id.localeCompare(b.id)); }
+
+// ── Detección determinista del tipo ──
+// El código decide con reglas comprobables; lo que lea Gemini (payType) solo es una pista más.
+// Ojo: la "prorrata de pagas extras" de una mensual NO la convierte en paga extra.
+const EXTRA_RE    = /\bpaga\s*extra|\bp\.?\s*extra|\bpagas?\s*extraordinaria|gratificaci[oó]n\s*extra|extra\s*(de\s*)?(verano|navidad|junio|julio|diciembre|beneficios|marzo)|paga\s*(de\s*)?(verano|navidad|beneficios)/i;
+const PRORRATA_RE = /prorr|p\.\s*p\.|parte\s*proporcional|partes\s*proporcionales/i;
+const ATRASOS_RE  = /atrasos|diferencias?\s*(de\s*)?convenio|regularizaci[oó]n\s*salarial|revisi[oó]n\s*salarial/i;
+
+function classifyPayroll(d) {
+  const earnings = (d.earnings || []).map(e => ({ c: String(e.concept || ''), a: Number(e.amount) || 0 })).filter(e => e.a > 0);
+  const gross = Number(d.totals?.grossTotal) > 0 ? Number(d.totals.grossTotal) : earnings.reduce((s, e) => s + e.a, 0);
+  const share = re => gross > 0 ? earnings.filter(e => re.test(e.c) && !PRORRATA_RE.test(e.c)).reduce((s, e) => s + e.a, 0) / gross : 0;
+  const extraShare = share(EXTRA_RE);
+  const atrasosShare = share(ATRASOS_RE);
+  const hint = String(d.payType || '').toLowerCase().trim();
+
+  if (extraShare >= 0.6) return { type: 'extra', reason: `los conceptos de paga extra son el ${Math.round(extraShare * 100)}% del bruto` };
+  if (atrasosShare >= 0.6) return { type: 'atrasos', reason: `los conceptos de atrasos son el ${Math.round(atrasosShare * 100)}% del bruto` };
+  if (hint === 'extra') return { type: 'extra', reason: 'el documento se identifica como paga extraordinaria' };
+  if (hint === 'atrasos') return { type: 'atrasos', reason: 'el documento se identifica como nómina de atrasos' };
+  if (extraShare > 0) return { type: 'ordinaria', reason: 'nómina mensual que incluye la paga extra como una línea más' };
+  return { type: 'ordinaria', reason: 'nómina mensual normal' };
+}
 
 // ═══════════ STORAGE ═══════════
 function loadData() {
@@ -432,6 +542,8 @@ const EXTRACTION_PROMPT = `Eres un sistema OCR forense especializado en nóminas
 Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta (sin markdown, sin backticks, sin explicaciones, SOLO el JSON):
 
 {
+  "payType": "ordinaria",
+  "payLabel": "",
   "period": { "month": "", "year": "", "startDate": "", "endDate": "", "days": 0 },
   "company": { "name": "", "cif": "", "ccc": "" },
   "worker": { "name": "", "naf": "", "dni": "" },
@@ -445,6 +557,8 @@ Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta (sin markdown, s
 REGLAS:
 - Importes como números decimales con punto (1234.56), sin símbolo €
 - Si un campo no es legible escribe "N/L"
+- payType: "extra" si el documento es una nómina de paga extraordinaria emitida aparte de la mensual (cabecera o conceptos tipo "Paga Extra", "Gratificación extraordinaria", "Extra Verano/Navidad/Beneficios"); "atrasos" si es una nómina solo de atrasos o diferencias de convenio; "ordinaria" para la nómina mensual normal, AUNQUE incluya la prorrata de pagas extras o la paga extra como una línea más
+- payLabel: el nombre de la paga tal como aparece en el documento (ej: "Paga Extra Verano"); vacío si es ordinaria
 - month debe ser el nombre del mes en español (Enero, Febrero...)
 - year debe ser el año con 4 dígitos
 - Incluye TODOS los conceptos de devengos y deducciones que aparezcan
@@ -701,6 +815,7 @@ function handleFile(file) {
 function clearUpload() {
   imageBase64 = null;
   extractedData = null;
+  typeDetection = null;
   document.getElementById('previewImg').classList.add('hidden');
   document.getElementById('dropContent').classList.remove('hidden');
   document.getElementById('uploadBtns').classList.add('hidden');
@@ -726,6 +841,7 @@ async function processImage() {
 
   try {
     extractedData = await callGemini(imageBase64, imageMediaType);
+    prepareExtracted(extractedData);
     renderVerification();
   } catch (e) {
     document.getElementById('uploadError').innerHTML = `
@@ -736,6 +852,49 @@ async function processImage() {
 
   btn.disabled = false;
   btn.innerHTML = '✓ Procesar con Gemini IA';
+}
+
+// Normaliza mes/año y decide el tipo de nómina antes de la verificación
+function prepareExtracted(d) {
+  d.period = d.period || {};
+  const m = normalizeMonth(d.period.month);
+  if (m) d.period.month = m;
+  if (d.period.year !== undefined && d.period.year !== null) d.period.year = String(d.period.year).trim();
+  typeDetection = classifyPayroll(d);
+  d.payType = typeDetection.type;
+  if (d.payType === 'ordinaria') d.payLabel = '';
+}
+
+function setPayType(t) {
+  if (!extractedData || !PAY_TYPES[t]) return;
+  if (payTypeOf(extractedData) !== t) {
+    extractedData.payType = t;
+    extractedData.payLabel = ''; // la etiqueta del tipo anterior ya no vale
+    if (typeDetection) typeDetection.manual = true;
+  }
+  renderVerification();
+}
+
+function renderTypeCard(d) {
+  const t = payTypeOf(d);
+  let info = '';
+  if (typeDetection) {
+    const det = PAY_TYPES[typeDetection.type].label.toLowerCase();
+    info = typeDetection.manual
+      ? `✋ Elegido por ti (la detección automática decía: ${det}, porque ${esc(typeDetection.reason)})`
+      : `🔎 Detectada como <strong>${det}</strong>: ${esc(typeDetection.reason)}. Si no es así, cámbialo.`;
+  }
+  return `
+    <div class="card" style="${t !== 'ordinaria' ? 'border-color:var(--warning)' : ''}">
+      <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">TIPO DE NÓMINA</h3>
+      <div class="type-picker">
+        ${Object.entries(PAY_TYPES).map(([k, v]) =>
+          `<button class="type-opt ${k === t ? 'active' : ''}" onclick="setPayType('${k}')">${v.icon} ${v.label}</button>`).join('')}
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.5">${info}</div>
+      ${t !== 'ordinaria' ? `<div style="margin-top:10px;font-size:12px;color:var(--text-dim)">Nombre: <span class="editable" onclick="editField(this,'payLabel')">${esc(payLabelOf(d))}</span></div>` : ''}
+      <div style="font-size:12px;color:var(--text-dim);margin-top:8px">Se guardará como: <strong style="color:var(--text)">${esc(payName(d))}</strong></div>
+    </div>`;
 }
 
 // ═══════════ RENDER VERIFICATION (FASE 1) ═══════════
@@ -758,6 +917,8 @@ function renderVerification() {
       <span class="phase-badge phase-1">FASE 1</span>
       <span style="color:var(--text-dim);font-size:13px">Verificación Visual — Haz clic en cualquier valor para corregirlo</span>
     </div>
+
+    ${renderTypeCard(d)}
 
     <div class="card">
       <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">ZONA 1 — Datos Administrativos</h3>
@@ -848,6 +1009,11 @@ function renderVerification() {
 }
 
 function renderValidation(d) {
+  if (payTypeOf(d) !== 'ordinaria') {
+    return `<div class="validation ok" style="color:var(--text-dim);border-color:var(--border);background:var(--bg2)">
+      ℹ Nómina de ${esc(payLabelOf(d).toLowerCase())}: la comprobación Remuneración + Prorrata = Base C.C. solo aplica a la nómina mensual ordinaria.
+    </div>`;
+  }
   const rem = d.bases?.totalRemuneration || 0;
   const pro = d.bases?.extraPayProrata || 0;
   const bcc = d.bases?.baseCC || 0;
@@ -879,7 +1045,7 @@ function editField(el, path, isNumber) {
   const currentVal = getNestedVal(extractedData, path);
   const input = document.createElement('input');
   input.className = 'edit-input';
-  input.value = currentVal ?? '';
+  input.value = (path === 'payLabel' && !currentVal) ? payLabelOf(extractedData) : (currentVal ?? '');
   input.style.width = isNumber ? '100px' : '200px';
 
   const finish = () => {
@@ -899,32 +1065,85 @@ function editField(el, path, isNumber) {
 // ═══════════ SAVE ═══════════
 function confirmAndSave() {
   if (!extractedData) return;
-  const monthIdx = MONTHS.indexOf(extractedData.period?.month);
-  const id = `${extractedData.period?.year}-${String(monthIdx + 1).padStart(2, '0')}`;
-  const existing = payrolls.find(p => p.id === id);
-  if (existing) {
-    document.getElementById('dupModalBody').innerHTML =
-      `Ya tienes guardada la nómina de <strong>${existing.period?.month} ${existing.period?.year}</strong>.<br><br>` +
-      `¿Quieres sobreescribirla con la nueva?<br>` +
-      `<span style="color:var(--danger);font-size:11px;margin-top:6px;display:block">⚠ Esta acción no se puede deshacer.</span>`;
-    document.getElementById('dupModal').classList.remove('hidden');
-    window._pendingPayroll = { ...extractedData, id, savedAt: new Date().toISOString() };
-  } else {
-    doSave({ ...extractedData, id, savedAt: new Date().toISOString() });
+  const month = normalizeMonth(extractedData.period?.month);
+  const year = String(extractedData.period?.year ?? '').trim();
+  if (!month || !/^\d{4}$/.test(year)) {
+    alert(`No puedo guardarla: el periodo "${extractedData.period?.month ?? ''} ${extractedData.period?.year ?? ''}" no es válido.\n\nCorrige el Mes (ej: Julio) y el Año (ej: 2026) en la Zona 1 tocando sobre el valor.`);
+    return;
   }
+  extractedData.period.month = month;
+  extractedData.period.year = year;
+
+  const draft = { ...extractedData, payType: payTypeOf(extractedData) };
+  const id = payrollId(draft);
+  const existing = payrolls.find(p => p.id === id);
+  if (existing) openDupModal(draft, existing);
+  else doSave({ ...draft, id, savedAt: new Date().toISOString() });
 }
+
+// Se abre cuando el hueco de esa nómina (mes + tipo) ya está ocupado
+function openDupModal(draft, existing) {
+  window._pendingPayroll = draft;
+  window._pendingExistingId = existing.id;
+  const t = payTypeOf(draft);
+  const same = Math.abs((existing.totals?.netPay || 0) - (draft.totals?.netPay || 0)) < 0.01 &&
+               Math.abs((existing.totals?.grossTotal || 0) - (draft.totals?.grossTotal || 0)) < 0.01;
+  const savedAt = existing.savedAt ? new Date(existing.savedAt).toLocaleDateString('es-ES') : '—';
+
+  document.getElementById('dupModalTitle').textContent = `⚠ Ya hay una nómina en ese hueco`;
+  document.getElementById('dupModalBody').innerHTML = `
+    Ya tienes guardada <strong>${esc(payName(existing))}</strong>.
+    <table class="cmp">
+      <thead><tr><th></th><th class="r">Guardada</th><th class="r">Nueva</th></tr></thead>
+      <tbody>
+        <tr><td>Bruto</td><td class="r">${fmt(existing.totals?.grossTotal)} €</td><td class="r">${fmt(draft.totals?.grossTotal)} €</td></tr>
+        <tr><td>Neto</td><td class="r">${fmt(existing.totals?.netPay)} €</td><td class="r">${fmt(draft.totals?.netPay)} €</td></tr>
+        <tr><td>Fecha</td><td class="r">${savedAt}</td><td class="r">ahora</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px">${same
+      ? '✓ Tienen los <strong>mismos importes</strong>: seguramente es la misma nómina subida dos veces.'
+      : 'Los importes son <strong>distintos</strong>. Si la nueva es una paga extra o unos atrasos, guárdala aparte: <strong>no se borra nada</strong>.'}</div>`;
+
+  const btns = [];
+  if (t === 'ordinaria') {
+    btns.push(`<button class="btn ${same ? 'btn-secondary' : 'btn-primary'}" onclick="saveAsType('extra')">💰 Es una paga extra → guardarla aparte</button>`);
+    btns.push(`<button class="btn btn-secondary" onclick="saveAsType('atrasos')">📎 Son atrasos → guardarlos aparte</button>`);
+  } else {
+    btns.push(`<button class="btn ${same ? 'btn-secondary' : 'btn-primary'}" onclick="saveAsType('${t}')">➕ Es otra ${esc(payLabelOf(draft).toLowerCase())} distinta → guardarla aparte</button>`);
+  }
+  btns.push(`<button class="btn btn-warn" onclick="confirmOverwrite()">♻ Sustituir la guardada (se pierde)</button>`);
+  btns.push(`<button class="btn ${same ? 'btn-primary' : 'btn-secondary'}" onclick="closeDupModal()">${same ? 'Cancelar — ya la tengo' : 'Cancelar'}</button>`);
+  document.getElementById('dupModalBtns').innerHTML = btns.join('');
+  document.getElementById('dupModal').classList.remove('hidden');
+}
+
 function closeDupModal() {
   document.getElementById('dupModal').classList.add('hidden');
   window._pendingPayroll = null;
+  window._pendingExistingId = null;
 }
-function confirmOverwrite() {
+
+function saveAsType(type) {
+  const draft = window._pendingPayroll;
+  if (!draft) return closeDupModal();
+  const p = { ...draft, payType: type };
+  if (type !== payTypeOf(draft)) p.payLabel = '';
+  const id = freePayrollId(p);
   closeDupModal();
-  if (window._pendingPayroll) doSave(window._pendingPayroll);
+  doSave({ ...p, id, savedAt: new Date().toISOString() });
 }
+
+function confirmOverwrite() {
+  const draft = window._pendingPayroll, id = window._pendingExistingId;
+  closeDupModal();
+  if (draft && id) doSave({ ...draft, id, savedAt: new Date().toISOString() });
+}
+
 function doSave(payroll) {
   payrolls = payrolls.filter(p => p.id !== payroll.id);
   payrolls.push(payroll);
-  payrolls.sort((a, b) => a.id.localeCompare(b.id));
+  sortPayrolls();
   saveData();
   if (isAutoBackupEnabled()) autoBackup();
   clearUpload();
@@ -940,7 +1159,9 @@ function showReport(p) {
   const earningsLines = (p.earnings || []).map(e => `  [${e.code || '-'}] ${e.concept}: ${fmt(e.amount)} €`).join('\n');
   const deductionLines = (p.deductions || []).map(d => `  [${d.code || '-'}] ${d.concept}: ${fmt(d.amount)} €`).join('\n');
 
-  const reportText = `RESUMEN DE DATOS DE NÓMINA - PERIODO: ${p.period?.month || '?'} ${p.period?.year || '?'}
+  const pt = payTypeOf(p);
+  const lbl = payLabelOf(p);
+  const reportText = `RESUMEN DE DATOS DE NÓMINA - PERIODO: ${p.period?.month || '?'} ${p.period?.year || '?'}${lbl ? ' — ' + lbl.toUpperCase() : ''}
 ------------------------------------------------------------
 1. DATOS IDENTIFICATIVOS
 ------------------------------------------------------------
@@ -972,7 +1193,15 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
   document.getElementById('reportContent').innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
       <span class="phase-badge phase-2">FASE 2</span>
-      <span style="font-size:18px;font-weight:800;color:var(--accent)">Informe Ejecutivo — ${esc(p.period?.month)} ${esc(p.period?.year)}</span>
+      <span style="font-size:18px;font-weight:800;color:var(--accent)">Informe Ejecutivo — ${esc(p.period?.month)} ${esc(p.period?.year)}${typeBadge(p)}</span>
+    </div>
+    <div class="card" style="padding:14px 16px">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Tipo de nómina</div>
+      <div class="type-picker">
+        ${Object.entries(PAY_TYPES).map(([k, v]) =>
+          `<button class="type-opt ${k === pt ? 'active' : ''}" onclick="reclassifyPayroll('${p.id}','${k}')">${v.icon} ${v.label}</button>`).join('')}
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px">¿Se guardó con el tipo equivocado? Cámbialo aquí sin volver a procesarla.</div>
     </div>
     <div class="card">
       <pre class="report-pre">${esc(reportText)}</pre>
@@ -984,6 +1213,26 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
 
   // Store for copy
   document.getElementById('reportContent')._reportText = reportText;
+}
+
+// Cambia el tipo de una nómina ya guardada (p.ej. una paga extra que machacó la mensual)
+function reclassifyPayroll(id, newType) {
+  const p = payrolls.find(x => x.id === id);
+  if (!p || !PAY_TYPES[newType] || payTypeOf(p) === newType) return;
+  const moved = { ...p, payType: newType, payLabel: '' };
+  const newId = freePayrollId(moved, id);
+  if (!newId) {
+    alert(`Ya existe la nómina ordinaria de ${p.period?.month} ${p.period?.year}.\n\nSi esa también está mal clasificada, cámbiala primero y vuelve a intentarlo.`);
+    return;
+  }
+  if (!confirm(`¿Cambiar "${payName(p)}" a "${payName(moved)}"?`)) return;
+  moved.id = newId;
+  payrolls = payrolls.filter(x => x.id !== id);
+  payrolls.push(moved);
+  sortPayrolls();
+  saveData();
+  if (isAutoBackupEnabled()) autoBackup();
+  showReport(moved);
 }
 
 function copyText(btn, fallback) {
@@ -1007,7 +1256,9 @@ function renderDashboard() {
 
   const fp = payrolls.filter(p => p.period?.year === currentYear);
 
-  document.getElementById('dashSubtitle').textContent = `${fp.length} nómina${fp.length !== 1 ? 's' : ''} procesada${fp.length !== 1 ? 's' : ''} en ${currentYear}`;
+  const nExtra = fp.filter(p => payTypeOf(p) !== 'ordinaria').length;
+  document.getElementById('dashSubtitle').textContent = `${fp.length} nómina${fp.length !== 1 ? 's' : ''} procesada${fp.length !== 1 ? 's' : ''} en ${currentYear}` +
+    (nExtra ? ` (${fp.length - nExtra} mensuales + ${nExtra} extra/atrasos)` : '');
 
   const totals = calcTotals(fp);
   document.getElementById('statBruto').textContent = fmt(totals.bruto) + ' €';
@@ -1031,7 +1282,7 @@ function renderDashboard() {
       <thead><tr><th>Periodo</th><th class="r">Bruto</th><th class="r">Neto</th><th class="r">IRPF %</th><th style="text-align:center">Acciones</th></tr></thead>
       <tbody>
         ${fp.map(p => `<tr class="clickable" ondblclick="showReport(payrolls.find(x=>x.id==='${p.id}'))">
-          <td>${esc(p.period?.month)} ${esc(p.period?.year)}</td>
+          <td>${esc(p.period?.month)} ${esc(p.period?.year)}${typeBadge(p)}</td>
           <td class="r">${fmt(p.totals?.grossTotal)} €</td>
           <td class="r">${fmt(p.totals?.netPay)} €</td>
           <td class="r">${p.bases?.irpfPercentage || 'N/L'}%</td>
@@ -1045,7 +1296,8 @@ function renderDashboard() {
 }
 
 function deletePayroll(id) {
-  if (!confirm('¿Eliminar esta nómina?')) return;
+  const p = payrolls.find(x => x.id === id);
+  if (!confirm(`¿Eliminar la nómina ${p ? payName(p) : ''}?`)) return;
   payrolls = payrolls.filter(p => p.id !== id);
   saveData();
   renderDashboard();
@@ -1059,12 +1311,8 @@ function renderAnnual() {
   const fp = payrolls.filter(p => p.period?.year === currentYear);
   const totals = calcTotals(fp);
 
-  const irpfRates = fp.map(p => ({ month: p.period?.month, rate: p.bases?.irpfPercentage }));
-  const rateChanges = irpfRates.some((r, i) => i > 0 && r.rate !== irpfRates[0].rate);
-  const baseCCChanges = fp.some((p, i) => i > 0 && p.bases?.baseCC !== fp[0].bases?.baseCC);
-  const catChanges = fp.some((p, i) => i > 0 && (p.employment?.category !== fp[0].employment?.category || p.employment?.contractCode !== fp[0].employment?.contractCode));
-
-  const annualText = generateAnnualText(fp, totals, currentYear, irpfRates, rateChanges, baseCCChanges, catChanges);
+  const obs = buildAnnualObservations(fp);
+  const annualText = generateAnnualText(fp, totals, currentYear, obs);
 
   document.getElementById('annualContent').innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
@@ -1085,7 +1333,7 @@ function renderAnnual() {
             const irpfDed = findIRPFDeduction(p);
             const ssTotal = calcSSTotal(p);
             return `<tr class="clickable" onclick="showReport(payrolls.find(x=>x.id==='${p.id}'))">
-              <td>${esc(p.period?.month)}</td>
+              <td>${esc(p.period?.month)}${typeBadge(p)}</td>
               <td class="r">${fmt(p.totals?.grossTotal)} €</td>
               <td class="r">${fmt(irpfDed)} €</td>
               <td class="r">${fmt(ssTotal)} €</td>
@@ -1107,15 +1355,7 @@ function renderAnnual() {
 
     <div class="card">
       <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">Observaciones para Abogado</h3>
-      <div class="obs-item ${rateChanges ? 'warn' : 'ok'}">
-        ${rateChanges ? '⚠' : '✓'} ${rateChanges ? 'Variación en % IRPF: ' + irpfRates.map(r => r.month + ': ' + r.rate + '%').join(', ') : 'Sin variación en el % de IRPF durante el año'}
-      </div>
-      <div class="obs-item ${baseCCChanges ? 'warn' : 'ok'}">
-        ${baseCCChanges ? '⚠ Cambios detectados en la Base de Cotización' : '✓ Base de Cotización estable durante todo el año'}
-      </div>
-      <div class="obs-item ${catChanges ? 'warn' : 'ok'}">
-        ${catChanges ? '⚠ Cambios de Categoría o tipo de Contrato detectados' : '✓ Sin cambios de Categoría ni tipo de Contrato'}
-      </div>
+      ${obs.map(o => `<div class="obs-item ${o.level}">${esc(o.text)}</div>`).join('')}
     </div>
 
     <div class="card">
@@ -1141,23 +1381,57 @@ function renderAnnual() {
   }
 }
 
-function generateAnnualText(fp, totals, year, irpfRates, rateChanges, baseCCChanges, catChanges) {
+// Las comparaciones de estabilidad (IRPF, base, categoría) se hacen solo con las mensuales ordinarias:
+// una paga extra suele llevar la base de cotización a 0 (va prorrateada) y daría falsas alarmas.
+function buildAnnualObservations(fp) {
+  const ord = fp.filter(p => payTypeOf(p) === 'ordinaria');
+  const others = fp.filter(p => payTypeOf(p) !== 'ordinaria');
+  const obs = [];
+
+  const irpfRates = ord.map(p => ({ month: p.period?.month, rate: p.bases?.irpfPercentage }));
+  const rateChanges = irpfRates.some((r, i) => i > 0 && r.rate !== irpfRates[0].rate);
+  obs.push(rateChanges
+    ? { level: 'warn', text: '⚠ Variación en el % de IRPF: ' + irpfRates.map(r => r.month + ': ' + r.rate + '%').join(', ') }
+    : { level: 'ok', text: '✓ Sin variación en el % de IRPF en las nóminas mensuales' });
+
+  const baseCCChanges = ord.some((p, i) => i > 0 && p.bases?.baseCC !== ord[0].bases?.baseCC);
+  obs.push(baseCCChanges
+    ? { level: 'warn', text: '⚠ Cambios en la Base de Cotización entre nóminas mensuales' }
+    : { level: 'ok', text: '✓ Base de Cotización estable en las nóminas mensuales' });
+
+  const catChanges = ord.some((p, i) => i > 0 && (p.employment?.category !== ord[0].employment?.category || p.employment?.contractCode !== ord[0].employment?.contractCode));
+  obs.push(catChanges
+    ? { level: 'warn', text: '⚠ Cambios de Categoría o tipo de Contrato' }
+    : { level: 'ok', text: '✓ Sin cambios de Categoría ni tipo de Contrato' });
+
+  // Huecos: meses sin nómina mensual entre enero y el último mes con alguna nómina
+  const lastIdx = Math.max(-1, ...fp.map(p => MONTHS.indexOf(p.period?.month)));
+  const missing = MONTHS.slice(0, lastIdx + 1).filter(m => !ord.some(p => p.period?.month === m));
+  if (lastIdx >= 0) obs.push(missing.length
+    ? { level: 'warn', text: '⚠ Sin nómina mensual registrada: ' + missing.join(', ') }
+    : { level: 'ok', text: `✓ Nóminas mensuales completas de Enero a ${MONTHS[lastIdx]}` });
+
+  if (others.length) obs.push({ level: 'info', text: 'ℹ Pagas extra / atrasos incluidos en los totales: ' + others.map(p => `${p.period?.month} (${payLabelOf(p)})`).join(', ') });
+  return obs;
+}
+
+function generateAnnualText(fp, totals, year, obs) {
   const lines = fp.map(p => {
     const irpfDed = findIRPFDeduction(p);
     const ssTotal = calcSSTotal(p);
-    return `${(p.period?.month || '?').padEnd(12)} | Bruto: ${fmt(p.totals?.grossTotal).padStart(10)} € | IRPF: ${fmt(irpfDed).padStart(8)} € | S.S.: ${fmt(ssTotal).padStart(8)} € | Neto: ${fmt(p.totals?.netPay).padStart(10)} €`;
+    const t = payTypeOf(p);
+    const name = (p.period?.month || '?') + (t === 'extra' ? ' EXTRA' : t === 'atrasos' ? ' ATRASOS' : '');
+    return `${name.padEnd(17)}| Bruto: ${fmt(p.totals?.grossTotal).padStart(10)} € | IRPF: ${fmt(irpfDed).padStart(8)} € | S.S.: ${fmt(ssTotal).padStart(8)} € | Neto: ${fmt(p.totals?.netPay).padStart(10)} €`;
   }).join('\n');
 
   return `TABLA RESUMEN ANUAL ${year}
-═══════════════════════════════════════════════════════════════════
+═══════════════════════════════════════════════════════════════════════
 ${lines}
-═══════════════════════════════════════════════════════════════════
-TOTALES       | Bruto: ${fmt(totals.bruto).padStart(10)} € | IRPF: ${fmt(totals.irpf).padStart(8)} € | S.S.: ${fmt(totals.ss).padStart(8)} € | Neto: ${fmt(totals.neto).padStart(10)} €
+═══════════════════════════════════════════════════════════════════════
+${'TOTALES'.padEnd(17)}| Bruto: ${fmt(totals.bruto).padStart(10)} € | IRPF: ${fmt(totals.irpf).padStart(8)} € | S.S.: ${fmt(totals.ss).padStart(8)} € | Neto: ${fmt(totals.neto).padStart(10)} €
 
 OBSERVACIONES PARA ABOGADO:
-${rateChanges ? '⚠ VARIACIÓN en el % de IRPF durante el año: ' + irpfRates.map(r => r.month + ': ' + r.rate + '%').join(', ') : '✓ Sin variación en el % de IRPF'}
-${baseCCChanges ? '⚠ CAMBIOS en la Base de Cotización durante el año' : '✓ Base de Cotización estable'}
-${catChanges ? '⚠ CAMBIOS de Categoría o Contrato durante el año' : '✓ Sin cambios de Categoría ni Contrato'}`;
+${obs.map(o => o.text).join('\n')}`;
 }
 
 // ═══════════ HELPERS ═══════════
@@ -1207,7 +1481,7 @@ function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.1',
+      version: '2.3',
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },
@@ -1276,7 +1550,7 @@ function processImportedJSON(jsonText, resultDiv) {
       else newCount++;
       payrolls.push(p);
     });
-    payrolls.sort((a, b) => a.id.localeCompare(b.id));
+    sortPayrolls();
     saveData();
     const meta = data._meta ? `<br><span style="color:var(--text-muted)">Backup del: ${new Date(data._meta.exportedAt).toLocaleString('es-ES')}</span>` : '';
     resultDiv.innerHTML = `<div class="alert alert-info" style="margin-top:0"><div>
@@ -1368,7 +1642,7 @@ function renderBackupView() {
       </div>
       ${payrolls.length > 0 ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <strong style="color:var(--text)">Nóminas almacenadas:</strong><br>
-        ${payrolls.map(p => `<span style="display:inline-block;margin:4px 4px 0 0;padding:3px 10px;border-radius:12px;background:var(--bg2);border:1px solid var(--border);font-size:11px">${p.period?.month} ${p.period?.year}</span>`).join('')}
+        ${payrolls.map(p => `<span style="display:inline-block;margin:4px 4px 0 0;padding:3px 10px;border-radius:12px;background:var(--bg2);border:1px solid ${payTypeOf(p) === 'ordinaria' ? 'var(--border)' : 'var(--warning)'};font-size:11px">${esc(payName(p))}</span>`).join('')}
       </div>` : ''}`;
   }
 }

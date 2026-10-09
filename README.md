@@ -21,6 +21,7 @@
 ✅ Cálculos totales 100% código determinista (nunca un LLM calcula cifras)  
 ✅ Detección de anomalías con reglas auditables (no con LLM "interpretando")  
 ✅ Informes mensuales y anuales en texto plano exportable  
+✅ Pagas extra y atrasos guardados aparte de la mensual (varias nóminas por mes, sin pisarse)  
 ✅ Detección de nóminas duplicadas con aviso antes de sobreescribir  
 ✅ Importación de backups en JSON o ZIP directamente, sin descomprimir  
 ✅ PWA instalable en móvil y escritorio  
@@ -56,8 +57,10 @@ Este repo aplica la filosofía **"código científico, IA divulgadora"** a un ca
 ┌─────────────────────────────────────────────────────────────┐
 │ FASE 2 — Verificación humana (validador determinista)       │
 │ El usuario edita inline cualquier campo mal extraído        │
-│ Detección de duplicados: si el mes/año ya existe,           │
-│ muestra modal de confirmación antes de sobreescribir        │
+│ Tipo de nómina (ordinaria / paga extra / atrasos) detectado │
+│ por reglas sobre los conceptos; el usuario lo confirma      │
+│ Si el hueco mes+tipo ya existe: modal con comparación y     │
+│ opción de guardar aparte en vez de sobreescribir            │
 │ Hasta que confirma, no se calcula nada                      │
 └─────────────────────────────────────────────────────────────┘
                              ↓
@@ -119,10 +122,19 @@ Esto no es "anti-IA". Es IA aplicada donde aporta valor genuino y código aplica
 - Revisión línea por línea de devengos y deducciones
 - **Esta fase es intencionalmente obligatoria**: hasta que no confirmas, no se calcula nada
 
+### Pagas extra, atrasos y varias nóminas en el mismo mes
+- Cada nómina tiene un **tipo**: `Ordinaria`, `Paga extra` o `Atrasos`. Cada tipo tiene su propio hueco en el mes:
+  `2026-07` (mensual), `2026-07-extra` (paga extra), `2026-07-extra-2` (una segunda extra), `2026-07-atrasos`
+- **Detección automática determinista:** si los conceptos de paga extra (Paga Extra, Gratificación extraordinaria, Extra Verano/Navidad…) son ≥60% del bruto, es una paga extra. La *prorrata de pagas extras* de una mensual **no** la convierte en extra, ni las horas extraordinarias. Lo que lee Gemini en la cabecera solo cuenta como pista
+- El tipo se muestra y se puede cambiar en la verificación, antes de guardar
+- **Reclasificar después:** desde el informe de cualquier nómina guardada se puede cambiar su tipo sin volver a procesarla (útil si una extra se guardó como mensual)
+- En el informe anual, las extras suman en los totales pero se excluyen de las comprobaciones de estabilidad (IRPF, base de cotización), porque una extra suele tener base 0 y daría falsas alarmas. Además avisa de los meses sin nómina mensual
+- Compatible con datos y backups anteriores: las nóminas sin tipo se consideran ordinarias
+
 ### Detección de duplicados
-- Al confirmar una nómina, comprueba si ya existe una del mismo mes/año
-- Si existe: modal de confirmación con nombre del período antes de sobreescribir
-- Protege datos verificados y editados manualmente contra sobrescrituras accidentales
+- Al confirmar una nómina, comprueba si su hueco (mes + tipo) ya está ocupado
+- Si lo está: modal con la comparación de bruto/neto de la guardada y la nueva, y opciones: **guardar aparte como paga extra / atrasos**, sustituir la guardada o cancelar
+- Si los importes coinciden, avisa de que probablemente es la misma nómina subida dos veces
 
 ### Backup y sincronización entre dispositivos
 - Backup automático en JSON al guardar cada nómina
@@ -197,7 +209,8 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige c
 
 ### 3️⃣ Guardar
 - Pulsa "Confirmar y Guardar"
-- Si el mes ya existe, aparece un aviso para confirmar antes de sobreescribir
+- Comprueba el **tipo de nómina** (ordinaria / paga extra / atrasos) que aparece arriba en la verificación
+- Si ese hueco ya existe, el aviso te deja guardarla aparte (paga extra, atrasos) o sustituir la anterior
 - Se descarga un backup JSON automáticamente
 
 ### 4️⃣ Ver informes
@@ -300,6 +313,13 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.3 (Octubre 2026)
+- **Pagas extra y atrasos:** varias nóminas por mes sin pisarse. Tipo de nómina con detección automática por conceptos y confirmación en la verificación
+- **Modal de duplicados rediseñado:** compara importes y ofrece guardar aparte en vez de solo sobreescribir
+- **Reclasificar nóminas guardadas** desde su informe (arregla extras guardadas como mensual)
+- **Informe anual:** extras etiquetadas, comprobaciones de estabilidad solo sobre mensuales, aviso de meses sin nómina mensual
+- **Mes normalizado:** "JULIO", "julio" o "7" se guardan como "Julio"; un mes ilegible bloquea el guardado en lugar de crear un hueco erróneo
 
 ### v2.2 (Mayo 2025)
 - **Detección de formato por magic bytes:** un PDF con extensión `.jpg` se detecta y procesa correctamente
