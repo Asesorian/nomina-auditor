@@ -393,7 +393,7 @@ BASES Y TOTALES
 - `sw.js` (~4 KB): modo sin conexión. Solo guarda el código de la app
 
 **Cómo funciona el modo sin conexión (`sw.js`):**
-- `index.html`: red primero (siempre la última versión). Sin red, o si tarda más de 4 s, la copia guardada
+- `index.html`: red primero, preguntando siempre al servidor si hay versión nueva (sin usar los 10 min de caché que permite GitHub Pages). Si no ha cambiado, el servidor responde "sin cambios" y apenas gasta datos. Sin red, o si tarda más de 4 s, la copia guardada
 - Librerías y fuentes: copia guardada primero (sus URLs llevan versión fija)
 - Las llamadas a Gemini (POST) no se interceptan nunca
 - Solo actúa en la web publicada (https). Abierta como archivo local (`file://`) no aplica
@@ -409,6 +409,7 @@ BASES Y TOTALES
 - Aviso visible de "Sin conexión" y botón **Forzar actualización** en Datos (no borra nóminas ni API key)
 - **API key por QR más privada:** viaja tras `#` en el enlace, que no se envía a ningún servidor (antes iba como `?apikey=` y llegaba a GitHub). Los QR antiguos siguen funcionando
 - Las etiquetas de estado de la pantalla Datos vuelven a tener estilo
+- **Corregido:** justo después de publicar una versión, el móvil podía seguir mostrando la anterior hasta 10 minutos (caché de GitHub Pages). Ahora la app pregunta siempre al servidor
 - El nombre de la paga extra o los atrasos aparece bajo el mes con la misma letra que los datos, en negrita (antes, etiqueta naranja)
 
 ### v2.4 (Octubre 2026)

@@ -6,9 +6,10 @@
 // nunca pasan por aquí ni se suben a ningún sitio.
 //
 // Estrategia:
-//  - La app (index.html): primero la red. Con conexión siempre llega la última
-//    versión publicada; sin conexión (o si la red tarda más de 4 s) se abre la
-//    copia guardada. No hace falta tocar nada de este archivo para publicar
+//  - La app (index.html): primero la red, preguntando siempre al servidor
+//    (sin usar la caché HTTP de 10 min de GitHub Pages). Con conexión siempre
+//    llega la última versión publicada; sin conexión (o si la red tarda más
+//    de 4 s) se abre la copia guardada. No hace falta tocar nada de este archivo para publicar
 //    cambios del index.html.
 //  - Librerías (cdnjs) y fuentes (Google Fonts): primero la copia guardada;
 //    sus URLs llevan versión, así que no cambian.
@@ -20,7 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 const CACHE_PREFIX = 'nomina-auditor-';
-const CACHE_VERSION = CACHE_PREFIX + 'sw1';
+const CACHE_VERSION = CACHE_PREFIX + 'sw2';
 const APP_SHELL = './';
 const NETWORK_TIMEOUT_MS = 4000;
 const CDN_ASSETS = [
@@ -57,7 +58,12 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
 
   if (req.mode === 'navigate' && url.origin === self.location.origin) {
-    const network = fetch(req).then(async res => {
+    // Siempre se pregunta al servidor si hay versión nueva: GitHub Pages permite al navegador
+    // reutilizar la página hasta 10 minutos y, sin esto, tras publicar se seguía viendo la vieja.
+    // Si no ha cambiado, el servidor responde "sin cambios" (304) y apenas gasta datos.
+    const network = fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }).then(async res => {
+      // Una navegación no puede responderse con una respuesta redirigida: se reconstruye limpia
+      if (res.redirected) res = new Response(res.body, { status: res.status, statusText: res.statusText, headers: res.headers });
       if (res.ok) {
         const cache = await caches.open(CACHE_VERSION);
         await cache.put(APP_SHELL, res.clone());
