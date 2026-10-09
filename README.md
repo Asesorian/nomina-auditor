@@ -73,7 +73,7 @@ Es gratis. Ver [Configuración API Key](#-configuración-api-key-de-gemini-grati
 - Si el backup automático está activado, se descarga una copia de seguridad
 
 ### 5️⃣ Consulta
-- **Panel:** totales del año (bruto, neto, IRPF, Seguridad Social) y lista de nóminas. Las extras y atrasos llevan una etiqueta de color
+- **Panel:** totales del año (bruto, neto, IRPF, Seguridad Social) y lista de nóminas. Las extras y atrasos muestran su nombre en negrita bajo el mes
 - **Ver** (en cada nómina): informe completo, listo para copiar y enviar a tu abogado
 - **Anual:** tabla de todo el año, totales y observaciones automáticas
 
@@ -409,6 +409,7 @@ BASES Y TOTALES
 - Aviso visible de "Sin conexión" y botón **Forzar actualización** en Datos (no borra nóminas ni API key)
 - **API key por QR más privada:** viaja tras `#` en el enlace, que no se envía a ningún servidor (antes iba como `?apikey=` y llegaba a GitHub). Los QR antiguos siguen funcionando
 - Las etiquetas de estado de la pantalla Datos vuelven a tener estilo
+- El nombre de la paga extra o los atrasos aparece bajo el mes con la misma letra que los datos, en negrita (antes, etiqueta naranja)
 
 ### v2.4 (Octubre 2026)
 - **% de IRPF sin huecos:** si la nómina no lo trae en las bases, se saca de la propia línea de IRPF ("TRIBUTACIÓN IRPF 20,42") o se calcula como importe retenido ÷ base IRPF. Los calculados se marcan con `*`

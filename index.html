@@ -196,9 +196,8 @@ code { font-family:'JetBrains Mono',monospace; }
 .btn-warn { background:transparent;color:var(--warning);border:1px solid var(--warning); }
 .btn-warn:hover { background:var(--warning-bg); }
 /* Tipos de nómina */
-.type-badge { display:inline-block;margin-left:6px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;vertical-align:middle;white-space:nowrap; }
-.type-badge.extra { background:var(--warning-bg);color:var(--warning);border:1px solid rgba(245,158,11,0.35); }
-.type-badge.atrasos { background:rgba(96,165,250,0.08);color:#60a5fa;border:1px solid rgba(96,165,250,0.35); }
+/* Nombre de la paga extra / atrasos: misma letra que los datos, en negrita, en su propia línea bajo el mes */
+.type-badge { display:block;margin-top:2px;font-family:inherit;font-size:inherit;font-weight:800;color:var(--text); }
 .type-picker { display:flex;gap:8px;flex-wrap:wrap; }
 .type-opt { flex:1;min-width:100px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text-dim);cursor:pointer;font-size:12px;font-weight:700;font-family:'Inter',sans-serif; }
 .type-opt.active { border-color:var(--accent);color:var(--accent);background:var(--accent-glow); }
