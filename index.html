@@ -64,9 +64,10 @@ nav { display:flex; gap:4px; margin-left:auto; }
 .api-bar label { font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; white-space:nowrap; }
 .api-bar input { flex:1; background:var(--card); border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:12px; }
 .api-bar input:focus { outline:none; border-color:var(--accent); }
-.api-bar .status { font-size:11px; padding:4px 10px; border-radius:12px; font-weight:600; white-space:nowrap; }
-.api-bar .status.ok { background:var(--success-bg); color:var(--success); }
-.api-bar .status.no { background:var(--danger-bg); color:var(--danger); }
+.status { font-size:11px; padding:4px 10px; border-radius:12px; font-weight:600; white-space:nowrap; }
+.status.ok { background:var(--success-bg); color:var(--success); }
+.status.pending { background:var(--warning-bg); color:var(--warning); }
+.status.no { background:var(--danger-bg); color:var(--danger); }
 .api-bar a { color:var(--accent); font-size:11px; text-decoration:none; white-space:nowrap; }
 .api-bar a:hover { text-decoration:underline; }
 
@@ -205,6 +206,9 @@ code { font-family:'JetBrains Mono',monospace; }
 .cmp th, .cmp td { padding:5px 6px;border-bottom:1px solid var(--border);text-align:left; }
 .cmp td.r, .cmp th.r { text-align:right;font-family:'JetBrains Mono',monospace; }
 .obs-item.info { color:var(--text-dim); }
+.offline-banner { display:flex;gap:8px;align-items:flex-start;padding:10px 24px;background:var(--warning-bg);border-bottom:1px solid rgba(245,158,11,0.35);color:var(--warning);font-size:12px;line-height:1.5; }
+.offline-banner strong { color:var(--warning); }
+@media (max-width:700px) { .offline-banner { padding:10px 16px; } }
 .hidden { display:none !important; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -217,7 +221,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.4</span>
+    <span class="logo-badge">Forense v2.5</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -251,6 +255,8 @@ code { font-family:'JetBrains Mono',monospace; }
   <a href="https://aistudio.google.com/apikey" target="_blank">Obtener gratis →</a>
   <span style="font-size:10px;color:var(--text-muted);margin-left:4px">Si da error "limit:0" → crear proyecto nuevo en console.cloud.google.com</span>
 </div>
+
+<div id="offlineBanner" class="offline-banner hidden">📴 <span><strong>Sin conexión.</strong> Puedes consultar, corregir y exportar tus nóminas. Para procesar una nómina nueva hace falta internet.</span></div>
 
 <!-- ═══════════ DASHBOARD VIEW ═══════════ -->
 <main id="view-dashboard">
@@ -334,6 +340,19 @@ code { font-family:'JetBrains Mono',monospace; }
         Backup automático al guardar cada nómina
       </label>
     </div>
+  </div>
+
+  <!-- Modo sin conexión (solo en la web publicada) -->
+  <div class="card" id="offlineCard" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <h3 style="margin:0;font-size:14px;color:var(--accent)">📲 Modo sin conexión</h3>
+      <span id="offlineStatus" class="status" style="margin-left:auto"></span>
+    </div>
+    <p style="color:var(--text-dim);font-size:12px;line-height:1.6;margin-bottom:12px">
+      La app guarda una copia de sí misma para abrirse sin internet. Con conexión descarga siempre la última versión.
+      Si alguna vez ves una versión antigua, fuerza la actualización: <strong>tus nóminas y tu API key no se borran</strong>.
+    </p>
+    <button class="btn btn-secondary btn-sm" onclick="forceAppUpdate()">🔄 Forzar actualización de la app</button>
   </div>
 
   <!-- Export / Import -->
@@ -834,6 +853,12 @@ dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over
 // ═══════════ PROCESS IMAGE ═══════════
 async function processImage() {
   if (!imageBase64) return;
+  if (!navigator.onLine) {
+    document.getElementById('uploadError').innerHTML = `
+      <div class="alert alert-error" style="margin-top:16px"><div><b>Sin conexión</b><br>
+      Para leer la nómina hace falta internet (la lectura la hace Gemini). Cuando vuelvas a tener conexión, pulsa otra vez "Procesar".</div></div>`;
+    return;
+  }
   const btn = document.getElementById('processBtn');
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span> Extrayendo datos... <span id="processStatus" style="font-weight:400;opacity:0.7"></span>';
@@ -1589,7 +1614,7 @@ function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.4',
+      version: '2.5',
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },
@@ -1717,6 +1742,7 @@ function clearAllData() {
 }
 
 function renderBackupView() {
+  renderOfflineStatus();
   // Update export count
   const countEl = document.getElementById('exportCount');
   if (countEl) countEl.textContent = payrolls.length;
@@ -1755,9 +1781,53 @@ function renderBackupView() {
   }
 }
 
+// ═══════════ MODO SIN CONEXIÓN ═══════════
+// El service worker (sw.js) solo funciona en la web publicada (https).
+// Abierta como archivo local (file://, el acceso directo del PC) no aplica y no hace falta.
+const SW_SUPPORTED = 'serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost');
+
+function updateOnlineStatus() {
+  document.getElementById('offlineBanner').classList.toggle('hidden', navigator.onLine);
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+function renderOfflineStatus() {
+  const card = document.getElementById('offlineCard');
+  const st = document.getElementById('offlineStatus');
+  if (!card || !st) return;
+  if (!SW_SUPPORTED) { card.classList.add('hidden'); return; }
+  const active = !!navigator.serviceWorker.controller;
+  st.textContent = active ? 'Activo' : 'Se activa al reabrir';
+  st.className = 'status ' + (active ? 'ok' : 'pending');
+}
+
+async function forceAppUpdate() {
+  if (!navigator.onLine) { alert('Necesitas conexión para descargar la última versión de la app.'); return; }
+  if (!confirm('Se descargará de nuevo la última versión de la app.\n\nTus nóminas y tu API key NO se borran.')) return;
+  try {
+    const reg = SW_SUPPORTED ? await navigator.serviceWorker.getRegistration() : null;
+    if (reg) await reg.update().catch(() => {});
+    if ('caches' in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter(k => k.startsWith('nomina-auditor-')).map(k => caches.delete(k)));
+    }
+  } catch (e) { /* aunque falle, recargar trae la versión de la red */ }
+  location.reload();
+}
+
+if (SW_SUPPORTED) {
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+    .then(() => navigator.serviceWorker.ready)
+    .then(renderOfflineStatus)
+    .catch(e => console.warn('Modo sin conexión no disponible:', e));
+  navigator.serviceWorker.addEventListener('controllerchange', renderOfflineStatus);
+}
+
 // ═══════════ INIT ═══════════
 loadData();
 renderDashboard();
+updateOnlineStatus();
 </script>
 </body>
 </html>

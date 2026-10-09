@@ -136,6 +136,14 @@ Esto no es "anti-IA". Es IA aplicada donde aporta valor genuino y código aplica
 - Panel, informe anual e informe mensual indican cuándo el % es calculado
 - Se puede corregir a mano en cualquier nómina guardada (Ver → Corregir %)
 
+### Modo sin conexión
+- `sw.js` (service worker) guarda solo el código de la app: `index.html`, JSZip, QRCode.js y las fuentes. Las nóminas y la API key nunca pasan por él
+- `index.html`: red primero (siempre la última versión); sin red o si tarda más de 4 s, la copia guardada
+- Librerías y fuentes: copia guardada primero (URLs con versión fija)
+- Las llamadas a Gemini (POST) no se interceptan nunca
+- Solo actúa en la web publicada (https). Abierta como archivo local (`file://`) no aplica
+- Las cachés usan el prefijo `nomina-auditor-` para no tocar las de otras apps publicadas en el mismo dominio de GitHub Pages
+
 ### Detección de duplicados
 - Al confirmar una nómina, comprueba si su hueco (mes + tipo) ya está ocupado
 - Si lo está: modal con la comparación de bruto/neto de la guardada y la nueva, y opciones: **guardar aparte como paga extra / atrasos**, sustituir la guardada o cancelar
@@ -318,6 +326,12 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.5 (Octubre 2026)
+- **Modo sin conexión:** la app instalada se abre sin internet (consultar, corregir, reclasificar, exportar). Procesar una nómina nueva sigue necesitando conexión (Gemini)
+- Con conexión descarga siempre la última versión publicada (red primero; copia guardada si no hay red o tarda más de 4 s)
+- Aviso visible de "Sin conexión" y botón **Forzar actualización** en Datos (no borra nóminas ni API key)
+- Las etiquetas de estado de la pantalla Datos vuelven a tener estilo
 
 ### v2.4 (Octubre 2026)
 - **% de IRPF sin huecos:** si la nómina no lo trae en las bases, se saca de la propia línea de IRPF ("TRIBUTACIÓN IRPF 20,42") o se calcula como importe retenido ÷ base IRPF. Los calculados se marcan con `*`
