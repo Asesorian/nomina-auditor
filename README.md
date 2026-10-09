@@ -73,7 +73,7 @@ Es gratis. Ver [Configuración API Key](#-configuración-api-key-de-gemini-grati
 - Si el backup automático está activado, se descarga una copia de seguridad
 
 ### 5️⃣ Consulta
-- **Panel:** totales del año (bruto, neto, IRPF, Seguridad Social) y lista de nóminas. Las extras y atrasos muestran su nombre en negrita bajo el mes
+- **Panel:** totales del año (bruto, neto, IRPF, Seguridad Social) y lista de nóminas. Bajo el mes aparece en negrita **Paga extra** o **Atrasos** (y **Paga extra 2** si hay otra el mismo mes)
 - **Ver** (en cada nómina): informe completo, listo para copiar y enviar a tu abogado
 - **Anual:** tabla de todo el año, totales y observaciones automáticas
 
@@ -338,7 +338,7 @@ PERÍODO Y TIPO
 ├─ Mes / Año
 ├─ Fechas de inicio y fin
 ├─ Días trabajados
-└─ Tipo de nómina (mensual / paga extra / atrasos) y su nombre
+└─ Tipo de nómina (mensual / paga extra / atrasos)
 
 DEVENGOS (Ganancias)
 ├─ Salario Base
@@ -410,7 +410,7 @@ BASES Y TOTALES
 - **API key por QR más privada:** viaja tras `#` en el enlace, que no se envía a ningún servidor (antes iba como `?apikey=` y llegaba a GitHub). Los QR antiguos siguen funcionando
 - Las etiquetas de estado de la pantalla Datos vuelven a tener estilo
 - **Corregido:** justo después de publicar una versión, el móvil podía seguir mostrando la anterior hasta 10 minutos (caché de GitHub Pages). Ahora la app pregunta siempre al servidor
-- El nombre de la paga extra o los atrasos aparece bajo el mes con la misma letra que los datos, en negrita (antes, etiqueta naranja)
+- Bajo el mes aparece en negrita, con la misma letra que los datos, **Paga extra** o **Atrasos** (antes, etiqueta naranja con el nombre largo, p. ej. "Paga extra de verano"). Si hay dos extras el mismo mes, la segunda se ve como **Paga extra 2**
 
 ### v2.4 (Octubre 2026)
 - **% de IRPF sin huecos:** si la nómina no lo trae en las bases, se saca de la propia línea de IRPF ("TRIBUTACIÓN IRPF 20,42") o se calcula como importe retenido ÷ base IRPF. Los calculados se marcan con `*`

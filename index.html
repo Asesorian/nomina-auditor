@@ -434,18 +434,13 @@ function normalizeMonth(m) {
 
 function payTypeOf(p) { return PAY_TYPES[p?.payType] ? p.payType : 'ordinaria'; }
 
-function defaultPayLabel(type, month) {
-  if (type === 'atrasos') return 'Atrasos';
-  if (['Junio', 'Julio'].includes(month)) return 'Paga extra de verano';
-  if (['Noviembre', 'Diciembre'].includes(month)) return 'Paga extra de Navidad';
-  return 'Paga extra';
-}
-
+// Nombre corto que se muestra: "Paga extra" o "Atrasos".
+// Si hay más de una en el mismo mes, la segunda se ve como "Paga extra 2" (sale del id: 2026-07-extra-2).
 function payLabelOf(p) {
   const t = payTypeOf(p);
   if (t === 'ordinaria') return '';
-  const custom = String(p.payLabel ?? '').trim();
-  return custom || defaultPayLabel(t, p.period?.month);
+  const n = String(p.id || '').match(/-(?:extra|atrasos)-(\d+)$/);
+  return PAY_TYPES[t].label + (n ? ' ' + n[1] : '');
 }
 
 function payName(p) {
@@ -561,7 +556,6 @@ Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta (sin markdown, s
 
 {
   "payType": "ordinaria",
-  "payLabel": "",
   "period": { "month": "", "year": "", "startDate": "", "endDate": "", "days": 0 },
   "company": { "name": "", "cif": "", "ccc": "" },
   "worker": { "name": "", "naf": "", "dni": "" },
@@ -576,7 +570,6 @@ REGLAS:
 - Importes como números decimales con punto (1234.56), sin símbolo €
 - Si un campo no es legible escribe "N/L"
 - payType: "extra" si el documento es una nómina de paga extraordinaria emitida aparte de la mensual (cabecera o conceptos tipo "Paga Extra", "Gratificación extraordinaria", "Extra Verano/Navidad/Beneficios"); "atrasos" si es una nómina solo de atrasos o diferencias de convenio; "ordinaria" para la nómina mensual normal, AUNQUE incluya la prorrata de pagas extras o la paga extra como una línea más
-- payLabel: el nombre de la paga tal como aparece en el documento (ej: "Paga Extra Verano"); vacío si es ordinaria
 - month debe ser el nombre del mes en español (Enero, Febrero...)
 - year debe ser el año con 4 dígitos
 - Incluye TODOS los conceptos de devengos y deducciones que aparezcan
@@ -892,7 +885,6 @@ function prepareExtracted(d) {
   if (d.period.year !== undefined && d.period.year !== null) d.period.year = String(d.period.year).trim();
   typeDetection = classifyPayroll(d);
   d.payType = typeDetection.type;
-  if (d.payType === 'ordinaria') d.payLabel = '';
   // Si Gemini no rellenó el % de IRPF, se deduce aquí para que lo veas (y corrijas) en la verificación
   d.bases = d.bases || {};
   if (parsePct(d.bases.irpfPercentage) === null) {
@@ -905,7 +897,6 @@ function setPayType(t) {
   if (!extractedData || !PAY_TYPES[t]) return;
   if (payTypeOf(extractedData) !== t) {
     extractedData.payType = t;
-    extractedData.payLabel = ''; // la etiqueta del tipo anterior ya no vale
     if (typeDetection) typeDetection.manual = true;
   }
   renderVerification();
@@ -928,7 +919,6 @@ function renderTypeCard(d) {
           `<button class="type-opt ${k === t ? 'active' : ''}" onclick="setPayType('${k}')">${v.icon} ${v.label}</button>`).join('')}
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.5">${info}</div>
-      ${t !== 'ordinaria' ? `<div style="margin-top:10px;font-size:12px;color:var(--text-dim)">Nombre: <span class="editable" onclick="editField(this,'payLabel')">${esc(payLabelOf(d))}</span></div>` : ''}
       <div style="font-size:12px;color:var(--text-dim);margin-top:8px">Se guardará como: <strong style="color:var(--text)">${esc(payName(d))}</strong></div>
     </div>`;
 }
@@ -1082,7 +1072,7 @@ function editField(el, path, isNumber) {
   const currentVal = getNestedVal(extractedData, path);
   const input = document.createElement('input');
   input.className = 'edit-input';
-  input.value = (path === 'payLabel' && !currentVal) ? payLabelOf(extractedData) : (currentVal ?? '');
+  input.value = currentVal ?? '';
   input.style.width = isNumber ? '100px' : '200px';
 
   const finish = () => {
@@ -1151,7 +1141,7 @@ function openDupModal(draft, existing) {
     btns.push(`<button class="btn ${same ? 'btn-secondary' : 'btn-primary'}" onclick="saveAsType('extra')">💰 Es una paga extra → guardarla aparte</button>`);
     btns.push(`<button class="btn btn-secondary" onclick="saveAsType('atrasos')">📎 Son atrasos → guardarlos aparte</button>`);
   } else {
-    btns.push(`<button class="btn ${same ? 'btn-secondary' : 'btn-primary'}" onclick="saveAsType('${t}')">➕ Es otra ${esc(payLabelOf(draft).toLowerCase())} distinta → guardarla aparte</button>`);
+    btns.push(`<button class="btn ${same ? 'btn-secondary' : 'btn-primary'}" onclick="saveAsType('${t}')">➕ ${t === 'extra' ? 'Es otra paga extra distinta → guardarla aparte' : 'Son otros atrasos distintos → guardarlos aparte'}</button>`);
   }
   btns.push(`<button class="btn btn-warn" onclick="confirmOverwrite()">♻ Sustituir la guardada (se pierde)</button>`);
   btns.push(`<button class="btn ${same ? 'btn-primary' : 'btn-secondary'}" onclick="closeDupModal()">${same ? 'Cancelar — ya la tengo' : 'Cancelar'}</button>`);
@@ -1169,7 +1159,6 @@ function saveAsType(type) {
   const draft = window._pendingPayroll;
   if (!draft) return closeDupModal();
   const p = { ...draft, payType: type };
-  if (type !== payTypeOf(draft)) p.payLabel = '';
   const id = freePayrollId(p);
   closeDupModal();
   doSave({ ...p, id, savedAt: new Date().toISOString() });
@@ -1272,7 +1261,7 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
 function reclassifyPayroll(id, newType) {
   const p = payrolls.find(x => x.id === id);
   if (!p || !PAY_TYPES[newType] || payTypeOf(p) === newType) return;
-  const moved = { ...p, payType: newType, payLabel: '' };
+  const moved = { ...p, payType: newType };
   const newId = freePayrollId(moved, id);
   if (!newId) {
     alert(`Ya existe la nómina ordinaria de ${p.period?.month} ${p.period?.year}.\n\nSi esa también está mal clasificada, cámbiala primero y vuelve a intentarlo.`);
