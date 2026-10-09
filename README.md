@@ -131,6 +131,11 @@ Esto no es "anti-IA". Es IA aplicada donde aporta valor genuino y código aplica
 - En el informe anual, las extras suman en los totales pero se excluyen de las comprobaciones de estabilidad (IRPF, base de cotización), porque una extra suele tener base 0 y daría falsas alarmas. Además avisa de los meses sin nómina mensual
 - Compatible con datos y backups anteriores: las nóminas sin tipo se consideran ordinarias
 
+### % de retención de IRPF
+- Orden determinista: % de las bases → % impreso en la línea de IRPF → importe ÷ base IRPF → importe ÷ bruto (aproximado)
+- Panel, informe anual e informe mensual indican cuándo el % es calculado
+- Se puede corregir a mano en cualquier nómina guardada (Ver → Corregir %)
+
 ### Detección de duplicados
 - Al confirmar una nómina, comprueba si su hueco (mes + tipo) ya está ocupado
 - Si lo está: modal con la comparación de bruto/neto de la guardada y la nueva, y opciones: **guardar aparte como paga extra / atrasos**, sustituir la guardada o cancelar
@@ -313,6 +318,13 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.4 (Octubre 2026)
+- **% de IRPF sin huecos:** si la nómina no lo trae en las bases, se saca de la propia línea de IRPF ("TRIBUTACIÓN IRPF 20,42") o se calcula como importe retenido ÷ base IRPF. Los calculados se marcan con `*`
+- **Corregir el % de IRPF a mano** desde el informe de cualquier nómina guardada (Ver → Corregir %); vacío vuelve al cálculo automático
+- El % de IRPF aparece en el informe para el abogado con su origen (leído, deducido, calculado o corregido a mano)
+- **Edición con coma:** al corregir un número en la verificación, "20,5" ahora se guarda como 20,5 (antes se quedaba en 20)
+- El tipo "Ordinaria" pasa a llamarse **Mensual**, con texto que aclara para qué sirve
 
 ### v2.3 (Octubre 2026)
 - **Pagas extra y atrasos:** varias nóminas por mes sin pisarse. Tipo de nómina con detección automática por conceptos y confirmación en la verificación
