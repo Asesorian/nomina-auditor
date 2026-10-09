@@ -685,16 +685,22 @@ function updateProcessStatus(msg) {
 // QR PATCH - se inyectará en index.html
 
 // Leer apikey desde URL (para QR móvil)
-(function() {
+// Va tras "#" (fragmento): esa parte de la dirección nunca se envía a ningún servidor.
+// También se acepta "?apikey=" para que sigan funcionando los QR generados con versiones anteriores.
+function readApiKeyFromUrl() {
   var params = new URLSearchParams(window.location.search);
-  var keyFromUrl = params.get('apikey');
+  var hashParams = new URLSearchParams(window.location.hash.slice(1));
+  var keyFromUrl = hashParams.get('apikey') || params.get('apikey');
   if (keyFromUrl) {
     localStorage.setItem('nomina-auditor-apikey', keyFromUrl);
     window.history.replaceState({}, document.title, window.location.pathname);
     // Recargar para que la app lo detecte
     window.location.reload();
   }
-})();
+}
+readApiKeyFromUrl();
+// Si la app ya estaba abierta en esa pestaña, un cambio tras "#" no recarga la página
+window.addEventListener('hashchange', readApiKeyFromUrl);
 
 function toggleKeyVis() {
   var inp = document.getElementById('apiKeyInput');
@@ -706,7 +712,7 @@ function toggleKeyVis() {
 function showApiQR() {
   var key = localStorage.getItem('nomina-auditor-apikey') || '';
   if (!key) { alert('Primero guarda una API Key válida'); return; }
-  var url = 'https://asesorian.github.io/nomina-auditor/?apikey=' + encodeURIComponent(key);
+  var url = 'https://asesorian.github.io/nomina-auditor/#apikey=' + encodeURIComponent(key);
   
   // Crear o reutilizar modal
   var existing = document.getElementById('qrModalDiv');
