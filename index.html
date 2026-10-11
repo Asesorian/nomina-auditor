@@ -208,6 +208,18 @@ code { font-family:'JetBrains Mono',monospace; }
 .offline-banner { display:flex;gap:8px;align-items:flex-start;padding:10px 24px;background:var(--warning-bg);border-bottom:1px solid rgba(245,158,11,0.35);color:var(--warning);font-size:12px;line-height:1.5; }
 .offline-banner strong { color:var(--warning); }
 @media (max-width:700px) { .offline-banner { padding:10px 16px; } }
+/* Documentos originales */
+.upload-actions { display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:16px; }
+.clip { font-size:11px;opacity:0.75;margin-left:4px; }
+.doc-actions { display:flex;gap:8px;flex-wrap:wrap;margin-top:10px; }
+.doc-meta { font-size:12px;color:var(--text-dim);line-height:1.5; }
+.doc-meta strong { color:var(--text); }
+.keep-original { display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--text-dim);margin:4px 0 0;cursor:pointer;line-height:1.5; }
+.keep-original input { accent-color:var(--accent);width:16px;height:16px;margin-top:1px;flex-shrink:0; }
+.doc-viewer { background:var(--card);border:1px solid var(--border);border-radius:12px;width:95%;max-width:900px;max-height:92vh;overflow:auto; }
+.doc-viewer-bar { position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border-bottom:1px solid var(--border);font-size:12px;color:var(--text-dim); }
+.doc-viewer img { display:block;width:100%;height:auto;background:#fff; }
+.data-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:14px; }
 .hidden { display:none !important; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -220,7 +232,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.5</span>
+    <span class="logo-badge">Forense v2.6</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -277,16 +289,21 @@ code { font-family:'JetBrains Mono',monospace; }
 <!-- ═══════════ UPLOAD VIEW ═══════════ -->
 <main id="view-upload" class="hidden">
   <h2>Subir Nómina</h2>
-  <p class="subtitle">Arrastra una foto de tu nómina para extraer los datos automáticamente con IA</p>
+  <p class="subtitle">Haz una foto de tu nómina o elige el archivo: la IA extrae los datos y tú los revisas</p>
 
   <!-- Upload phase -->
   <div id="uploadPhase">
     <div class="dropzone card" id="dropzone" onclick="document.getElementById('fileInput').click()">
       <input type="file" id="fileInput" accept="image/*,.avif,.heic,.heif,.pdf,application/pdf" style="display:none" onchange="handleFile(this.files[0])">
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" onchange="handleFile(this.files[0])">
       <div id="dropContent">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        <p class="dropzone-text" style="margin-top:12px">Arrastra una foto de tu nómina aquí o haz clic para seleccionar</p>
-        <p class="dropzone-hint">Foto con el móvil (JPG, PNG, AVIF...) o PDF — detección automática de formato</p>
+        <p class="dropzone-text" style="margin-top:12px">Haz una foto de tu nómina o elige el archivo</p>
+        <div class="upload-actions">
+          <button class="btn btn-primary" type="button" onclick="event.stopPropagation();document.getElementById('cameraInput').click()">📷 Hacer foto</button>
+          <button class="btn btn-secondary" type="button" onclick="event.stopPropagation();document.getElementById('fileInput').click()">📁 Elegir archivo</button>
+        </div>
+        <p class="dropzone-hint">Foto (JPG, PNG, HEIC…) o PDF · En el ordenador también puedes arrastrarla aquí · La foto se guarda junto a la nómina, solo en este dispositivo</p>
       </div>
       <img id="previewImg" class="hidden" alt="Nómina">
     </div>
@@ -355,19 +372,27 @@ code { font-family:'JetBrains Mono',monospace; }
   </div>
 
   <!-- Export / Import -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+  <div class="data-grid">
     <div class="card" style="text-align:center;padding:30px 20px">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="margin-bottom:12px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      <h3 style="font-size:14px;color:var(--accent);margin-bottom:6px">Exportar Datos</h3>
-      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">Descarga todas tus nóminas en un archivo JSON</p>
+      <h3 style="font-size:14px;color:var(--accent);margin-bottom:6px">Exportar datos</h3>
+      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">Solo los datos de tus nóminas, en un archivo JSON ligero. Es el mismo que el backup automático.</p>
       <button class="btn btn-primary" onclick="exportBackup()" id="exportBtn">
-        💾 Exportar todo (<span id="exportCount">0</span> nóminas)
+        <span>💾 Exportar datos (<span id="exportCount">0</span> nóminas)</span>
+      </button>
+    </div>
+    <div class="card" style="text-align:center;padding:30px 20px">
+      <div style="font-size:28px;margin-bottom:8px">🗂️</div>
+      <h3 style="font-size:14px;color:var(--accent);margin-bottom:6px">Backup completo</h3>
+      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">Datos <strong>y documentos originales</strong> en un ZIP ordenado por año. Guárdalo en Drive o donde quieras: sirve para restaurarlo todo en otro dispositivo.</p>
+      <button class="btn btn-primary" onclick="exportFullBackup()" id="fullBackupBtn">
+        🗂️ Descargar backup completo
       </button>
     </div>
     <div class="card" style="text-align:center;padding:30px 20px">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="2" style="margin-bottom:12px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      <h3 style="font-size:14px;color:var(--info);margin-bottom:6px">Restaurar Datos</h3>
-      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">Importa un archivo JSON de backup anterior</p>
+      <h3 style="font-size:14px;color:var(--info);margin-bottom:6px">Restaurar datos</h3>
+      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">Importa un backup de datos (.json) o un backup completo (.zip, con documentos)</p>
       <button class="btn btn-secondary" style="color:var(--info);border-color:var(--info)" onclick="document.getElementById('importFileInput').click()">
         📂 Importar backup
       </button>
@@ -394,7 +419,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <!-- Danger zone -->
   <div class="card" style="border-color:var(--danger)">
     <h3 style="margin:0 0 8px;font-size:13px;color:var(--danger)">⚠ Zona Peligrosa</h3>
-    <p style="color:var(--text-dim);font-size:12px;margin-bottom:12px">Eliminar todos los datos. Esta acción no se puede deshacer.</p>
+    <p style="color:var(--text-dim);font-size:12px;margin-bottom:12px">Eliminar todas las nóminas y sus documentos originales de este dispositivo. Esta acción no se puede deshacer.</p>
     <button class="btn btn-danger" onclick="clearAllData()">🗑 Borrar todos los datos</button>
   </div>
 </main>
@@ -407,6 +432,9 @@ let currentYear = new Date().getFullYear().toString();
 let extractedData = null;
 let imageBase64 = null;
 let imageMediaType = 'image/jpeg';
+let pendingFileName = '';   // nombre del archivo que eligió el usuario
+let keepOriginal = true;    // casilla "Guardar también el documento original"
+let savingPayroll = false;  // evita guardar dos veces con un doble toque
 
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
@@ -524,6 +552,126 @@ function updateApiStatus(key) {
   const el = document.getElementById('apiStatus');
   if (key && key.length > 10) { el.textContent = '✓ Configurada'; el.className = 'status ok'; }
   else { el.textContent = 'Sin Key'; el.className = 'status no'; }
+}
+
+// ═══════════ DOCUMENTOS ORIGINALES ═══════════
+// La foto o el PDF de cada nómina se guarda SOLO en este dispositivo (IndexedDB del navegador).
+// Nunca se sube a ningún servidor. La nómina guarda solo una referencia: p.original = { key, type, size, name, savedAt }.
+// Así reclasificar (cambia el id) no mueve el documento, y un backup de solo datos nunca lo borra.
+const DOC_DB = 'nomina-auditor-docs';
+const DOC_STORE = 'docs';
+let docKeys = new Set();   // documentos presentes en este dispositivo
+let docDbPromise = null;
+
+function openDocDB() {
+  if (!docDbPromise) {
+    docDbPromise = new Promise((resolve, reject) => {
+      if (!('indexedDB' in window)) { reject(new Error('Este navegador no permite guardar documentos')); return; }
+      const req = indexedDB.open(DOC_DB, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(DOC_STORE);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    docDbPromise.catch(() => { docDbPromise = null; });
+  }
+  return docDbPromise;
+}
+
+async function docTx(mode, fn) {
+  const db = await openDocDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(DOC_STORE, mode);
+    const req = fn(tx.objectStore(DOC_STORE));
+    let result;
+    if (req) req.onsuccess = () => { result = req.result; };
+    tx.oncomplete = () => resolve(result);
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error || new Error('Operación cancelada (¿sin espacio?)'));
+  });
+}
+const putDoc = (key, rec) => docTx('readwrite', s => s.put(rec, key));
+const getDoc = key => docTx('readonly', s => s.get(key));
+const deleteDoc = key => docTx('readwrite', s => s.delete(key));
+const clearDocs = () => docTx('readwrite', s => s.clear());
+const listDocKeys = () => docTx('readonly', s => s.getAllKeys());
+
+async function refreshDocKeys() {
+  try { docKeys = new Set(await listDocKeys()); } catch { docKeys = new Set(); }
+}
+
+function hasOriginal(p) { return !!(p?.original?.key && docKeys.has(p.original.key)); }
+
+function newDocKey() {
+  const rnd = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  return 'doc-' + rnd;
+}
+
+function b64ToArrayBuffer(b64) {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes.buffer;
+}
+
+function docExt(type) { return type === 'application/pdf' ? 'pdf' : 'jpg'; }
+
+// Nombre ordenado y automático: "2026-07 Julio - Paga extra.pdf"
+function originalFileName(p, type) {
+  const idx = MONTHS.indexOf(p.period?.month);
+  const base = idx >= 0 && /^\d{4}$/.test(String(p.period?.year))
+    ? `${p.period.year}-${String(idx + 1).padStart(2, '0')} ${p.period.month}`
+    : (p.id || 'nomina');
+  const lbl = payLabelOf(p);
+  return `${base}${lbl ? ' - ' + lbl : ''}.${docExt(type || p.original?.type)}`;
+}
+
+function fmtBytes(n) {
+  if (!n) return '0 KB';
+  return n < 1024 * 1024 ? Math.max(1, Math.round(n / 1024)) + ' KB' : (n / 1024 / 1024).toFixed(1).replace('.', ',') + ' MB';
+}
+
+// Pide al navegador que no borre los datos de la app si el móvil se queda sin espacio
+function requestPersistentStorage() {
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch {}
+}
+
+async function storeOriginal(base64, type, name) {
+  const data = b64ToArrayBuffer(base64);
+  const key = newDocKey();
+  const rec = { data, type, name: name || '', size: data.byteLength, savedAt: new Date().toISOString() };
+  await putDoc(key, rec);
+  docKeys.add(key);
+  requestPersistentStorage();
+  return { key, type, size: rec.size, name: rec.name, savedAt: rec.savedAt };
+}
+
+async function discardOriginal(meta) {
+  if (!meta?.key) return;
+  try { await deleteDoc(meta.key); } catch {}
+  docKeys.delete(meta.key);
+}
+
+async function originalAsFile(p) {
+  const rec = await getDoc(p.original.key);
+  if (!rec) throw new Error('El documento ya no está en este dispositivo');
+  return new File([rec.data], originalFileName(p, rec.type), { type: rec.type });
+}
+
+function canShareFiles() {
+  try {
+    return !!(navigator.canShare && navigator.canShare({ files: [new File(['x'], 'prueba.pdf', { type: 'application/pdf' })] }));
+  } catch { return false; }
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 
 // ═══════════ FORMATTING ═══════════
@@ -765,39 +913,28 @@ function showPreviewPDF() {
   preview.classList.remove('hidden');
 }
 
-function handleFile(file) {
-  if (!file) return;
-
-  // Leer primero como ArrayBuffer para detectar magic bytes
-  const sniffer = new FileReader();
-  sniffer.onload = (sniffEvt) => {
-    const isPdf = isPDF(sniffEvt.target.result);
-
-    if (isPdf) {
-      // ── PDF ── leer como base64 y enviar como application/pdf
-      const pdfReader = new FileReader();
-      pdfReader.onload = (e) => {
-        imageBase64 = e.target.result.split(',')[1];
-        imageMediaType = 'application/pdf';
-        showPreviewPDF();
-        document.getElementById('dropContent').classList.add('hidden');
-        document.getElementById('uploadBtns').classList.remove('hidden');
-        document.getElementById('uploadError').innerHTML =
-          '<div class="alert alert-info" style="margin-top:8px">📄 PDF detectado — se enviará directamente a Gemini</div>';
-      };
-      pdfReader.readAsDataURL(file);
-
-    } else {
-      // ── IMAGEN ── convertir a JPEG via Canvas (AVIF, HEIC, WebP, PNG, BMP...)
-      const imgReader = new FileReader();
-      imgReader.onload = (e) => {
+// Lee una foto o un PDF de nómina y lo deja listo para Gemini y para guardarlo:
+//  - PDF (detectado por su contenido, no por la extensión): tal cual
+//  - Imagen (JPG, PNG, HEIC, AVIF, WebP…): convertida a JPEG, máx. 2500 px
+function readNominaFile(file) {
+  return new Promise((resolve, reject) => {
+    const sniffer = new FileReader();
+    sniffer.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    sniffer.onload = () => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+      if (isPDF(sniffer.result)) {
+        reader.onload = () => resolve({ base64: reader.result.split(',')[1], type: 'application/pdf', name: file.name || '' });
+        reader.readAsDataURL(file);
+        return;
+      }
+      reader.onload = () => {
         const img = new Image();
         img.onload = () => {
-          // Redimensionar si es muy grande (>2500px) para no saturar la API
-          const MAX = 2500;
+          const MAX = 2500;   // redimensionar si es muy grande para no saturar la API
           let w = img.naturalWidth, h = img.naturalHeight;
           if (w > MAX || h > MAX) {
-            const ratio = Math.min(MAX/w, MAX/h);
+            const ratio = Math.min(MAX / w, MAX / h);
             w = Math.round(w * ratio);
             h = Math.round(h * ratio);
           }
@@ -808,35 +945,53 @@ function handleFile(file) {
           ctx.fillRect(0, 0, w, h);
           ctx.drawImage(img, 0, 0, w, h);
           const jpeg = canvas.toDataURL('image/jpeg', 0.92);
-          imageBase64 = jpeg.split(',')[1];
-          imageMediaType = 'image/jpeg';
-          const preview = document.getElementById('previewImg');
-          preview.src = jpeg;
-          preview.classList.remove('hidden');
-          document.getElementById('dropContent').classList.add('hidden');
-          document.getElementById('uploadBtns').classList.remove('hidden');
-          document.getElementById('uploadError').innerHTML = '';
+          resolve({ base64: jpeg.split(',')[1], type: 'image/jpeg', name: file.name || '', dataUrl: jpeg });
         };
-        img.onerror = () => {
-          document.getElementById('uploadError').innerHTML =
-            '<div class="alert alert-error" style="margin-top:16px"><b>Formato no reconocido</b><br>Prueba con JPG, PNG o PDF.</div>';
-        };
-        img.src = e.target.result;
+        img.onerror = () => reject(new Error('FORMATO'));
+        img.src = reader.result;
       };
-      imgReader.readAsDataURL(file);
+      reader.readAsDataURL(file);
+    };
+    sniffer.readAsArrayBuffer(file.slice(0, 5));
+  });
+}
+
+async function handleFile(file) {
+  if (!file) return;
+  try {
+    const f = await readNominaFile(file);
+    imageBase64 = f.base64;
+    imageMediaType = f.type;
+    pendingFileName = f.name;
+    if (f.type === 'application/pdf') {
+      showPreviewPDF();
+      document.getElementById('uploadError').innerHTML =
+        '<div class="alert alert-info" style="margin-top:8px">📄 PDF detectado — se enviará directamente a Gemini</div>';
+    } else {
+      const preview = document.getElementById('previewImg');
+      preview.src = f.dataUrl;
+      preview.classList.remove('hidden');
+      document.getElementById('uploadError').innerHTML = '';
     }
-  };
-  sniffer.readAsArrayBuffer(file.slice(0, 5));
+    document.getElementById('dropContent').classList.add('hidden');
+    document.getElementById('uploadBtns').classList.remove('hidden');
+  } catch (e) {
+    document.getElementById('uploadError').innerHTML =
+      '<div class="alert alert-error" style="margin-top:16px"><b>Formato no reconocido</b><br>Prueba con JPG, PNG o PDF.</div>';
+  }
 }
 
 function clearUpload() {
   imageBase64 = null;
   extractedData = null;
   typeDetection = null;
+  pendingFileName = '';
+  keepOriginal = true;
   document.getElementById('previewImg').classList.add('hidden');
   document.getElementById('dropContent').classList.remove('hidden');
   document.getElementById('uploadBtns').classList.add('hidden');
   document.getElementById('fileInput').value = '';
+  document.getElementById('cameraInput').value = '';
   document.getElementById('uploadError').innerHTML = '';
   document.getElementById('uploadPhase').classList.remove('hidden');
   document.getElementById('verifyPhase').classList.add('hidden');
@@ -1027,6 +1182,11 @@ function renderVerification() {
       </div>
     </div>
 
+    ${imageBase64 ? `<label class="keep-original">
+      <input type="checkbox" ${keepOriginal ? 'checked' : ''} onchange="keepOriginal=this.checked">
+      <span>📎 Guardar también el documento original (${imageMediaType === 'application/pdf' ? 'PDF' : 'foto'}) junto a esta nómina. Se queda solo en este dispositivo.</span>
+    </label>` : ''}
+
     <div class="btn-group">
       <button class="btn btn-primary" onclick="confirmAndSave()">✓ Confirmar y Guardar</button>
       <button class="btn btn-secondary" onclick="clearUpload()">Descartar</button>
@@ -1170,14 +1330,33 @@ function confirmOverwrite() {
   if (draft && id) doSave({ ...draft, id, savedAt: new Date().toISOString() });
 }
 
-function doSave(payroll) {
-  payrolls = payrolls.filter(p => p.id !== payroll.id);
-  payrolls.push(payroll);
-  sortPayrolls();
-  saveData();
-  if (isAutoBackupEnabled()) autoBackup();
-  clearUpload();
-  showReport(payroll);
+async function doSave(payroll) {
+  if (savingPayroll) return;
+  savingPayroll = true;
+  try {
+    const replaced = payrolls.find(p => p.id === payroll.id);
+    delete payroll.original;
+    let docWarning = '';
+    if (keepOriginal && imageBase64) {
+      try { payroll.original = await storeOriginal(imageBase64, imageMediaType, pendingFileName); }
+      catch (e) { docWarning = `No se pudo guardar el documento original en este dispositivo (${e.message || e}).\n\nLos datos de la nómina sí se han guardado.`; }
+    }
+    if (replaced?.original) {
+      // Al sustituir: si hay documento nuevo, el de la nómina sustituida sobra; si no, se conserva (nunca se pierde un original sin querer)
+      if (payroll.original) { if (replaced.original.key !== payroll.original.key) await discardOriginal(replaced.original); }
+      else payroll.original = replaced.original;
+    }
+    payrolls = payrolls.filter(p => p.id !== payroll.id);
+    payrolls.push(payroll);
+    sortPayrolls();
+    saveData();
+    if (isAutoBackupEnabled()) autoBackup();
+    clearUpload();
+    showReport(payroll);
+    if (docWarning) alert(docWarning);
+  } finally {
+    savingPayroll = false;
+  }
 }
 
 // ═══════════ MONTHLY REPORT (FASE 2) ═══════════
@@ -1245,6 +1424,11 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
         <button class="btn btn-secondary btn-sm" onclick="editIrpf('${p.id}')">✏ Corregir %</button>
       </div>
     </div>
+    <div class="card" style="padding:14px 16px">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">📎 Documento original</div>
+      <div id="originalBody" class="doc-meta"></div>
+      <input type="file" id="attachInput" accept="image/*,.avif,.heic,.heif,.pdf,application/pdf" style="display:none" onchange="attachOriginal('${p.id}', this.files[0])">
+    </div>
     <div class="card">
       <pre class="report-pre">${esc(reportText)}</pre>
     </div>
@@ -1255,6 +1439,128 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
 
   // Store for copy
   document.getElementById('reportContent')._reportText = reportText;
+  renderOriginalBody(p);
+}
+
+// ── Documento original de una nómina guardada ──
+let originalCache = null; // { key, file } precargado para poder compartir al instante (los móviles exigen que sea en el mismo toque)
+
+function renderOriginalBody(p) {
+  const el = document.getElementById('originalBody');
+  if (!el) return;
+  const id = p.id;
+  if (hasOriginal(p)) {
+    const o = p.original;
+    const saved = o.savedAt ? new Date(o.savedAt).toLocaleDateString('es-ES') : '';
+    el.innerHTML = `
+      <div><strong>${esc(originalFileName(p))}</strong></div>
+      <div style="color:var(--text-muted);font-size:11px">${o.type === 'application/pdf' ? 'PDF' : 'Foto'} · ${fmtBytes(o.size)}${saved ? ' · guardado el ' + saved : ''} · solo en este dispositivo</div>
+      <div class="doc-actions">
+        <button class="btn btn-secondary btn-sm" onclick="viewOriginal('${id}')">👁 Ver</button>
+        ${canShareFiles() ? `<button class="btn btn-secondary btn-sm" onclick="shareOriginal('${id}')">📤 Guardar en… (Drive, iCloud…)</button>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="downloadOriginal('${id}')">⬇ Descargar</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('attachInput').click()">🔄 Cambiar</button>
+        <button class="btn btn-danger" onclick="removeOriginal('${id}')">🗑 Quitar</button>
+      </div>`;
+    originalCache = null;
+    originalAsFile(p).then(file => { originalCache = { key: o.key, file }; }).catch(() => {});
+  } else {
+    const elsewhere = p.original?.key
+      ? `<div style="color:var(--warning);margin-bottom:6px">El original de esta nómina se guardó en otro dispositivo. Puedes traerlo con un <strong>backup completo</strong> o adjuntarlo aquí.</div>`
+      : '';
+    el.innerHTML = `${elsewhere}
+      <div>Esta nómina no tiene guardado el documento original. Adjunta la foto o el PDF y quedará guardado junto a ella, con nombre automático.</div>
+      <div style="color:var(--text-muted);font-size:11px;margin-top:4px">No se vuelve a procesar con la IA, así que no gasta lecturas.</div>
+      <div class="doc-actions">
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('attachInput').click()">📎 Adjuntar original</button>
+      </div>`;
+  }
+}
+
+async function attachOriginal(id, file) {
+  const input = document.getElementById('attachInput');
+  const p = payrolls.find(x => x.id === id);
+  if (!file || !p) return;
+  try {
+    const f = await readNominaFile(file);
+    const meta = await storeOriginal(f.base64, f.type, f.name);
+    const old = p.original;
+    p.original = meta;
+    saveData();
+    if (old && old.key !== meta.key) await discardOriginal(old);
+    renderOriginalBody(p);
+  } catch (e) {
+    alert(e.message === 'FORMATO' ? 'Formato no reconocido. Prueba con JPG, PNG o PDF.' : `No se pudo guardar el documento: ${e.message || e}`);
+  } finally {
+    if (input) input.value = '';
+  }
+}
+
+async function viewOriginal(id) {
+  const p = payrolls.find(x => x.id === id);
+  if (!hasOriginal(p)) return;
+  try {
+    const file = await originalAsFile(p);
+    const url = URL.createObjectURL(file);
+    if (file.type === 'application/pdf') {
+      const w = window.open(url, '_blank');
+      if (!w) downloadBlob(file, file.name);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } else {
+      showDocViewer(url, file.name);
+    }
+  } catch (e) { alert(e.message || e); }
+}
+
+function showDocViewer(url, title) {
+  closeDocViewer();
+  const m = document.createElement('div');
+  m.className = 'modal-overlay';
+  m.id = 'docViewer';
+  m.innerHTML = `<div class="doc-viewer">
+    <div class="doc-viewer-bar"><span>${esc(title)}</span><button class="btn btn-secondary btn-sm" onclick="closeDocViewer()">✕ Cerrar</button></div>
+    <img src="${url}" alt="${esc(title)}">
+  </div>`;
+  m.onclick = e => { if (e.target === m) closeDocViewer(); };
+  m._url = url;
+  document.body.appendChild(m);
+}
+
+function closeDocViewer() {
+  const m = document.getElementById('docViewer');
+  if (!m) return;
+  if (m._url) URL.revokeObjectURL(m._url);
+  m.remove();
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDocViewer(); });
+
+async function shareOriginal(id) {
+  const p = payrolls.find(x => x.id === id);
+  if (!hasOriginal(p)) return;
+  try {
+    const file = (originalCache && originalCache.key === p.original.key) ? originalCache.file : await originalAsFile(p);
+    if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: file.name });
+    else downloadBlob(file, file.name);
+  } catch (e) {
+    if (e.name !== 'AbortError') alert(`No se pudo compartir: ${e.message || e}\n\nPrueba con "Descargar".`);
+  }
+}
+
+async function downloadOriginal(id) {
+  const p = payrolls.find(x => x.id === id);
+  if (!hasOriginal(p)) return;
+  try { const file = await originalAsFile(p); downloadBlob(file, file.name); }
+  catch (e) { alert(e.message || e); }
+}
+
+async function removeOriginal(id) {
+  const p = payrolls.find(x => x.id === id);
+  if (!p?.original) return;
+  if (!confirm(`¿Quitar el documento original de ${payName(p)}?\n\nLos datos de la nómina no se borran.`)) return;
+  await discardOriginal(p.original);
+  delete p.original;
+  saveData();
+  renderOriginalBody(p);
 }
 
 // Cambia el tipo de una nómina ya guardada (p.ej. una paga extra que machacó la mensual)
@@ -1318,13 +1624,14 @@ function renderDashboard() {
     return;
   }
 
+  const missingDocs = fp.filter(p => !hasOriginal(p)).length;
   document.getElementById('dashTable').innerHTML = `
     <h3 style="margin:0 0 16px;font-size:14px;color:var(--accent)">Nóminas Procesadas</h3>
     <table>
       <thead><tr><th>Periodo</th><th class="r">Bruto</th><th class="r">Neto</th><th class="r">IRPF %</th><th style="text-align:center">Acciones</th></tr></thead>
       <tbody>
         ${fp.map(p => `<tr class="clickable" ondblclick="showReport(payrolls.find(x=>x.id==='${p.id}'))">
-          <td>${esc(p.period?.month)} ${esc(p.period?.year)}${typeBadge(p)}</td>
+          <td>${esc(p.period?.month)} ${esc(p.period?.year)}${hasOriginal(p) ? '<span class="clip" title="Documento original guardado">📎</span>' : ''}${typeBadge(p)}</td>
           <td class="r">${fmt(p.totals?.grossTotal)} €</td>
           <td class="r">${fmt(p.totals?.netPay)} €</td>
           <td class="r">${irpfCell(p)}</td>
@@ -1337,13 +1644,19 @@ function renderDashboard() {
     </table>
     ${fp.some(p => irpfCell(p).endsWith('*') || irpfCell(p) === 'N/L') ? `<div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.5">
       * % de IRPF calculado porque no venía en la nómina. N/L: no se ha podido sacar. Puedes corregir cualquiera de los dos en <strong>Ver → Corregir %</strong>.
+    </div>` : ''}
+    ${missingDocs ? `<div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">
+      📎 = documento original guardado. ${missingDocs === fp.length
+        ? 'Todavía no hay ninguno guardado en este año'
+        : `${missingDocs === 1 ? 'A 1 nómina le falta' : `A ${missingDocs} nóminas les falta`}`}: puedes adjuntarlo en <strong>Ver → Adjuntar original</strong>.
     </div>` : ''}`;
 }
 
-function deletePayroll(id) {
+async function deletePayroll(id) {
   const p = payrolls.find(x => x.id === id);
-  if (!confirm(`¿Eliminar la nómina ${p ? payName(p) : ''}?`)) return;
-  payrolls = payrolls.filter(p => p.id !== id);
+  if (!confirm(`¿Eliminar la nómina ${p ? payName(p) : ''}?${hasOriginal(p) ? '\n\nTambién se borrará su documento original de este dispositivo.' : ''}`)) return;
+  if (p?.original) await discardOriginal(p.original);
+  payrolls = payrolls.filter(x => x.id !== id);
   saveData();
   renderDashboard();
 }
@@ -1608,7 +1921,7 @@ function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.5',
+      version: '2.6',
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },
@@ -1649,12 +1962,59 @@ function exportBackup() {
   }
 }
 
+// Backup completo: ZIP con nominas.json + documentos/AÑO/"2026-07 Julio - Paga extra.pdf"
+async function exportFullBackup() {
+  if (payrolls.length === 0) { alert('No hay nóminas para exportar.'); return; }
+  if (typeof JSZip === 'undefined') { alert('No se ha podido cargar el compresor ZIP. Comprueba la conexión y vuelve a intentarlo.'); return; }
+  const btn = document.getElementById('fullBackupBtn');
+  const orig = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Preparando…'; }
+  try {
+    const zip = new JSZip();
+    const data = createBackupData();
+    data._meta.documents = {};
+    const used = new Set();
+    let nDocs = 0;
+    for (const p of payrolls) {
+      if (!hasOriginal(p)) continue;
+      const rec = await getDoc(p.original.key);
+      if (!rec) continue;
+      const year = /^\d{4}$/.test(String(p.period?.year)) ? p.period.year : 'otros';
+      let name = originalFileName(p, rec.type), n = 2;
+      while (used.has(`${year}/${name}`)) name = originalFileName(p, rec.type).replace(/(\.\w+)$/, ` (${n++})$1`);
+      used.add(`${year}/${name}`);
+      const path = `documentos/${year}/${name}`;
+      zip.file(path, rec.data);
+      data._meta.documents[p.original.key] = path;
+      nDocs++;
+    }
+    data._meta.totalDocuments = nDocs;
+    zip.file('nominas.json', JSON.stringify(data, null, 2));
+    zip.file('LEEME.txt',
+      'Backup completo de Nómina Auditor\n\n' +
+      '- nominas.json: los datos de tus nóminas.\n' +
+      '- documentos/: las fotos y PDF originales, ordenados por año.\n\n' +
+      'Para restaurarlo todo: en la app, Datos → Importar backup y elige este ZIP.\n' +
+      'Contiene datos personales (DNI, salario…): guárdalo en un sitio privado.\n');
+    const blob = await zip.generateAsync({ type: 'blob' });
+    downloadBlob(blob, generateBackupFilename().replace('nominas-backup-', 'nominas-backup-completo-').replace(/\.json$/, '.zip'));
+    localStorage.setItem('nomina-auditor-lastbackup', new Date().toISOString());
+    if (btn) { btn.innerHTML = `✓ Descargado (${payrolls.length} nóminas, ${nDocs} documentos)`; setTimeout(() => { btn.innerHTML = orig; }, 3000); }
+    renderBackupView();
+  } catch (e) {
+    alert(`No se pudo crear el backup completo: ${e.message || e}`);
+    if (btn) btn.innerHTML = orig;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 function isZIP(arrayBuffer) {
   const b = new Uint8Array(arrayBuffer.slice(0,4));
   return b[0]===0x50 && b[1]===0x4B && b[2]===0x03 && b[3]===0x04;
 }
 
-function processImportedJSON(jsonText, resultDiv) {
+async function processImportedJSON(jsonText, resultDiv, restoredDocs = 0) {
   try {
     const data = JSON.parse(jsonText);
     let importedPayrolls = [];
@@ -1669,14 +2029,20 @@ function processImportedJSON(jsonText, resultDiv) {
       resultDiv.innerHTML = '<div class="alert alert-error">El archivo no contiene nóminas.</div>';
       return;
     }
-    const existingIds = new Set(payrolls.map(p => p.id));
     let newCount = 0, updatedCount = 0;
-    importedPayrolls.forEach(p => {
-      if (!p.id) return;
-      if (existingIds.has(p.id)) { payrolls = payrolls.filter(x => x.id !== p.id); updatedCount++; }
-      else newCount++;
+    for (let p of importedPayrolls) {
+      if (!p.id) continue;
+      const existing = payrolls.find(x => x.id === p.id);
+      if (existing) {
+        // Nunca perder un documento original que ya está en este dispositivo
+        const importedOk = hasOriginal(p), existingOk = hasOriginal(existing);
+        if (!importedOk && existingOk) p = { ...p, original: existing.original };
+        else if (importedOk && existingOk && existing.original.key !== p.original.key) await discardOriginal(existing.original);
+        payrolls = payrolls.filter(x => x.id !== p.id);
+        updatedCount++;
+      } else newCount++;
       payrolls.push(p);
-    });
+    }
     sortPayrolls();
     saveData();
     const meta = data._meta ? `<br><span style="color:var(--text-muted)">Backup del: ${new Date(data._meta.exportedAt).toLocaleString('es-ES')}</span>` : '';
@@ -1684,10 +2050,12 @@ function processImportedJSON(jsonText, resultDiv) {
       <b>✓ Importación completada</b>
       <div style="margin-top:4px">
         ${newCount > 0 ? `<span style="color:var(--success)">+${newCount} nóminas nuevas &nbsp;</span>` : ''}
-        ${updatedCount > 0 ? `<span style="color:var(--warning)">${updatedCount} actualizadas</span>` : ''}
+        ${updatedCount > 0 ? `<span style="color:var(--warning)">${updatedCount} actualizadas &nbsp;</span>` : ''}
+        ${restoredDocs > 0 ? `<span style="color:var(--success)">📎 ${restoredDocs} documentos originales restaurados</span>` : ''}
         ${meta}
       </div></div></div>`;
     renderDashboard();
+    renderBackupView();
     document.getElementById('importFileInput').value = '';
   } catch(e) {
     resultDiv.innerHTML = `<div class="alert alert-error"><b>Error al importar</b><br>${e.message}</div>`;
@@ -1702,17 +2070,36 @@ function importBackup(file) {
   const sniffer = new FileReader();
   sniffer.onload = async (sniffEvt) => {
     if (isZIP(sniffEvt.target.result)) {
-      // ── ZIP ── extraer el primer .json que encuentre dentro
+      // ── ZIP ── backup completo (nominas.json + documentos/) o un ZIP con un .json dentro
       try {
+        if (typeof JSZip === 'undefined') throw new Error('No se ha podido cargar el descompresor ZIP. Comprueba la conexión.');
         const zip = await JSZip.loadAsync(file);
         const jsonFiles = Object.keys(zip.files).filter(n => n.endsWith('.json') && !zip.files[n].dir);
         if (jsonFiles.length === 0) {
           resultDiv.innerHTML = '<div class="alert alert-error">El ZIP no contiene ningún archivo .json</div>';
           return;
         }
-        const jsonText = await zip.files[jsonFiles[0]].async('string');
-        resultDiv.innerHTML = `<div class="alert alert-info">📦 ZIP descomprimido — procesando <em>${jsonFiles[0]}</em>...</div>`;
-        processImportedJSON(jsonText, resultDiv);
+        const jsonName = jsonFiles.find(n => n.split('/').pop() === 'nominas.json') || jsonFiles[0];
+        const jsonText = await zip.files[jsonName].async('string');
+        resultDiv.innerHTML = `<div class="alert alert-info">📦 ZIP descomprimido — procesando <em>${esc(jsonName)}</em>...</div>`;
+        // Restaurar los documentos originales que lleve dentro
+        let restored = 0;
+        try {
+          const docsMap = JSON.parse(jsonText)?._meta?.documents || {};
+          for (const [key, path] of Object.entries(docsMap)) {
+            const entry = zip.file(path);
+            if (!entry) continue;
+            const data = await entry.async('arraybuffer');
+            const type = /\.pdf$/i.test(path) ? 'application/pdf' : 'image/jpeg';
+            await putDoc(key, { data, type, name: path.split('/').pop(), size: data.byteLength, savedAt: new Date().toISOString() });
+            docKeys.add(key);
+            restored++;
+          }
+          if (restored) requestPersistentStorage();
+        } catch (docErr) {
+          console.warn('No se pudieron restaurar algunos documentos:', docErr);
+        }
+        await processImportedJSON(jsonText, resultDiv, restored);
       } catch(e) {
         resultDiv.innerHTML = `<div class="alert alert-error"><b>Error leyendo ZIP</b><br>${e.message}</div>`;
       }
@@ -1726,11 +2113,13 @@ function importBackup(file) {
   sniffer.readAsArrayBuffer(file.slice(0,4));
 }
 
-function clearAllData() {
-  if (!confirm('⚠ ¿Estás seguro?\n\nSe borrarán TODAS las nóminas almacenadas.\nEsta acción NO se puede deshacer.\n\n(Consejo: exporta un backup primero)')) return;
+async function clearAllData() {
+  if (!confirm('⚠ ¿Estás seguro?\n\nSe borrarán TODAS las nóminas y sus documentos originales de este dispositivo.\nEsta acción NO se puede deshacer.\n\n(Consejo: descarga antes un backup completo)')) return;
   if (!confirm('SEGUNDA CONFIRMACIÓN:\n\n¿Realmente quieres borrar todo?')) return;
   payrolls = [];
   saveData();
+  try { await clearDocs(); } catch {}
+  docKeys = new Set();
   renderDashboard();
   renderBackupView();
 }
@@ -1759,6 +2148,8 @@ function renderBackupView() {
     const years = [...new Set(payrolls.map(p => p.period?.year))].filter(Boolean).sort();
     const lastBackup = localStorage.getItem('nomina-auditor-lastbackup');
     const dataSize = new Blob([JSON.stringify(payrolls)]).size;
+    const withDoc = payrolls.filter(hasOriginal);
+    const docBytes = withDoc.reduce((s, p) => s + (p.original.size || 0), 0);
     const sizeStr = dataSize < 1024 ? dataSize + ' bytes' : (dataSize / 1024).toFixed(1) + ' KB';
 
     statsEl.innerHTML = `
@@ -1767,11 +2158,22 @@ function renderBackupView() {
         <div>📅 Años: <strong style="color:var(--text)">${years.length > 0 ? years.join(', ') : 'Ninguno'}</strong></div>
         <div>💾 Tamaño datos: <strong style="color:var(--text)">${sizeStr}</strong></div>
         <div>🕐 Último backup: <strong style="color:var(--text)">${lastBackup ? new Date(lastBackup).toLocaleString('es-ES') : 'Nunca'}</strong></div>
+        <div>📎 Documentos originales: <strong style="color:var(--text)">${withDoc.length}</strong>${withDoc.length ? ` (${fmtBytes(docBytes)})` : ''}</div>
+        <div>📄 Nóminas sin original: <strong style="color:var(--text)">${payrolls.length - withDoc.length}</strong></div>
       </div>
+      <div id="persistInfo" style="margin-top:6px;font-size:11px;color:var(--text-muted)"></div>
       ${payrolls.length > 0 ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <strong style="color:var(--text)">Nóminas almacenadas:</strong><br>
-        ${payrolls.map(p => `<span style="display:inline-block;margin:4px 4px 0 0;padding:3px 10px;border-radius:12px;background:var(--bg2);border:1px solid ${payTypeOf(p) === 'ordinaria' ? 'var(--border)' : 'var(--warning)'};font-size:11px">${esc(payName(p))}</span>`).join('')}
+        ${payrolls.map(p => `<span style="display:inline-block;margin:4px 4px 0 0;padding:3px 10px;border-radius:12px;background:var(--bg2);border:1px solid ${payTypeOf(p) === 'ordinaria' ? 'var(--border)' : 'var(--warning)'};font-size:11px">${esc(payName(p))}${hasOriginal(p) ? ' 📎' : ''}</span>`).join('')}
       </div>` : ''}`;
+    if (withDoc.length && navigator.storage && navigator.storage.persisted) {
+      navigator.storage.persisted().then(ok => {
+        const el = document.getElementById('persistInfo');
+        if (el) el.textContent = ok
+          ? '🔒 Almacenamiento protegido: el navegador no borrará los documentos aunque falte espacio.'
+          : 'ℹ El navegador podría liberar espacio si el móvil se llena. Descarga de vez en cuando un backup completo.';
+      }).catch(() => {});
+    }
   }
 }
 
@@ -1822,6 +2224,7 @@ if (SW_SUPPORTED) {
 loadData();
 renderDashboard();
 updateOnlineStatus();
+refreshDocKeys().then(() => renderDashboard());
 </script>
 </body>
 </html>

@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.5-blue)
+![Version](https://img.shields.io/badge/version-2.6-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -16,22 +16,25 @@
 
 **Nómina Auditor Forense** es una aplicación web (PWA) para guardar, revisar y auditar tus nóminas españolas. Haces una foto o subes el PDF, la IA lee los datos, **tú los revisas** y a partir de ahí todo lo calcula código determinista. La IA nunca decide una cifra.
 
-✅ Lee fotos y PDFs de nóminas con IA (Gemini) y te deja revisar cada dato antes de guardarlo  
+✅ Haz la foto desde la propia app (o elige el PDF): la IA (Gemini) lee los datos y tú revisas cada uno antes de guardarlo  
+✅ **Guarda el documento original** de cada nómina con nombre automático, solo en tu dispositivo, y cópialo a Drive o iCloud con un toque  
 ✅ Todos los cálculos y comprobaciones los hace código determinista: la IA nunca calcula cifras  
 ✅ **Mensual, paga extra y atrasos** guardados por separado: varias nóminas en el mismo mes sin pisarse  
 ✅ **% de retención de IRPF** siempre visible: leído, deducido de la propia nómina o calculado, y corregible a mano  
 ✅ Informe mensual e informe anual en texto listo para tu abogado, con avisos de cambios y de meses que faltan  
 ✅ Aviso antes de sobrescribir una nómina, con comparación de importes  
-✅ Backup automático, exportación e importación (JSON o ZIP)  
+✅ Backup automático de datos y **backup completo con los documentos** (ZIP), para restaurarlo todo en otro dispositivo  
 ✅ Instalable en el móvil, **funciona sin conexión** y se actualiza sola  
-✅ Tus datos se quedan en tu dispositivo (solo la foto/PDF viaja a Gemini para leerla)
+✅ Tus datos y documentos se quedan en tu dispositivo: ningún servidor guarda copia (solo la foto/PDF viaja a Gemini en el momento de leerla)
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.5)
+## 🆕 Novedades (v2.3 – v2.6)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 📎 **Documento original de cada nómina** | Haz la foto desde la app y queda guardada junto a la nómina, con nombre automático (`2026-07 Julio - Paga extra.pdf`). Desde *Ver* la abres, la copias a Drive/iCloud o la descargas. A las nóminas antiguas puedes adjuntarles el original sin volver a procesarlas | [Ver sección](#-documentos-originales) |
+| 🗂️ **Backup completo** | Un ZIP con tus datos y todos los originales ordenados por año, que se restaura en otro dispositivo | Datos |
 | 💰 **Pagas extra y atrasos** | La paga extra de julio ya no machaca la nómina mensual de julio: cada una tiene su sitio. La app detecta sola el tipo y tú lo confirmas | [Ver sección](#-pagas-extra-atrasos-y-varias-nóminas-en-el-mismo-mes) |
 | 🔁 **Cambiar el tipo de una nómina guardada** | Si una extra se guardó como mensual (o al revés), se recoloca sin volver a procesarla | Panel → Ver → *Tipo de nómina* |
 | 📈 **% de IRPF sin huecos** | Si la nómina no trae el % en las bases, se saca de la línea de IRPF o se calcula. Se puede corregir a mano | [Ver sección](#-porcentaje-de-retención-de-irpf) |
@@ -49,7 +52,7 @@ Tus nóminas y backups de versiones anteriores siguen funcionando tal cual: no h
 Es gratis. Ver [Configuración API Key](#-configuración-api-key-de-gemini-gratis). Para pasarla al móvil sin teclear, usa el botón **📱 Enviar al móvil**.
 
 ### 2️⃣ Sube la nómina
-- Pestaña **Subir** → arrastra o selecciona la foto o el PDF
+- Pestaña **Subir** → **📷 Hacer foto** (abre la cámara) o **📁 Elegir archivo** (foto o PDF). En el ordenador también puedes arrastrarla
 - Pulsa **Procesar con Gemini IA**. En unos segundos verás los datos extraídos
 - Necesita conexión a internet (la lectura la hace Gemini)
 
@@ -59,6 +62,7 @@ Es gratis. Ver [Configuración API Key](#-configuración-api-key-de-gemini-grati
 - Revisa sobre todo importes, % IRPF y bases de cotización. Si el % de IRPF no venía en las bases, la app lo rellena y te avisa en naranja para que lo compruebes con el papel
 
 ### 4️⃣ Guarda
+- Deja marcada la casilla **📎 Guardar también el documento original** (viene marcada) si quieres conservar la foto o el PDF junto a la nómina
 - Pulsa **✓ Confirmar y Guardar**
 - Si ya tienes una nómina en ese mismo sitio (mismo mes y tipo), aparece un aviso con los importes de las dos y estas opciones:
 
@@ -73,17 +77,37 @@ Es gratis. Ver [Configuración API Key](#-configuración-api-key-de-gemini-grati
 - Si el backup automático está activado, se descarga una copia de seguridad
 
 ### 5️⃣ Consulta
-- **Panel:** totales del año (bruto, neto, IRPF, Seguridad Social) y lista de nóminas. Bajo el mes aparece en negrita **Paga extra** o **Atrasos** (y **Paga extra 2** si hay otra el mismo mes)
+- **Panel:** totales del año (bruto, neto, IRPF, Seguridad Social) y lista de nóminas. Bajo el mes aparece en negrita **Paga extra** o **Atrasos** (y **Paga extra 2** si hay otra el mismo mes). El 📎 indica que tiene guardado el documento original
 - **Ver** (en cada nómina): informe completo, listo para copiar y enviar a tu abogado
 - **Anual:** tabla de todo el año, totales y observaciones automáticas
 
 ### 6️⃣ Corrige algo ya guardado (desde Ver)
 - **Tipo de nómina:** cambia entre Mensual, Paga extra y Atrasos sin volver a procesarla
 - **% Retención IRPF → ✏ Corregir %:** escribe el porcentaje correcto. Si lo dejas vacío, la app lo vuelve a calcular sola
-- Para eliminar una nómina: botón 🗑 en el Panel
+- **📎 Documento original:** verlo, guardarlo en Drive/iCloud, descargarlo, cambiarlo o quitarlo. Si la nómina no lo tiene, **📎 Adjuntar original** (no la vuelve a procesar ni gasta lecturas)
+- Para eliminar una nómina: botón 🗑 en el Panel (borra también su documento original)
 
 ### 7️⃣ Haz copias de seguridad
 Pestaña **Datos**. Ver [Copias de seguridad y varios dispositivos](#-copias-de-seguridad-y-varios-dispositivos).
+
+---
+
+## 📎 Documentos originales
+
+La foto o el PDF de cada nómina se guarda **junto a ella, en el propio dispositivo**. Ningún servidor guarda copia.
+
+- **Desde que haces la foto:** al procesar una nómina, la app la guarda con ella (casilla *Guardar también el documento original*, marcada por defecto). Las fotos se guardan como JPEG optimizado (máx. 2500 px) y los PDF tal cual.
+- **Nombre automático y ordenado:** `2026-07 Julio.jpg`, `2026-07 Julio - Paga extra.pdf`, `2026-12 Diciembre - Atrasos.pdf`. Si cambias el tipo de la nómina, el nombre se actualiza solo.
+- **Desde Ver:**
+  - 👁 **Ver** el original (las fotos en la propia app; los PDF en el visor del móvil)
+  - 📤 **Guardar en…**: abre el menú de compartir del móvil para guardarlo en **Google Drive, iCloud**, enviarlo por correo o WhatsApp… (aparece en móviles que lo permiten)
+  - ⬇ **Descargar**, 🔄 **Cambiar** o 🗑 **Quitar**
+- **Nóminas que ya tenías:** *Ver → 📎 Adjuntar original*. Eliges la foto o el PDF (también desde Drive) y queda guardado **sin volver a procesarlo con la IA**.
+- **Panel:** el 📎 junto al mes indica que el original está guardado, y abajo se avisa de cuántas nóminas no lo tienen.
+
+**Dónde se guardan:** en el almacenamiento interno del navegador (IndexedDB) del dispositivo donde los guardaste. Si usas el móvil y el ordenador, cada uno tiene los suyos: para pasarlos de uno a otro usa el **backup completo**.
+
+> ⚠️ Si pierdes el móvil o borras los datos de navegación de la app, los originales que solo estaban ahí se pierden. Guarda una copia en Drive (*Guardar en…*) o descarga de vez en cuando el **backup completo**.
 
 ---
 
@@ -127,7 +151,7 @@ Los valores calculados o aproximados llevan un asterisco (`20,42 %*`). En el inf
 
 **Activarlo:** abre la app una vez con conexión, ciérrala y vuelve a abrirla. En **Datos → Modo sin conexión** debe poner **Activo**.
 
-**Sin conexión puedes:** ver el Panel, los informes y el Anual, cambiar el tipo de una nómina, corregir el % IRPF y exportar backups. Aparece un aviso naranja de "Sin conexión".
+**Sin conexión puedes:** ver el Panel, los informes y el Anual, ver y adjuntar documentos originales, cambiar el tipo de una nómina, corregir el % IRPF y exportar backups. Aparece un aviso naranja de "Sin conexión".
 
 **Sin conexión no puedes:** procesar una nómina nueva, porque la lectura la hace Gemini. La app te avisa; cuando vuelvas a tener conexión, pulsa otra vez *Procesar*.
 
@@ -141,15 +165,20 @@ Los valores calculados o aproximados llevan un asterisco (`20,42 %*`). En el inf
 
 ## 💾 Copias de seguridad y varios dispositivos
 
-- **Backup automático:** cada vez que guardas o cambias una nómina se descarga un archivo `nominas-backup-FECHA.json` en *Descargas*. Se puede desactivar en *Datos*
-- **Exportar:** *Datos → Exportar todo*
-- **Importar:** *Datos → Restaurar*. Acepta el `.json` o el `.zip` directamente, sin descomprimir
+| Copia | Qué contiene | Para qué |
+|---|---|---|
+| **Backup automático** (`nominas-backup-FECHA.json`) | Solo los datos. Se descarga solo cada vez que guardas una nómina (se puede desactivar en *Datos*) | Copia de seguridad ligera del día a día |
+| **Exportar datos** (*Datos → Exportar datos*) | Lo mismo, cuando tú quieras | Pasar los datos a otro dispositivo |
+| **Backup completo** (*Datos → Descargar backup completo*) | ZIP con `nominas.json` + carpeta `documentos/AÑO/` con todos los originales | Guardarlo en Drive y **restaurarlo todo** (datos y documentos) en otro dispositivo |
 
-**Móvil y ordenador no se sincronizan solos.** Cada dispositivo guarda sus propias nóminas. Para tener lo mismo en los dos: exporta en uno e importa en el otro.
+- **Restaurar:** *Datos → Importar backup*. Acepta el `.json` o el `.zip` directamente, sin descomprimir. Con el backup completo se restauran también los documentos originales.
+- **Importar nunca borra un original que ya tengas en el dispositivo:** si el backup no trae el documento de una nómina, se conserva el que ya había.
+
+**Móvil y ordenador no se sincronizan solos.** Cada dispositivo guarda sus propias nóminas y documentos. Para tener lo mismo en los dos: backup completo en uno e importarlo en el otro.
 
 > ⚠️ **Al importar,** las nóminas del backup se añaden y, si ya tienes una en el mismo sitio (mismo mes y tipo), **se sustituye por la del backup**. Usa siempre el backup más reciente para no perder correcciones posteriores.
 
-> ⚠️ **Si borras los datos de navegación** de la web de la app, se borran también tus nóminas. La app se recupera sola con conexión, pero las nóminas solo desde un backup. Mantén activado el backup automático.
+> ⚠️ **Si borras los datos de navegación** de la web de la app, se borran también tus nóminas y sus documentos. La app se recupera sola con conexión, pero las nóminas y los originales solo desde un backup. Mantén activado el backup automático y descarga de vez en cuando el backup completo.
 
 ---
 
@@ -207,6 +236,12 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige, 
 **El % de IRPF sale `N/L` o con `*`**
 - `*`: no venía en las bases y se ha calculado. Compruébalo con el papel
 - `N/L`: no se ha podido obtener. En ambos casos: **Ver → ✏ Corregir %**
+
+**Tengo mis nóminas antiguas como fotos en Drive**
+- Para cada nómina ya guardada: **Ver → 📎 Adjuntar original** y elige la foto en Drive. No se vuelve a procesar y queda con su nombre ordenado
+
+**En el otro dispositivo no veo el documento original**
+- Los originales se guardan en el dispositivo donde los guardaste. Haz **Datos → Descargar backup completo** en ese dispositivo e impórtalo en el otro
 
 **Veo una versión antigua de la app**
 - Cierra y vuelve a abrir la app con conexión. Si sigue igual: **Datos → 🔄 Forzar actualización**
@@ -370,7 +405,8 @@ BASES Y TOTALES
 ## 🔒 Privacidad y datos
 
 - Tus nóminas y tu API key se guardan **solo en el navegador de tu dispositivo** (localStorage). No hay servidor ni base de datos propia
-- **Única excepción:** la foto o PDF se envía a Google Gemini para leerla
+- Los **documentos originales** (fotos y PDF) también se guardan solo en tu dispositivo (IndexedDB). Ningún servidor guarda copia; solo salen de él si tú los compartes o descargas
+- **Única excepción:** al procesar una nómina, la foto o PDF se envía a Google Gemini para leerla
 - El modo sin conexión guarda únicamente el **código** de la app, nunca tus datos
 - Cada dispositivo guarda sus propios datos; no se sincronizan solos
 - Exporta tus datos cuando quieras en JSON
@@ -383,13 +419,13 @@ BASES Y TOTALES
 
 - **Frontend:** HTML5 + CSS3 + JavaScript vanilla
 - **IA:** Google Gemini 2.5 (exclusivamente para OCR)
-- **Dependencias (vía CDN):** JSZip 3.10 (importar backups en ZIP) y QRCode.js 1.0 (pasar la key al móvil)
-- **Almacenamiento:** localStorage del navegador
+- **Dependencias (vía CDN):** JSZip 3.10 (backups completos en ZIP) y QRCode.js 1.0 (pasar la key al móvil)
+- **Almacenamiento:** localStorage del navegador (datos) e IndexedDB (documentos originales, que pueden ocupar varios MB)
 - **PWA:** instalable, con service worker para uso sin conexión
 - **Deploy:** GitHub Pages (HTTPS obligatorio para PWA y modo sin conexión)
 
 **Archivos:**
-- `index.html` (~90 KB): toda la aplicación. Sin frameworks, sin build step
+- `index.html` (~110 KB): toda la aplicación. Sin frameworks, sin build step
 - `sw.js` (~4 KB): modo sin conexión. Solo guarda el código de la app
 
 **Cómo funciona el modo sin conexión (`sw.js`):**
@@ -402,6 +438,15 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.6 (Octubre 2026)
+- **📷 Hacer foto** desde la app (abre la cámara) además de *Elegir archivo*
+- **Documento original guardado con cada nómina**, solo en el dispositivo (IndexedDB), con nombre automático por mes y tipo
+- Desde *Ver*: ver, **guardar en Drive/iCloud** (menú de compartir del móvil), descargar, cambiar o quitar el original; **adjuntar el original** a nóminas ya guardadas sin volver a procesarlas
+- **Backup completo** en ZIP (datos + documentos por año) y restauración con documentos
+- Importar un backup nunca borra un original que ya esté en el dispositivo; eliminar una nómina o sustituirla borra el original que sobra
+- Indicador 📎 en el Panel y recuento de documentos en *Datos*
+- Se pide al navegador almacenamiento persistente para que no borre los documentos si falta espacio
 
 ### v2.5 (Octubre 2026)
 - **Modo sin conexión:** la app instalada se abre sin internet (consultar, corregir, reclasificar, exportar). Procesar una nómina nueva sigue necesitando conexión (Gemini)
