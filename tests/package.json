@@ -1,0 +1,9 @@
+{
+  "name": "nomina-auditor-tests",
+  "private": true,
+  "description": "Librerías de la CDN servidas en local durante las pruebas (el navegador de pruebas no descarga nada de internet). Mismas versiones exactas que usa la app.",
+  "devDependencies": {
+    "jszip": "3.10.1",
+    "pdfjs-dist": "3.11.174"
+  }
+}

@@ -50,7 +50,7 @@ Tus nóminas y backups de versiones anteriores siguen funcionando tal cual: no h
 ## 🔧 Cómo se usa (paso a paso)
 
 ### 1️⃣ Configura tu API key de Gemini (una sola vez)
-Es gratis. Ver [Configuración API Key](#-configuración-api-key-de-gemini-gratis). Para pasarla al móvil sin teclear, usa el botón **📱 Enviar al móvil**.
+Ver [API key de Gemini](#-api-key-de-gemini-gratis-o-de-pago): hay capa gratuita y, con la facturación activada, cuesta alrededor de 1 céntimo por nómina. Para pasarla al móvil sin teclear, usa el botón **📱 Enviar al móvil**.
 
 ### 2️⃣ Sube la nómina
 - Pestaña **Subir** → **📷 Hacer foto** (abre la cámara) o **📁 Elegir archivo** (foto o PDF). En el ordenador también puedes arrastrarla
@@ -107,6 +107,8 @@ La foto o el PDF de cada nómina se guarda **junto a ella, en el propio disposit
 - **Panel:** el 📎 junto al mes indica que el original está guardado, y abajo se avisa de cuántas nóminas no lo tienen.
 
 **Dónde se guardan:** en el almacenamiento interno del navegador (IndexedDB) del dispositivo donde los guardaste. Si usas el móvil y el ordenador, cada uno tiene los suyos: para pasarlos de uno a otro usa el **backup completo**.
+
+**Cuánto ocupan:** cada foto, entre 0,6 y 1,1 MB (de los 2–3 MB que saca la cámara, la app guarda un JPEG optimizado de 2500 px como máximo); cada PDF, entre 0,05 y 0,3 MB. Un año completo, con extras, son unos **10–17 MB**. Lo que más acaba ocupando son los **backups completos que se acumulan en Descargas**: cuando subas uno a Drive, borra del móvil los antiguos. Las fotos hechas con *📷 Hacer foto* normalmente no se guardan además en la galería.
 
 > ⚠️ Si pierdes el móvil o borras los datos de navegación de la app, los originales que solo estaban ahí se pierden. Guarda una copia en Drive (*Guardar en…*) o descarga de vez en cuando el **backup completo**.
 
@@ -204,7 +206,11 @@ Abre [la app](https://asesorian.github.io/nomina-auditor/) en el navegador (se p
 
 ---
 
-## 🔑 Configuración API Key de Gemini (Gratis)
+## 🔑 API key de Gemini: gratis o de pago
+
+La app usa **tu propia** API key de Gemini (Google). No hay intermediarios: la key y la nómina van directamente de tu navegador a Google.
+
+### Conseguir la key
 
 1. Ve a [Google AI Studio](https://aistudio.google.com/apikey)
 2. Crea una API Key. **Importante: selecciona un proyecto nuevo de Google Cloud**, no el proyecto por defecto (en cuentas europeas el proyecto por defecto suele tener `limit: 0` en la capa gratuita)
@@ -212,6 +218,25 @@ Abre [la app](https://asesorian.github.io/nomina-auditor/) en el navegador (se p
 4. Pega la key en la barra superior de la app → aparece `✓ Configurada` en verde
 
 La key se guarda en el almacenamiento local del navegador. Solo se usa para llamar directamente a Gemini.
+
+### ¿Gratis o de pago? Lo que cambia con tus nóminas
+
+Una nómina lleva tu DNI, tu sueldo y los datos de tu empresa, así que importa qué hace Google con ella. Según los [términos de la API de Gemini](https://ai.google.dev/gemini-api/terms) (actualizados el 28-4-2026):
+
+| | Capa gratuita | Con facturación activada |
+|---|---|---|
+| ¿Puede Google usar tus nóminas para mejorar sus productos? | Sí, y pueden leerlas revisores humanos. **Excepción:** en el Espacio Económico Europeo (España incluida), Suiza y Reino Unido se aplica el mismo trato que en la de pago | No. Solo las guarda un tiempo limitado para detectar abusos |
+| Coste | 0 € | Alrededor de **1 céntimo por nómina** procesada (medido en 2026 con `gemini-2.5-flash`) |
+| Límites de uso | Bajos y cambiantes; en algunas cuentas europeas, `limit: 0` | Holgados para uso personal |
+
+**Qué elegir:**
+- **Fuera del EEE, Suiza y Reino Unido:** activa la facturación para tus nóminas.
+- **En España:** las dos tratan tus datos igual. La de pago evita los límites de la gratuita (incluido el `limit: 0`) por unos céntimos al año.
+- En ambos casos, si activas la facturación, pon un **límite de gasto mensual** bajo (por ejemplo, 1 €): un año de nóminas, con algún reintento, se queda en unos 15–20 céntimos.
+
+**Dónde se mira y se cambia** (en [AI Studio](https://aistudio.google.com)):
+- *Claves de API*: junto a cada key aparece el nivel de su proyecto. Si pone algo como *Nivel 1 · Pospago*, la facturación está activada.
+- *Gasto*: lo gastado en el mes y el límite de gasto mensual. Si se alcanza el límite, Gemini deja de leer nóminas (la app mostrará *Todos los modelos fallaron*) hasta que lo subas o empiece el mes siguiente.
 
 ### 📱 Pasar la key al móvil (sin teclear)
 
@@ -254,6 +279,22 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige, 
 **No me deja procesar una nómina**
 - Si aparece "Sin conexión": hace falta internet para que Gemini la lea
 
+**"Todos los modelos fallaron"**
+- Debajo aparece el motivo de cada modelo. Los más habituales:
+  - `API key not valid`: la key está mal copiada o se ha borrado. Vuelve a pegarla (o pásala con el QR)
+  - `limit: 0` o `quota exceeded`: ver el punto siguiente
+  - Has llegado al **límite de gasto** que pusiste: súbelo en AI Studio → *Gasto* o espera al mes siguiente
+  - Un modelo "no disponible": Google lo ha retirado (ver más abajo)
+
+**Un PDF que pide contraseña no se procesa**
+- Gemini no puede leer un PDF que pide contraseña para abrirse: su contenido está cifrado
+- Ábrelo con la contraseña en el móvil o el ordenador, haz una captura de cada página y procesa la captura
+- Después, si quieres guardar el PDF como original en lugar de la captura: *Ver → 📎 Documento original → 🔄 Cambiar*. La app lo mostrará pidiéndote la contraseña
+
+**En el ordenador veo nóminas distintas en la web y en el archivo local**
+- La web publicada y el `index.html` abierto como archivo guardan los datos por separado: para el navegador son dos sitios distintos
+- Usa siempre la misma o pasa los datos de una a otra con el **backup completo**
+
 **"limit: 0" o "quota exceeded"**
 - El proyecto de Google Cloud de tu key tiene la capa gratuita bloqueada (típico en Europa)
 - Solución: crea un proyecto **nuevo** en [Google Cloud Console](https://console.cloud.google.com), habilita "Generative Language API" y genera una key nueva con ese proyecto desde [AI Studio](https://aistudio.google.com/apikey)
@@ -274,6 +315,18 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige, 
 
 **No me sale el botón de instalar en el móvil**
 - Usa Chrome (Android) o Safari (iOS) y espera a que la página cargue del todo
+
+---
+
+## ⚠️ Limitaciones conocidas
+
+- **Procesar necesita internet** y una API key de Gemini. Sin conexión se puede consultar y corregir, pero no leer nóminas nuevas
+- **La IA puede leer mal un dato:** por eso la verificación es obligatoria. Revisa siempre importes, bases y % de IRPF antes de guardar
+- **Solo nóminas españolas**
+- **No hay sincronización** entre dispositivos, ni entre navegadores del mismo dispositivo: todo se pasa con el backup completo
+- **Si se borran los datos del navegador**, se pierden las nóminas y los originales que no estén en un backup
+- **PDF que piden contraseña:** se ven y se guardan como original, pero Gemini no puede leerlos ([qué hacer](#-problemas-frecuentes))
+- **No es asesoramiento laboral ni fiscal:** los informes resumen lo que dicen tus nóminas para que lo revise un profesional
 
 ---
 
@@ -411,7 +464,7 @@ BASES Y TOTALES
 
 - Tus nóminas y tu API key se guardan **solo en el navegador de tu dispositivo** (localStorage). No hay servidor ni base de datos propia
 - Los **documentos originales** (fotos y PDF) también se guardan solo en tu dispositivo (IndexedDB). Ningún servidor guarda copia; solo salen de él si tú los compartes o descargas
-- **Única excepción:** al procesar una nómina, la foto o PDF se envía a Google Gemini para leerla
+- **Única excepción:** al procesar una nómina, la foto o PDF se envía a Google Gemini para leerla. Qué puede hacer Google con ella depende de si usas la capa gratuita o la de pago, y de dónde estés: ver [API key de Gemini](#-api-key-de-gemini-gratis-o-de-pago)
 - El modo sin conexión guarda únicamente el **código** de la app, nunca tus datos
 - Cada dispositivo guarda sus propios datos; no se sincronizan solos
 - Exporta tus datos cuando quieras en JSON
@@ -424,14 +477,16 @@ BASES Y TOTALES
 
 - **Frontend:** HTML5 + CSS3 + JavaScript vanilla
 - **IA:** Google Gemini 2.5 (exclusivamente para OCR)
-- **Dependencias (vía CDN):** JSZip 3.10 (backups completos en ZIP), QRCode.js 1.0 (pasar la key al móvil) y PDF.js 3.11.174 de Mozilla (visor de PDF: se carga solo al abrir un PDF, verificado con SRI, sin Worker y con `isEvalSupported: false`)
+- **Dependencias (vía CDN):** JSZip 3.10 (backups completos en ZIP), QRCode.js 1.0 (pasar la key al móvil) y PDF.js 3.11.174 de Mozilla (visor de PDF: se carga solo al abrir un PDF, verificado con SRI, sin Worker y con `isEvalSupported: false`, que impide que un PDF manipulado ejecute código: CVE-2024-4367)
 - **Almacenamiento:** localStorage del navegador (datos) e IndexedDB (documentos originales, que pueden ocupar varios MB)
 - **PWA:** instalable, con service worker para uso sin conexión
 - **Deploy:** GitHub Pages (HTTPS obligatorio para PWA y modo sin conexión)
 
 **Archivos:**
 - `index.html` (~120 KB): toda la aplicación. Sin frameworks, sin build step
-- `sw.js` (~4 KB): modo sin conexión. Solo guarda el código de la app
+- `sw.js` (~5 KB): modo sin conexión. Solo guarda el código de la app
+- `docs/TECNICO.md`: documentación técnica
+- `tests/`: pruebas automáticas (no forman parte de la app)
 
 **Cómo funciona el modo sin conexión (`sw.js`):**
 - `index.html`: red primero, preguntando siempre al servidor si hay versión nueva (sin usar los 10 min de caché que permite GitHub Pages). Si no ha cambiado, el servidor responde "sin cambios" y apenas gasta datos. Sin red, o si tarda más de 4 s, la copia guardada
@@ -439,6 +494,11 @@ BASES Y TOTALES
 - Las llamadas a Gemini (POST) no se interceptan nunca
 - Solo actúa en la web publicada (https). Abierta como archivo local (`file://`) no aplica
 - Las cachés usan el prefijo `nomina-auditor-` para no tocar las de otras apps del mismo dominio
+
+### 🧑‍💻 Para desarrolladores
+
+- **[docs/TECNICO.md](docs/TECNICO.md):** cómo funciona por dentro. Almacenamiento y modelo de datos, reglas de clasificación y de IRPF, ciclo de vida de los originales, formatos de backup, service worker, visor de PDF, seguridad, **deuda técnica conocida** y cómo publicar una versión
+- **[tests/](tests/README.md):** 9 baterías de pruebas automáticas (~150 comprobaciones) con navegador real, sin internet y sin gastar lecturas de Gemini. Se ejecutan con `python tests/ejecutar_todo.py`
 
 ---
 
@@ -450,6 +510,7 @@ BASES Y TOTALES
 - PDF con contraseña: la pide y avisa si es incorrecta
 - Si algo falla (sin conexión la primera vez, PDF dañado, contraseña cancelada…), nunca te deja sin ver la nómina: abrir con el visor del móvil o descargar
 - Seguridad: el visor se verifica con SRI (si el archivo de la CDN no coincide exactamente, no se ejecuta) y no evalúa código de los PDF
+- Repositorio: documentación técnica ([docs/TECNICO.md](docs/TECNICO.md)) y pruebas automáticas ([tests/](tests/README.md)); la API key de Gemini, explicada (capa gratuita o de pago, coste y límite de gasto)
 
 ### v2.6 (Octubre 2026)
 - **📷 Hacer foto** desde la app (abre la cámara) además de *Elegir archivo*
