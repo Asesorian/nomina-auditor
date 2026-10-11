@@ -220,6 +220,16 @@ code { font-family:'JetBrains Mono',monospace; }
 .doc-viewer-bar { position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border-bottom:1px solid var(--border);font-size:12px;color:var(--text-dim); }
 .doc-viewer img { display:block;width:100%;height:auto;background:#fff; }
 .data-grid { display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:14px; }
+/* Visor de PDF */
+.spinner.light { border-color:var(--accent);border-top-color:transparent;flex-shrink:0; }
+.pdf-status { display:flex;align-items:center;justify-content:center;gap:10px;padding:48px 18px;color:var(--text-dim);font-size:13px;text-align:center;line-height:1.5; }
+.pdf-pages { display:flex;flex-direction:column;gap:10px;padding:10px;background:var(--bg2); }
+.pdf-pages:empty { display:none; }
+.pdf-page { display:block;width:100%;height:auto;background:#fff;border-radius:2px;box-shadow:0 2px 12px rgba(0,0,0,0.45); }
+.pdf-fallback { padding:28px 18px;text-align:center;color:var(--text-dim);font-size:13px;line-height:1.6; }
+.pdf-fallback .doc-actions { justify-content:center;margin-top:14px; }
+.pdf-more { padding:10px 14px 14px;text-align:center;font-size:11px;color:var(--text-muted); }
+.pdf-more button { background:none;border:none;color:var(--accent);cursor:pointer;text-decoration:underline;font-size:11px;font-family:inherit;padding:0 2px; }
 .hidden { display:none !important; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -232,7 +242,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.6</span>
+    <span class="logo-badge">Forense v2.7</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -1353,6 +1363,7 @@ async function doSave(payroll) {
     if (isAutoBackupEnabled()) autoBackup();
     clearUpload();
     showReport(payroll);
+    warmPdfViewer();
     if (docWarning) alert(docWarning);
   } finally {
     savingPayroll = false;
@@ -1489,6 +1500,7 @@ async function attachOriginal(id, file) {
     saveData();
     if (old && old.key !== meta.key) await discardOriginal(old);
     renderOriginalBody(p);
+    warmPdfViewer();
   } catch (e) {
     alert(e.message === 'FORMATO' ? 'Formato no reconocido. Prueba con JPG, PNG o PDF.' : `No se pudo guardar el documento: ${e.message || e}`);
   } finally {
@@ -1503,13 +1515,167 @@ async function viewOriginal(id) {
     const file = await originalAsFile(p);
     const url = URL.createObjectURL(file);
     if (file.type === 'application/pdf') {
-      const w = window.open(url, '_blank');
-      if (!w) downloadBlob(file, file.name);
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      URL.revokeObjectURL(url);
+      showPdfViewer(file);
     } else {
       showDocViewer(url, file.name);
     }
   } catch (e) { alert(e.message || e); }
+}
+
+// ═══════════ VISOR DE PDF ═══════════
+// La app muestra los PDF ella misma con PDF.js (Mozilla), así no depende de que el móvil tenga lector.
+// - Se descarga solo la primera vez que hace falta (~380 KB comprimido) y el modo sin conexión lo guarda.
+// - SRI: el navegador solo lo ejecuta si es exactamente esta versión.
+// - Funciona en el hilo principal (sin Worker), suficiente para nóminas de 1-3 páginas y sin problemas de orígenes.
+// - Si algo falla, nunca deja sin ver la nómina: ofrece abrirla con el visor del móvil o descargarla.
+const PDFJS_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+const PDFJS_FILES = [
+  ['pdf.min.js', 'sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e'],
+  ['pdf.worker.min.js', 'sha384-SnzOobpRMLXZ52iJvZm/C0fYw0OQemTXzTjIsdsfMcrCtCEe9qgzxTd3RSklO5x2']
+];
+let pdfjsPromise = null;
+
+function loadScriptOnce(src, integrity) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.integrity = integrity;
+    s.crossOrigin = 'anonymous';
+    s.onload = () => resolve();
+    s.onerror = () => { s.remove(); reject(new Error('No se pudo descargar el visor de PDF')); };
+    document.head.appendChild(s);
+  });
+}
+
+function loadPdfJs() {
+  if (window.pdfjsLib && window.pdfjsWorker) return Promise.resolve(window.pdfjsLib);
+  if (!pdfjsPromise) {
+    pdfjsPromise = (async () => {
+      if (!window.pdfjsLib) await loadScriptOnce(PDFJS_BASE + PDFJS_FILES[0][0], PDFJS_FILES[0][1]);
+      if (!window.pdfjsWorker) await loadScriptOnce(PDFJS_BASE + PDFJS_FILES[1][0], PDFJS_FILES[1][1]);
+      if (!window.pdfjsLib || !window.pdfjsWorker) throw new Error('Visor de PDF no disponible');
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_BASE + PDFJS_FILES[1][0];
+      return window.pdfjsLib;
+    })();
+    pdfjsPromise.catch(() => { pdfjsPromise = null; });
+  }
+  return pdfjsPromise;
+}
+
+// Si hay algún PDF guardado, deja el visor descargado en segundo plano para poder usarlo sin conexión
+let pdfWarmDone = false;
+function warmPdfViewer() {
+  if (pdfWarmDone || !navigator.onLine || !SW_SUPPORTED || !navigator.serviceWorker.controller) return;
+  if (!payrolls.some(p => hasOriginal(p) && p.original.type === 'application/pdf')) return;
+  pdfWarmDone = true;
+  const go = () => PDFJS_FILES.forEach(([f]) => fetch(PDFJS_BASE + f, { mode: 'cors', credentials: 'omit' }).catch(() => { pdfWarmDone = false; }));
+  if ('requestIdleCallback' in window) requestIdleCallback(go, { timeout: 8000 }); else setTimeout(go, 4000);
+}
+
+function showPdfViewer(file) {
+  closeDocViewer();
+  const m = document.createElement('div');
+  m.className = 'modal-overlay';
+  m.id = 'docViewer';
+  m._file = file;
+  m.innerHTML = `<div class="doc-viewer">
+    <div class="doc-viewer-bar"><span>${esc(file.name)}</span><button class="btn btn-secondary btn-sm" onclick="closeDocViewer()">✕ Cerrar</button></div>
+    <div class="pdf-status" id="pdfStatus" role="status" aria-live="polite"><span class="spinner light"></span><span id="pdfStatusText">Abriendo el PDF…</span></div>
+    <div class="pdf-pages" id="pdfPages"></div>
+  </div>`;
+  m.onclick = e => { if (e.target === m) closeDocViewer(); };
+  document.body.appendChild(m);
+  renderPdfInto(m, file);
+}
+
+async function renderPdfInto(m, file) {
+  const alive = () => document.getElementById('docViewer') === m;
+  const setStatus = t => { const el = m.querySelector('#pdfStatusText'); if (el) el.textContent = t; };
+  const libReady = !!(window.pdfjsLib && window.pdfjsWorker);
+  if (!libReady) setStatus('Preparando el visor de PDF… (solo tarda un poco la primera vez)');
+  let stage = 'lib', cancelledPassword = false;
+  try {
+    const pdfjsLib = await loadPdfJs();
+    if (!alive()) return;
+    stage = 'doc';
+    setStatus('Abriendo el PDF…');
+    const data = new Uint8Array(await file.arrayBuffer());
+    const task = pdfjsLib.getDocument({ data, isEvalSupported: false });
+    m._task = task;
+    task.onPassword = (updatePassword, reason) => {
+      const wrong = reason === pdfjsLib.PasswordResponses.INCORRECT_PASSWORD;
+      setStatus('Este PDF está protegido con contraseña…');
+      const pw = prompt(wrong
+        ? 'Contraseña incorrecta. Vuelve a escribirla:'
+        : 'Este PDF está protegido con contraseña (muchas empresas usan tu DNI). Escríbela para verlo:');
+      if (pw === null) { cancelledPassword = true; updatePassword(new Error('Contraseña no introducida')); }
+      else { setStatus('Abriendo el PDF…'); updatePassword(pw); }
+    };
+    const pdf = await task.promise;
+    const pagesEl = m.querySelector('#pdfPages');
+    const cssWidth = Math.max(280, Math.min((m.querySelector('.doc-viewer').clientWidth || 380) - 20, 880));
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    for (let i = 1; i <= pdf.numPages; i++) {
+      if (!alive()) return;
+      setStatus(pdf.numPages > 1 ? `Mostrando página ${i} de ${pdf.numPages}…` : 'Mostrando la nómina…');
+      const page = await pdf.getPage(i);
+      const base = page.getViewport({ scale: 1 });
+      // Nítido aunque se amplíe con los dedos, sin pasarse de memoria (máx. ~12 Mpx por página)
+      let scale = (cssWidth / base.width) * dpr * 1.5;
+      const maxScale = Math.sqrt(12e6 / (base.width * base.height));
+      scale = Math.max(0.5, Math.min(scale, maxScale));
+      const vp = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.className = 'pdf-page';
+      canvas.width = Math.floor(vp.width);
+      canvas.height = Math.floor(vp.height);
+      canvas.setAttribute('aria-label', `Página ${i} de ${pdf.numPages}`);
+      pagesEl.appendChild(canvas);
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    }
+    if (!alive()) return;
+    m.querySelector('#pdfStatus')?.remove();
+    m.querySelector('.doc-viewer').insertAdjacentHTML('beforeend',
+      `<div class="pdf-more">${pdf.numPages} página${pdf.numPages > 1 ? 's' : ''} · ¿Prefieres otra app? <button onclick="openPdfExternally()">Abrir con el visor del móvil</button> · <button onclick="downloadViewerFile()">Descargar</button></div>`);
+  } catch (e) {
+    if (!alive()) return;
+    let msg;
+    if (stage === 'lib') msg = navigator.onLine
+      ? 'No se ha podido cargar el visor de PDF de la app.'
+      : 'Sin conexión: el visor de PDF se descarga la primera vez que se usa. Ábrelo una vez con conexión y después funcionará también sin ella.';
+    else if (cancelledPassword || e?.name === 'PasswordException') msg = 'Este PDF está protegido con contraseña y no se ha abierto.';
+    else msg = 'No se ha podido mostrar este PDF (puede estar dañado).';
+    showPdfFallback(m, msg);
+  }
+}
+
+function showPdfFallback(m, msg) {
+  m.querySelector('#pdfStatus')?.remove();
+  m.querySelector('#pdfPages').innerHTML = '';
+  m.querySelector('.pdf-more')?.remove();
+  m.querySelector('.doc-viewer').insertAdjacentHTML('beforeend', `<div class="pdf-fallback">
+    <div>⚠ ${esc(msg)}</div>
+    <div style="margin-top:6px;font-size:12px;color:var(--text-muted)">Tu nómina está guardada igualmente. Puedes verla de otra forma:</div>
+    <div class="doc-actions">
+      <button class="btn btn-secondary btn-sm" onclick="openPdfExternally()">📄 Abrir con el visor del móvil</button>
+      <button class="btn btn-secondary btn-sm" onclick="downloadViewerFile()">⬇ Descargar</button>
+    </div>
+  </div>`);
+}
+
+function openPdfExternally() {
+  const m = document.getElementById('docViewer');
+  if (!m?._file) return;
+  const url = URL.createObjectURL(m._file);
+  const w = window.open(url, '_blank');
+  if (!w) downloadBlob(m._file, m._file.name);
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+function downloadViewerFile() {
+  const m = document.getElementById('docViewer');
+  if (m?._file) downloadBlob(m._file, m._file.name);
 }
 
 function showDocViewer(url, title) {
@@ -1530,6 +1696,7 @@ function closeDocViewer() {
   const m = document.getElementById('docViewer');
   if (!m) return;
   if (m._url) URL.revokeObjectURL(m._url);
+  try { m._task?.destroy(); } catch {}
   m.remove();
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDocViewer(); });
@@ -1921,7 +2088,7 @@ function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.6',
+      version: '2.7',
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },
@@ -2224,7 +2391,7 @@ if (SW_SUPPORTED) {
 loadData();
 renderDashboard();
 updateOnlineStatus();
-refreshDocKeys().then(() => renderDashboard());
+refreshDocKeys().then(() => { renderDashboard(); warmPdfViewer(); });
 </script>
 </body>
 </html>

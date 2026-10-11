@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.6-blue)
+![Version](https://img.shields.io/badge/version-2.7-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -29,11 +29,12 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.6)
+## 🆕 Novedades (v2.3 – v2.7)
 
 | | Qué hace | Dónde |
 |---|---|---|
 | 📎 **Documento original de cada nómina** | Haz la foto desde la app y queda guardada junto a la nómina, con nombre automático (`2026-07 Julio - Paga extra.pdf`). Desde *Ver* la abres, la copias a Drive/iCloud o la descargas. A las nóminas antiguas puedes adjuntarles el original sin volver a procesarlas | [Ver sección](#-documentos-originales) |
+| 📄 **Visor de PDF propio** | Los PDF se ven dentro de la app, aunque el móvil no tenga lector de PDF, y también sin conexión. Si el PDF tiene contraseña, la pide | *Ver → 👁 Ver* |
 | 🗂️ **Backup completo** | Un ZIP con tus datos y todos los originales ordenados por año, que se restaura en otro dispositivo | Datos |
 | 💰 **Pagas extra y atrasos** | La paga extra de julio ya no machaca la nómina mensual de julio: cada una tiene su sitio. La app detecta sola el tipo y tú lo confirmas | [Ver sección](#-pagas-extra-atrasos-y-varias-nóminas-en-el-mismo-mes) |
 | 🔁 **Cambiar el tipo de una nómina guardada** | Si una extra se guardó como mensual (o al revés), se recoloca sin volver a procesarla | Panel → Ver → *Tipo de nómina* |
@@ -99,7 +100,7 @@ La foto o el PDF de cada nómina se guarda **junto a ella, en el propio disposit
 - **Desde que haces la foto:** al procesar una nómina, la app la guarda con ella (casilla *Guardar también el documento original*, marcada por defecto). Las fotos se guardan como JPEG optimizado (máx. 2500 px) y los PDF tal cual.
 - **Nombre automático y ordenado:** `2026-07 Julio.jpg`, `2026-07 Julio - Paga extra.pdf`, `2026-12 Diciembre - Atrasos.pdf`. Si cambias el tipo de la nómina, el nombre se actualiza solo.
 - **Desde Ver:**
-  - 👁 **Ver** el original (las fotos en la propia app; los PDF en el visor del móvil)
+  - 👁 **Ver** el original dentro de la app, fotos y PDF. Los PDF se muestran con el visor propio de la app, así que **no hace falta tener un lector de PDF en el móvil**. Si el PDF tiene contraseña (muchas empresas usan el DNI), la app la pide. Si algo fallara, ofrece abrirlo con el visor del móvil o descargarlo
   - 📤 **Guardar en…**: abre el menú de compartir del móvil para guardarlo en **Google Drive, iCloud**, enviarlo por correo o WhatsApp… (aparece en móviles que lo permiten)
   - ⬇ **Descargar**, 🔄 **Cambiar** o 🗑 **Quitar**
 - **Nóminas que ya tenías:** *Ver → 📎 Adjuntar original*. Eliges la foto o el PDF (también desde Drive) y queda guardado **sin volver a procesarlo con la IA**.
@@ -151,7 +152,7 @@ Los valores calculados o aproximados llevan un asterisco (`20,42 %*`). En el inf
 
 **Activarlo:** abre la app una vez con conexión, ciérrala y vuelve a abrirla. En **Datos → Modo sin conexión** debe poner **Activo**.
 
-**Sin conexión puedes:** ver el Panel, los informes y el Anual, ver y adjuntar documentos originales, cambiar el tipo de una nómina, corregir el % IRPF y exportar backups. Aparece un aviso naranja de "Sin conexión".
+**Sin conexión puedes:** ver el Panel, los informes y el Anual, ver (también los PDF) y adjuntar documentos originales, cambiar el tipo de una nómina, corregir el % IRPF y exportar backups. Aparece un aviso naranja de "Sin conexión".
 
 **Sin conexión no puedes:** procesar una nómina nueva, porque la lectura la hace Gemini. La app te avisa; cuando vuelvas a tener conexión, pulsa otra vez *Procesar*.
 
@@ -242,6 +243,10 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige, 
 
 **En el otro dispositivo no veo el documento original**
 - Los originales se guardan en el dispositivo donde los guardaste. Haz **Datos → Descargar backup completo** en ese dispositivo e impórtalo en el otro
+
+**Un PDF no se abre o pide contraseña**
+- Si pide contraseña: es la que te dio la empresa (a menudo tu DNI). Si la cancelas, puedes abrirlo con el visor del móvil o descargarlo
+- La primera vez que abres un PDF, la app descarga su visor (unos segundos, verás el aviso "Preparando el visor de PDF…"). Después funciona también sin conexión. Si la primera vez estás sin conexión, la app te lo indica y te deja abrirlo con el visor del móvil
 
 **Veo una versión antigua de la app**
 - Cierra y vuelve a abrir la app con conexión. Si sigue igual: **Datos → 🔄 Forzar actualización**
@@ -419,18 +424,18 @@ BASES Y TOTALES
 
 - **Frontend:** HTML5 + CSS3 + JavaScript vanilla
 - **IA:** Google Gemini 2.5 (exclusivamente para OCR)
-- **Dependencias (vía CDN):** JSZip 3.10 (backups completos en ZIP) y QRCode.js 1.0 (pasar la key al móvil)
+- **Dependencias (vía CDN):** JSZip 3.10 (backups completos en ZIP), QRCode.js 1.0 (pasar la key al móvil) y PDF.js 3.11.174 de Mozilla (visor de PDF: se carga solo al abrir un PDF, verificado con SRI, sin Worker y con `isEvalSupported: false`)
 - **Almacenamiento:** localStorage del navegador (datos) e IndexedDB (documentos originales, que pueden ocupar varios MB)
 - **PWA:** instalable, con service worker para uso sin conexión
 - **Deploy:** GitHub Pages (HTTPS obligatorio para PWA y modo sin conexión)
 
 **Archivos:**
-- `index.html` (~110 KB): toda la aplicación. Sin frameworks, sin build step
+- `index.html` (~120 KB): toda la aplicación. Sin frameworks, sin build step
 - `sw.js` (~4 KB): modo sin conexión. Solo guarda el código de la app
 
 **Cómo funciona el modo sin conexión (`sw.js`):**
 - `index.html`: red primero, preguntando siempre al servidor si hay versión nueva (sin usar los 10 min de caché que permite GitHub Pages). Si no ha cambiado, el servidor responde "sin cambios" y apenas gasta datos. Sin red, o si tarda más de 4 s, la copia guardada
-- Librerías y fuentes: copia guardada primero (sus URLs llevan versión fija)
+- Librerías y fuentes: copia guardada primero (sus URLs llevan versión fija). El visor de PDF se descarga en segundo plano si hay algún PDF guardado, para que funcione sin conexión
 - Las llamadas a Gemini (POST) no se interceptan nunca
 - Solo actúa en la web publicada (https). Abierta como archivo local (`file://`) no aplica
 - Las cachés usan el prefijo `nomina-auditor-` para no tocar las de otras apps del mismo dominio
@@ -438,6 +443,13 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.7 (Octubre 2026)
+- **Visor de PDF dentro de la app** (PDF.js): ya no hace falta lector de PDF en el móvil; funciona sin conexión tras la primera vez (se precarga en segundo plano si hay PDFs guardados)
+- Aviso visual mientras carga ("Preparando el visor de PDF…", "Mostrando página 1 de 2…"), resolución suficiente para ampliar con los dedos
+- PDF con contraseña: la pide y avisa si es incorrecta
+- Si algo falla (sin conexión la primera vez, PDF dañado, contraseña cancelada…), nunca te deja sin ver la nómina: abrir con el visor del móvil o descargar
+- Seguridad: el visor se verifica con SRI (si el archivo de la CDN no coincide exactamente, no se ejecuta) y no evalúa código de los PDF
 
 ### v2.6 (Octubre 2026)
 - **📷 Hacer foto** desde la app (abre la cámara) además de *Elegir archivo*
