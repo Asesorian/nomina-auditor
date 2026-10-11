@@ -3,7 +3,7 @@
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
 ![Version](https://img.shields.io/badge/version-2.7-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
+![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
 ![Architecture](https://img.shields.io/badge/architecture-deterministic%20first-c9a227)
@@ -504,6 +504,9 @@ BASES Y TOTALES
 
 ## 📋 Changelog
 
+### Repositorio (11 de octubre de 2026)
+- **Licencia:** de MIT a **PolyForm Noncommercial 1.0.0** para todo lo publicado a partir de esta fecha. Lo publicado hasta la v2.7 sigue con MIT ([detalles](#-licencia))
+
 ### v2.7 (Octubre 2026)
 - **Visor de PDF dentro de la app** (PDF.js): ya no hace falta lector de PDF en el móvil; funciona sin conexión tras la primera vez (se precarga en segundo plano si hay PDFs guardados)
 - Aviso visual mientras carga ("Preparando el visor de PDF…", "Mostrando página 1 de 2…"), resolución suficiente para ampliar con los dedos
@@ -569,7 +572,9 @@ BASES Y TOTALES
 
 ## 🧩 Reutilización para otros casos de uso
 
-Este repo se publicó con la intención de servir como **base arquitectónica** para construir otros SaaS en dominios regulados donde las alucinaciones de IA no son aceptables.
+Este repo muestra un patrón para construir herramientas en dominios regulados donde las alucinaciones de IA no son aceptables.
+
+El **patrón** es libre: las ideas y la arquitectura (la IA solo lee, una persona verifica, el código calcula y el informe sale de una plantilla) se pueden aplicar en cualquier proyecto, también comercial. El **código** de este repositorio se puede usar y adaptar para fines no comerciales; para usarlo en un producto o servicio comercial hace falta una licencia del autor (ver [Licencia](#-licencia)).
 
 **Patrón replicable:**
 - **Sustituye Fase 1:** OCR de oferta hipotecaria, contrato de alquiler, póliza de seguro
@@ -588,7 +593,13 @@ Este repo se publicó con la intención de servir como **base arquitectónica** 
 
 ## 📄 Licencia
 
-MIT License — libre para usar, modificar y distribuir.
+**[PolyForm Noncommercial 1.0.0](LICENSE)**, desde el 11 de octubre de 2026. En resumen (manda el texto de la licencia):
+
+- ✅ **Uso no comercial, gratis:** llevar y auditar tus propias nóminas, estudiar el código, adaptarlo para ti o usarlo en entidades benéficas, educativas o públicas
+- ❌ **Uso comercial, solo con permiso del autor:** venderla, ofrecerla como servicio de pago, integrarla en otro producto o usarla en una actividad profesional (gestoría, despacho, asesoría…) requiere una licencia comercial. Para pedirla, abre un *issue* en este repositorio
+- Si compartes una copia, modificada o no, incluye la licencia (o su enlace) y la línea `Required Notice` del archivo [LICENSE](LICENSE)
+
+> Las versiones publicadas hasta la **v2.7** (commit `ffe16a0`, 11-10-2026) se distribuyeron con licencia **MIT**, y quien las obtuvo puede seguir usándolas con esa licencia. Todo lo publicado después está bajo PolyForm Noncommercial.
 
 ---
 
@@ -607,7 +618,7 @@ Desarrollado como herramienta forense para auditar nóminas españolas y detecta
 
 ## 🤝 Aportes
 
-Si encuentras bugs, quieres proponer mejoras o adaptar el patrón a otro dominio, abre un issue o pull request.
+Si encuentras errores o tienes ideas de mejora, abre un *issue*. Si quieres aportar código, coméntalo antes en un issue: para aceptarlo, el autor necesita poder distribuirlo tanto con esta licencia como con licencias comerciales.
 
 ---
 
