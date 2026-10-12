@@ -28,6 +28,10 @@ FX = str(TESTS / "fixtures") + os.sep                     # archivos de ejemplo 
 JSZIP = str(TESTS / "node_modules" / "jszip" / "dist" / "jszip.min.js")
 PDFJS = str(TESTS / "node_modules" / "pdfjs-dist" / "build") + os.sep
 
+# Las librerías se cargan con integrity + crossorigin="anonymous": la respuesta simulada necesita esta cabecera
+# (cdnjs la manda siempre) o el navegador no ejecuta el archivo.
+CORS = {"Access-Control-Allow-Origin": "*"}
+
 # Copia de la app servida por http (para probar el service worker / modo sin conexión)
 SITE_URL = "http://localhost:8765/nomina-auditor/"
 SITE_INDEX = os.environ.get("NA_SITE_INDEX", str(TESTS / "output" / "site" / "nomina-auditor" / "index.html"))

@@ -51,8 +51,8 @@ Refleja la **v2.7** (octubre de 2026). Los nombres de funciones y constantes son
 
 | Librería | Versión | Para qué | Cuándo se carga | SRI |
 |---|---|---|---|---|
-| JSZip | 3.10.1 | Backup completo e importar ZIP | Al abrir la app | No ([pendiente](#16-pendiente-y-deuda-técnica-conocida)) |
-| QRCode.js | 1.0.0 | QR para pasar la API key al móvil | Al abrir la app | No ([pendiente](#16-pendiente-y-deuda-técnica-conocida)) |
+| JSZip | 3.10.1 | Backup completo e importar ZIP | Al abrir la app | **Sí** (desde la v2.7.1) |
+| QRCode.js | 1.0.0 | QR para pasar la API key al móvil | Al abrir la app | **Sí** (desde la v2.7.1) |
 | PDF.js (Mozilla) | 3.11.174 | Visor de PDF | Solo al abrir un PDF (o en la precarga) | **Sí** |
 | Google Fonts | Inter, JetBrains Mono | Tipografía | Al abrir la app | No aplica |
 | API de Gemini | `gemini-2.5-flash` → `flash-lite` → `pro` | Lectura (OCR) de la nómina | Solo al procesar | — |
@@ -235,7 +235,8 @@ Con los mismos importes, el botón destacado es *Cancelar — ya la tengo*.
 | *Quitar* | Se borra el documento (la nómina sigue) |
 | Eliminar la nómina | Se borra su documento |
 | Importar JSON | Nunca borra un documento disponible (ver [§11](#11-copias-de-seguridad)) |
-| Importar ZIP completo | Restaura los documentos con su misma clave |
+| Importar ZIP completo | Restaura con su misma clave los documentos de nóminas válidas |
+| *Datos → Documentos sin nómina → Borrar* | Borra, con confirmación, los que ninguna nómina referencia (`orphanDocKeys`) |
 | *Borrar todo* | Vacía el almacén |
 
 **Ver:** las fotos se muestran en un `<img>` con una URL temporal (`URL.createObjectURL`, revocada al cerrar); los PDF, en el [visor propio](#13-visor-de-pdf).
@@ -249,7 +250,7 @@ Con los mismos importes, el botón destacado es *Cancelar — ya la tengo*.
 ### JSON (`nominas-backup-AAAA-MM-DD-HHMM.json`)
 
 ```json
-{ "_meta": { "app": "Nomina Auditor Forense", "version": "2.7", "exportedAt": "…", "totalPayrolls": 12 },
+{ "_meta": { "app": "Nomina Auditor Forense", "version": "2.7.1", "exportedAt": "…", "totalPayrolls": 12 },
   "payrolls": [ … ] }
 ```
 
@@ -273,7 +274,12 @@ El **backup automático** descarga este JSON al guardar una nómina, reclasifica
 
 - Detecta ZIP por su contenido (`PK\x03\x04`); si no, lo lee como JSON.
 - Acepta `{ payrolls: [...] }` o un array suelto (backups muy antiguos).
-- En un ZIP usa `nominas.json` (esté en la carpeta que esté) o, si no hay, el primer `.json`. Antes de fusionar restaura cada documento de `_meta.documents` con **su misma clave**; el tipo se deduce de la extensión.
+- **Validación** (`sanitizeImportedPayroll`, desde la v2.7.1). Un backup puede venir de cualquier sitio, así que solo entra lo que tiene la forma exacta que crea la app:
+  - `id` con el patrón `^\d{4}-(0[1-9]|1[0-2])(-(extra|atrasos)(-\d+)?)?$`; `period.year` de 4 cifras (se guarda como texto); `period.month` de la lista (se normaliza: `mayo` → `Mayo`); `payType` válido o ausente.
+  - `earnings`/`deductions` que no sean listas se vacían; `original` cuya clave no cumpla `^doc-[\w-]+$` se quita (la nómina entra, sin documento).
+  - Lo que no pasa se ignora y el resultado dice cuántos registros eran. Si no pasa ninguno, no se toca nada.
+- En un ZIP usa `nominas.json` (esté en la carpeta que esté) o, si no hay, el primer `.json`. Antes de fusionar restaura los documentos de `_meta.documents` con **su misma clave**, pero solo si la clave cumple `^doc-[\w-]+$`, la ruta empieza por `documentos/` y pertenece a una nómina **válida** del backup (así no quedan huérfanos). El tipo se decide por el **contenido** (`%PDF` → PDF; si no, JPEG), no por la extensión.
+- Los mensajes de error se insertan escapados (`esc()`): el de `JSON.parse` incluye un trozo del archivo.
 - **Fusión por id:** las nuevas se añaden; si ya existe una con el mismo id, **la del backup la sustituye**.
 - **Originales:** si la del backup no trae documento disponible y la del dispositivo sí, se conserva el del dispositivo. Si las dos tienen y son distintos, se queda el del backup y se borra el otro.
 - Una nómina cuyo documento está en otro dispositivo muestra *"se guardó en otro dispositivo"* y permite adjuntarlo.
@@ -299,7 +305,8 @@ Doble confirmación. Vacía las nóminas y los documentos. La API key se conserv
 | Lo demás | Red, sin tocar |
 
 - **Por qué `cache: 'no-cache'`:** GitHub Pages sirve `index.html` con `Cache-Control: max-age=600`. Sin ello, tras publicar, el móvil podía seguir mostrando la versión anterior hasta 10 minutos (corregido en la v2.5; lo comprueba `test_actualizacion.py`).
-- **`CACHE_VERSION`** (`nomina-auditor-sw2`): cambiarla **solo** si cambia `sw.js` o la lista de librerías. Publicar cambios de `index.html` no lo necesita.
+- **`CACHE_VERSION`** (`nomina-auditor-sw3`): cambiarla **solo** si cambia `sw.js` o la lista de librerías. Publicar cambios de `index.html` no lo necesita. Pasó a `sw3` en la v2.7.1: JSZip y QRCode.js empezaron a cargarse con SRI y la caché `sw2` podía tener copias *opacas* (guardadas sin CORS) que ya no pasarían la comprobación.
+- **Copias opacas:** `cacheFirst()` no sirve una copia opaca a una petición en modo `cors` (un `<script>` con `integrity`): la ignora y va a la red.
 - **Forzar actualización** (`forceAppUpdate`): `registration.update()`, borra las cachés con el prefijo y recarga. No toca localStorage ni IndexedDB.
 - **Precarga del visor de PDF** (`warmPdfViewer`): si el service worker controla la página, hay conexión y existe algún PDF guardado, descarga PDF.js en segundo plano para que funcione sin conexión. Usa `fetch(…, { mode: 'cors', credentials: 'omit' })`: una copia *opaca* no superaría la comprobación SRI al usarla sin conexión.
 
@@ -327,7 +334,8 @@ PDFJS_FILES = [['pdf.min.js', 'sha384-…'], ['pdf.worker.min.js', 'sha384-…']
 
 - **Petición:** `POST https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key=…` con la imagen o el PDF en `inlineData` y `EXTRACTION_PROMPT`. `temperature: 0.1`, `maxOutputTokens: 4096`.
 - **Cadena de modelos** (`GEMINI_MODELS`): `gemini-2.5-flash` → `gemini-2.5-flash-lite` → `gemini-2.5-pro`. Cualquier error pasa al siguiente; si fallan todos, el mensaje lista el motivo de cada uno. Google retira modelos cada cierto tiempo: se cambian en ese array.
-- **Limpieza de la respuesta:** quita bloques de código, recorta a la primera `{` y la última `}`, elimina comas finales y comentarios, añade comas que falten entre líneas y cambia `NaN`/`undefined` por 0. Después `JSON.parse` (y una alternativa [pendiente de retirar](#16-pendiente-y-deuda-técnica-conocida)).
+- **Lectura de la respuesta** (`parseGeminiJSON`): quita bloques de código y recorta a la primera `{` y la última `}`. Primero prueba `JSON.parse` tal cual; si falla, repara lo típico (comentarios fuera de las cadenas con `stripJsonComments`, comas finales, comas que falten entre líneas, `NaN`/`undefined` → 0) y vuelve a probar. Si tampoco, **error** y se pasa al modelo siguiente. Debe ser un objeto (una lista no vale). **Nunca se evalúa como JavaScript** (hasta la v2.7 había un `new Function` como último recurso).
+- La key va en la URL codificada (`encodeURIComponent`).
 - **Coste medido** (2026): ≈ 0,9 céntimos por lectura con `gemini-2.5-flash` (incluye el "razonamiento" del modelo); `flash-lite` ≈ 0,07 céntimos, pero solo se usa si falla el primero. Los precios cambian: consultar la [página de precios de Google](https://ai.google.dev/gemini-api/docs/pricing).
 - **Términos de uso de datos** ([Gemini API Additional Terms](https://ai.google.dev/gemini-api/terms), última actualización 28-4-2026):
   - **De pago** (proyecto con facturación activa): Google no usa las peticiones ni las respuestas para mejorar sus productos; las guarda un tiempo limitado solo para detectar abusos.
@@ -340,10 +348,16 @@ PDFJS_FILES = [['pdf.min.js', 'sha384-…'], ['pdf.worker.min.js', 'sha384-…']
 ## 15. Seguridad y privacidad
 
 - **Sin servidor propio:** nada que guarde, registre o filtre datos. Lo único que sale del dispositivo es el documento enviado a Gemini al procesarlo.
-- **API key:** en localStorage; solo se envía a Google por HTTPS. Para pasarla al móvil, el QR la lleva tras `#` (`#apikey=…`): el fragmento no se envía a ningún servidor. Al abrirse, la app la guarda, limpia la dirección con `history.replaceState` y recarga. Se sigue aceptando `?apikey=` por los QR antiguos.
+- **API key:** en localStorage; solo se envía a Google por HTTPS. Para pasarla al móvil, el QR la lleva tras `#` (`#apikey=…`): el fragmento no se envía a ningún servidor. Se sigue aceptando `?apikey=` por los QR antiguos.
+  - `readApiKeyFromUrl()` (con la app ya pintada y en cada `hashchange`): limpia la dirección con `history.replaceState` **siempre**; si no había clave o es la misma, la guarda sin preguntar; si hay **otra distinta**, pide confirmación mostrando principio…final de las dos (`maskKey`). Motivo: un enlace ajeno podría hacer que las nóminas se leyeran con la cuenta de Google de otra persona. Ya no recarga la página.
+  - `saveApiKey()` acepta el enlace entero (`extractApiKey`: busca `apikey=` tras `#`, `?` o `&`, o al principio) y deja en la casilla solo la clave. Pensado para iPhone, donde la app instalada no comparte almacenamiento con Safari.
+  - Junto a la casilla: *¿No tienes clave? Pídesela a quien te pasó la app, o créala tú (guía)*, con enlace a la sección del README.
 - **Service worker:** nunca intercepta peticiones que no sean GET y solo guarda código, nunca datos.
 - **PDF.js:** SRI + `isEvalSupported: false` + sin Worker.
-- **Texto leído por la IA:** se escapa con `esc()` al insertarlo en la página (verificación, informes, panel). Excepción conocida: ver §16.
+- **Texto leído por la IA o importado:** se escapa con `esc()` al insertarlo en la página (verificación, informes, panel, errores).
+- **Datos dentro de `onclick`:** siempre con `jsArg(valor)` (cadena JS de `JSON.stringify` escapada para atributo con `escAttr`). **Nunca** `'${dato}'` a mano. Protege también los datos raros que ya estuvieran guardados.
+- **Copiar:** los botones copian desde una variable (`_reportText`, `annualText`) con `copyToClipboard()`; el texto nunca va dentro del HTML del botón.
+- **Librerías externas:** todas con SRI (`integrity` + `crossorigin="anonymous"`); `tests/ejecutar_todo.py` comprueba las huellas de JSZip y PDF.js contra los archivos locales.
 - **Backups:** contienen datos personales (DNI, salario…); `LEEME.txt` lo advierte.
 - **Origen compartido** en GitHub Pages: ver [§4](#origen-compartido-en-github-pages).
 
@@ -351,16 +365,22 @@ PDFJS_FILES = [['pdf.min.js', 'sha384-…'], ['pdf.worker.min.js', 'sha384-…']
 
 ## 16. Pendiente y deuda técnica conocida
 
-Revisión de octubre de 2026. Para un uso personal (procesar tus propias nóminas e importar tus propios backups) el riesgo es bajo, pero conviene resolverlo antes de distribuir la app a terceros.
+Revisión de octubre de 2026. Los puntos 1–5 se encontraron al documentar y están **resueltos en la v2.7.1** (comprobados en `tests/test_seguridad.py`).
+
+| # | Qué era | Estado |
+|---|---|---|
+| 1 | *📋 Copiar para Abogado* metía el texto del informe dentro del `onclick`: con comillas `"` no copiaba nada y un `${…}` en los datos se ejecutaba | ✅ v2.7.1: `copyText(this)` copia desde `_reportText` |
+| 2 | Si la respuesta de Gemini no era JSON válido, `callGemini()` la evaluaba como JavaScript (`new Function`) | ✅ v2.7.1: solo `JSON.parse` (con reparaciones); si no, error y modelo siguiente |
+| 3 | Importar no validaba los registros (los `id` y años acababan en `onclick`) y los mensajes de error se insertaban sin escapar | ✅ v2.7.1: validación al importar, `jsArg()` en todos los `onclick` y `esc()` en los errores |
+| 4 | JSZip y QRCode.js sin SRI | ✅ v2.7.1: `integrity` + `crossorigin`, `CACHE_VERSION` → `sw3` |
+| 5 | Documentos huérfanos en IndexedDB | ✅ v2.7.1: *Datos* los muestra con su tamaño y los borra con confirmación. **No** se borran solos: si las nóminas no se pudieran leer, parecerían huérfanos todos (sin ninguna nómina, el aviso aconseja importar el backup y no ofrece borrar) |
+
+Pendiente:
 
 | # | Qué | Efecto | Solución prevista |
 |---|---|---|---|
-| 1 | *📋 Copiar para Abogado* mete el texto del informe dentro del atributo `onclick`, sin escapar para JavaScript | Si algún dato contiene comillas `"`, el botón no copia nada. Además, ese texto (que viene de la lectura de la IA) no debería poder interpretarse como código | Copiar siempre desde `_reportText`, que ya está guardado |
-| 2 | Si la respuesta de Gemini no es JSON válido, `callGemini()` la evalúa como JavaScript (`new Function`) como último recurso | Una respuesta inesperada podría ejecutarse en la app | Quitar esa alternativa: reparar como JSON o pedir que se repita la lectura |
-| 3 | Importar no valida los registros, y el mensaje de error se inserta sin escapar | Un backup manipulado podría alterar la página | Validar `id` (`AAAA-MM[-tipo[-n]]`) y año, y escapar los mensajes |
-| 4 | JSZip y QRCode.js se cargan sin SRI | Si la CDN sirviera otro archivo, se ejecutaría | Añadir `integrity` + `crossorigin` y cambiar `CACHE_VERSION` (una copia opaca ya guardada no pasaría la comprobación y rompería los backups) |
-| 5 | No hay limpieza de documentos huérfanos en IndexedDB | Si una importación se interrumpe, puede quedar algún documento sin nómina: no se ve, pero ocupa | Limpieza al arrancar: borrar claves que ninguna nómina referencia |
-| 6 | Las pruebas solo usan Chromium | El menú de compartir y el almacenamiento de iPhone/Safari no están cubiertos | Añadir WebKit a las pruebas |
+| 6 | Las pruebas solo usan Chromium | El menú de compartir, el almacenamiento de iPhone/Safari y pegar el enlace en la app instalada de iPhone no están cubiertos | Añadir WebKit a las pruebas y probar en un iPhone real |
+| 7 | La key va en la URL de la petición a Gemini (`?key=`) | Es HTTPS y va a Google, pero las URLs acaban más a menudo en registros que las cabeceras | Enviarla en la cabecera `x-goog-api-key` (comprobar antes con una lectura real) |
 
 ---
 
@@ -387,13 +407,16 @@ Revisión de octubre de 2026. Para un uso personal (procesar tus propias nómina
 4. Poner la misma versión de `pdfjs-dist` en `tests/package.json` y ejecutar `cd tests && npm install`.
 5. `python tests/ejecutar_todo.py`: antes de empezar comprueba que la versión y las huellas coinciden con los archivos locales y, si no, dice qué falta.
 
-**JSZip o QRCode.js:** cambiar la URL en `index.html` **y** en `CDN_ASSETS` de `sw.js` (y subir `CACHE_VERSION`). Para JSZip, también su versión en `tests/package.json`.
+**JSZip o QRCode.js:** cambiar la URL **y la huella `integrity`** en `index.html`, la URL en `CDN_ASSETS` de `sw.js` y subir `CACHE_VERSION`. Para JSZip, también su versión en `tests/package.json` (`ejecutar_todo.py` comprueba que la huella coincide con el archivo local). Huella desde Windows, sin `openssl`:
+```powershell
+$r=Invoke-WebRequest -UseBasicParsing URL; $m=New-Object IO.MemoryStream; $r.RawContentStream.CopyTo($m); "sha384-" + [Convert]::ToBase64String([Security.Cryptography.SHA384]::Create().ComputeHash($m.ToArray()))
+```
 
 ---
 
 ## 19. Pruebas automáticas
 
-Nueve baterías (~150 comprobaciones) con Chromium en tamaño móvil, sin internet y sin gastar lecturas de Gemini. Cómo prepararlas, qué cubre cada una y cómo funcionan por dentro: [tests/README.md](../tests/README.md).
+Diez baterías (más de 200 comprobaciones) con Chromium en tamaño móvil, sin internet y sin gastar lecturas de Gemini. Cómo prepararlas, qué cubre cada una y cómo funcionan por dentro: [tests/README.md](../tests/README.md).
 
 ```bash
 python tests/ejecutar_todo.py              # todas (~1 minuto)

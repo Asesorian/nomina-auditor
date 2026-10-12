@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.7-blue)
+![Version](https://img.shields.io/badge/version-2.7.1-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -29,10 +29,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.7)
+## 🆕 Novedades (v2.3 – v2.7.1)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 🔒 **Más segura (v2.7.1)** | Si te pasan la app con un enlace, puedes pegar el enlace entero en la casilla de la clave (útil en iPhone). Si un enlace trae una clave distinta de la tuya, la app pregunta antes de cambiarla. Los backups se comprueban antes de importarlos y *Datos* avisa si hay documentos sin nómina ocupando espacio | Barra de la clave · Datos |
 | 📎 **Documento original de cada nómina** | Haz la foto desde la app y queda guardada junto a la nómina, con nombre automático (`2026-07 Julio - Paga extra.pdf`). Desde *Ver* la abres, la copias a Drive/iCloud o la descargas. A las nóminas antiguas puedes adjuntarles el original sin volver a procesarlas | [Ver sección](#-documentos-originales) |
 | 📄 **Visor de PDF propio** | Los PDF se ven dentro de la app, aunque el móvil no tenga lector de PDF, y también sin conexión. Si el PDF tiene contraseña, la pide | *Ver → 👁 Ver* |
 | 🗂️ **Backup completo** | Un ZIP con tus datos y todos los originales ordenados por año, que se restaura en otro dispositivo | Datos |
@@ -50,7 +51,9 @@ Tus nóminas y backups de versiones anteriores siguen funcionando tal cual: no h
 ## 🔧 Cómo se usa (paso a paso)
 
 ### 1️⃣ Configura tu API key de Gemini (una sola vez)
-Ver [API key de Gemini](#-api-key-de-gemini-gratis-o-de-pago): hay capa gratuita y, con la facturación activada, cuesta alrededor de 1 céntimo por nómina. Para pasarla al móvil sin teclear, usa el botón **📱 Enviar al móvil**.
+- **Si alguien te ha pasado la app**, te dará la clave o un enlace que la lleva: ábrelo, o pega el enlace entero en la casilla de la clave
+- **Si quieres usar la tuya:** ver [API key de Gemini](#-api-key-de-gemini-gratis-o-de-pago). Hay capa gratuita y, con la facturación activada, cuesta alrededor de 1 céntimo por nómina
+- Para pasarla al móvil sin teclear, usa el botón **📱 Enviar al móvil**
 
 ### 2️⃣ Sube la nómina
 - Pestaña **Subir** → **📷 Hacer foto** (abre la cámara) o **📁 Elegir archivo** (foto o PDF). En el ordenador también puedes arrastrarla
@@ -197,6 +200,7 @@ Los valores calculados o aproximados llevan un asterisco (`20,42 %*`). En el inf
 **iPhone (iOS):**
 1. Abre [la app](https://asesorian.github.io/nomina-auditor/) en **Safari**
 2. Toca compartir → **"Agregar a Pantalla de Inicio"**
+3. Abre la app **desde el icono** y pega la clave en su casilla (o el enlace entero que te pasaron). En iPhone, la app instalada guarda sus datos aparte de Safari: la clave que abriste en Safari no le llega
 
 Después, ábrela una segunda vez con conexión para dejar activo el [modo sin conexión](#-uso-sin-conexión-y-actualizaciones).
 
@@ -249,6 +253,10 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige, 
 
 > La key va dentro del enlace del QR, en la parte tras `#`, que el navegador **nunca envía a ningún servidor**. Al abrirse, la app la guarda y limpia la dirección. Trata el QR como una contraseña: no lo enseñes ni le hagas captura.
 
+**El mismo enlace sirve para pasar la app a otra persona** (por ejemplo, por WhatsApp): al abrirlo, la app queda con esa clave. También se puede **pegar el enlace entero en la casilla** de la clave: la app se queda solo con la clave.
+
+**Si ya tienes una clave y abres un enlace con otra**, la app te pregunta antes de cambiarla y te enseña el principio y el final de las dos. Acepta solo si el enlace viene de alguien de confianza: con esa clave, tus nóminas se leerían con la cuenta de Google de quien la creó.
+
 **Botón 👁:** muestra u oculta la key para comprobar que está bien escrita.
 
 ---
@@ -272,6 +280,14 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige, 
 **Un PDF no se abre o pide contraseña**
 - Si pide contraseña: es la que te dio la empresa (a menudo tu DNI). Si la cancelas, puedes abrirlo con el visor del móvil o descargarlo
 - La primera vez que abres un PDF, la app descarga su visor (unos segundos, verás el aviso "Preparando el visor de PDF…"). Después funciona también sin conexión. Si la primera vez estás sin conexión, la app te lo indica y te deja abrirlo con el visor del móvil
+
+**Al importar un backup dice "registros ignorados"**
+- Esos registros no tienen la forma de una nómina guardada por la app (mes, año o identificador no válidos) y se descartan para no dañar tus datos. El resto se importa con normalidad
+- Si eran nóminas tuyas, vuelve a procesarlas o revisa de dónde salió ese archivo
+
+**En Datos aparecen "documentos sin nómina"**
+- Son originales que no pertenecen a ninguna nómina (por ejemplo, de una importación que se cortó). Ocupan espacio: puedes borrarlos con el botón de al lado
+- Si aparecen todos y **no ves ninguna nómina**, no borres nada: importa tu último backup y volverán a su sitio
 
 **Veo una versión antigua de la app**
 - Cierra y vuelve a abrir la app con conexión. Si sigue igual: **Datos → 🔄 Forzar actualización**
@@ -477,7 +493,7 @@ BASES Y TOTALES
 
 - **Frontend:** HTML5 + CSS3 + JavaScript vanilla
 - **IA:** Google Gemini 2.5 (exclusivamente para OCR)
-- **Dependencias (vía CDN):** JSZip 3.10 (backups completos en ZIP), QRCode.js 1.0 (pasar la key al móvil) y PDF.js 3.11.174 de Mozilla (visor de PDF: se carga solo al abrir un PDF, verificado con SRI, sin Worker y con `isEvalSupported: false`, que impide que un PDF manipulado ejecute código: CVE-2024-4367)
+- **Dependencias (vía CDN, todas verificadas con SRI):** JSZip 3.10 (backups completos en ZIP), QRCode.js 1.0 (pasar la key al móvil) y PDF.js 3.11.174 de Mozilla (visor de PDF: se carga solo al abrir un PDF, sin Worker y con `isEvalSupported: false`, que impide que un PDF manipulado ejecute código: CVE-2024-4367). Si el archivo de la CDN no coincide byte a byte con el esperado, el navegador no lo ejecuta
 - **Almacenamiento:** localStorage del navegador (datos) e IndexedDB (documentos originales, que pueden ocupar varios MB)
 - **PWA:** instalable, con service worker para uso sin conexión
 - **Deploy:** GitHub Pages (HTTPS obligatorio para PWA y modo sin conexión)
@@ -498,11 +514,21 @@ BASES Y TOTALES
 ### 🧑‍💻 Para desarrolladores
 
 - **[docs/TECNICO.md](docs/TECNICO.md):** cómo funciona por dentro. Almacenamiento y modelo de datos, reglas de clasificación y de IRPF, ciclo de vida de los originales, formatos de backup, service worker, visor de PDF, seguridad, **deuda técnica conocida** y cómo publicar una versión
-- **[tests/](tests/README.md):** 9 baterías de pruebas automáticas (~150 comprobaciones) con navegador real, sin internet y sin gastar lecturas de Gemini. Se ejecutan con `python tests/ejecutar_todo.py`
+- **[tests/](tests/README.md):** 10 baterías de pruebas automáticas (más de 200 comprobaciones) con navegador real, sin internet y sin gastar lecturas de Gemini. Se ejecutan con `python tests/ejecutar_todo.py`
 
 ---
 
 ## 📋 Changelog
+
+### v2.7.1 (Octubre 2026) · Seguridad
+- **📋 Copiar para Abogado** ya funciona aunque algún dato lleve comillas (`TALLERES "EL SOL" SL`), y el texto de la nómina nunca puede ejecutarse como código al copiarlo
+- La respuesta de Gemini se lee **solo como datos (JSON)**: si no lo es, se descarta y se prueba el modelo siguiente (antes, como último recurso, se ejecutaba)
+- **Importar backups:** cada nómina se comprueba (identificador, mes, año y tipo) antes de entrar; lo que no encaja se ignora y se avisa de cuántos registros eran. Del ZIP solo se restauran los documentos de nóminas válidas, y su tipo se decide por el contenido. Los mensajes de error se muestran como texto
+- Los datos que van en los botones (identificadores, años) se pasan siempre como texto, también los que ya estuvieran guardados
+- **JSZip y QRCode.js con SRI**, como PDF.js. El modo sin conexión renueva su copia (`sw3`) para no reutilizar copias antiguas que ya no pasarían la comprobación
+- **Documentos sin nómina:** *Datos* los muestra con su tamaño y deja borrarlos con confirmación. Nunca se borran solos
+- **Casilla de la clave:** acepta el enlace entero (`…#apikey=…`), útil en iPhone. Si un enlace trae una clave distinta de la guardada, pregunta antes de cambiarla. Nuevo texto: *¿No tienes clave? Pídesela a quien te pasó la app, o créala tú (guía)*
+- Nueva batería de pruebas `test_seguridad.py`
 
 ### Repositorio (11 de octubre de 2026)
 - **Licencia:** de MIT a **PolyForm Noncommercial 1.0.0** para todo lo publicado a partir de esta fecha. Lo publicado hasta la v2.7 sigue con MIT ([detalles](#-licencia))

@@ -232,8 +232,9 @@ code { font-family:'JetBrains Mono',monospace; }
 .pdf-more button { background:none;border:none;color:var(--accent);cursor:pointer;text-decoration:underline;font-size:11px;font-family:inherit;padding:0 2px; }
 .hidden { display:none !important; }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- Librerías externas con huella SRI: si cdnjs sirviera otro archivo, el navegador no lo ejecuta -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha384-3zSEDfvllQohrq0PHL1fOXJuC/jSOO34H46t6UQfobFOmxE5BpjjaIJY5F2/bMnU" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -242,7 +243,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.7</span>
+    <span class="logo-badge">Forense v2.7.1</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -271,10 +272,9 @@ code { font-family:'JetBrains Mono',monospace; }
 <!-- API Key Bar -->
 <div class="api-bar">
   <label>🔑 Gemini API Key</label>
-  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="password" id="apiKeyInput" placeholder="Pega tu API Key de Google AI Studio aqui..." oninput="saveApiKey(this.value)" style="flex:1;min-width:200px"><button onclick="toggleKeyVis()" id="eyeBtn" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">👁</button><button onclick="showApiQR()" title="Genera un QR para transferir la key al móvil sin teclear" style="background:var(--warning);color:#0f1117;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap">📱 Enviar al móvil</button></div>
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;flex:1;min-width:0"><input type="password" id="apiKeyInput" placeholder="Pega aquí tu clave (o el enlace que te pasaron)" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" oninput="saveApiKey(this.value)" style="flex:1;min-width:200px"><button onclick="toggleKeyVis()" id="eyeBtn" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">👁</button><button onclick="showApiQR()" title="Genera un QR para transferir la key al móvil sin teclear" style="background:var(--warning);color:#0f1117;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap">📱 Enviar al móvil</button></div>
   <span id="apiStatus" class="status no">Sin Key</span>
-  <a href="https://aistudio.google.com/apikey" target="_blank">Obtener gratis →</a>
-  <span style="font-size:10px;color:var(--text-muted);margin-left:4px">Si da error "limit:0" → crear proyecto nuevo en console.cloud.google.com</span>
+  <span id="apiHelp" style="font-size:11px;color:var(--text-dim);line-height:1.4;max-width:300px">¿No tienes clave? Pídesela a quien te pasó la app, o <a href="https://github.com/Asesorian/nomina-auditor#-api-key-de-gemini-gratis-o-de-pago" target="_blank" rel="noopener">créala tú (guía) →</a></span>
 </div>
 
 <div id="offlineBanner" class="offline-banner hidden">📴 <span><strong>Sin conexión.</strong> Puedes consultar, corregir y exportar tus nóminas. Para procesar una nómina nueva hace falta internet.</span></div>
@@ -549,9 +549,26 @@ function saveData() {
   localStorage.setItem('nomina-auditor-data', JSON.stringify(payrolls));
 }
 
-function saveApiKey(key) {
-  localStorage.setItem('nomina-auditor-apikey', key.trim());
-  updateApiStatus(key.trim());
+// Acepta la clave sola o el enlace entero que se pasa por WhatsApp (…/#apikey=AIza…):
+// en iPhone la app instalada no ve lo que se abrió en Safari, así que se pega el enlace en la casilla.
+function extractApiKey(text) {
+  const t = String(text ?? '').trim();
+  const m = t.match(/(?:^|[#?&])apikey=([^&#\s]+)/i);
+  if (!m) return t;
+  try { return decodeURIComponent(m[1]).trim(); } catch { return m[1].trim(); }
+}
+
+function maskKey(k) {
+  k = String(k || '');
+  return k.length > 12 ? k.substring(0, 8) + '…' + k.slice(-4) : '…';
+}
+
+function saveApiKey(value) {
+  const key = extractApiKey(value);
+  const input = document.getElementById('apiKeyInput');
+  if (input && /apikey=/i.test(String(value)) && input.value !== key) input.value = key;   // si pegaron el enlace, en la casilla queda solo la clave
+  localStorage.setItem('nomina-auditor-apikey', key);
+  updateApiStatus(key);
 }
 
 function getApiKey() {
@@ -694,6 +711,17 @@ function esc(s) {
   const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
 }
 
+// Para atributos HTML: además de < > &, escapa las comillas (esc() no lo hace)
+function escAttr(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Un dato como argumento de un onclick="…": cadena JS válida y segura, sea cual sea su contenido.
+// Ej.: onclick="deletePayroll(${jsArg(p.id)})". Nunca escribir '${dato}' a mano dentro de un onclick.
+function jsArg(v) {
+  return escAttr(JSON.stringify(String(v ?? '')));
+}
+
 // ═══════════ NAVIGATION ═══════════
 function showView(name) {
   ['dashboard','upload','report','annual','backup'].forEach(v => {
@@ -744,9 +772,47 @@ const GEMINI_MODELS = [
   'gemini-2.5-pro'
 ];
 
+// Guía para conseguir la clave (sección del README)
+const KEY_GUIDE_URL = 'https://github.com/Asesorian/nomina-auditor#-api-key-de-gemini-gratis-o-de-pago';
+
+// Quita comentarios // y /* */ que estén FUERA de las cadenas (una dirección "http://…" dentro de un dato no se toca)
+function stripJsonComments(s) {
+  let out = '', inStr = false;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inStr) {
+      out += c;
+      if (c === '\\') { out += s[++i] ?? ''; }
+      else if (c === '"') inStr = false;
+    } else if (c === '"') { inStr = true; out += c; }
+    else if (c === '/' && s[i + 1] === '/') { while (i < s.length && s[i] !== '\n') i++; out += '\n'; }
+    else if (c === '/' && s[i + 1] === '*') { const end = s.indexOf('*/', i + 2); i = end === -1 ? s.length : end + 1; }
+    else out += c;
+  }
+  return out;
+}
+
+// Convierte la respuesta de Gemini en datos. SOLO como JSON: nunca se ejecuta como código.
+// Si no es JSON válido ni tras las reparaciones habituales, lanza un error y callGemini prueba el modelo siguiente.
+function parseGeminiJSON(text) {
+  let clean = String(text || '').replace(/```json\s*/gi, '').replace(/```\s*/g, '');
+  const firstBrace = clean.indexOf('{');
+  const lastBrace = clean.lastIndexOf('}');
+  if (firstBrace === -1 || lastBrace <= firstBrace) throw new Error('Gemini no devolvió un JSON válido. Intenta con otra foto más nítida.');
+  clean = clean.substring(firstBrace, lastBrace + 1);
+  try { return JSON.parse(clean); } catch {}
+  // Reparaciones de errores típicos, solo si el JSON tal cual no vale
+  const repaired = stripJsonComments(clean)
+    .replace(/,\s*([}\]])/g, '$1')                                          // coma antes de } o ]
+    .replace(/("(?:[^"\\]|\\.)*"|\d|true|false|null|[}\]])[ \t]*\n(\s*["{])/g, '$1,\n$2') // falta la coma entre líneas
+    .replace(/:\s*(NaN|undefined)\b/g, ': 0');                              // valores que no existen en JSON
+  try { return JSON.parse(repaired); }
+  catch (e) { throw new Error(`Error leyendo la respuesta de Gemini (no es JSON válido): ${e.message}\n\nRespuesta recibida (primeros 500 caracteres):\n${String(text).substring(0, 500)}`); }
+}
+
 async function callGemini(base64, mediaType) {
   const key = getApiKey();
-  if (!key) throw new Error('Configura tu API Key de Gemini primero (barra superior).\n\n→ Consigue una gratis en aistudio.google.com/apikey\n→ Si te da error de cuota (limit: 0), crea un proyecto NUEVO en console.cloud.google.com, habilita "Generative Language API", y genera la key desde ese proyecto.');
+  if (!key) throw new Error('Falta la clave de Gemini (barra superior).\n\n→ Si alguien te ha pasado la app, pídele la clave o el enlace con la clave.\n→ Si quieres usar la tuya, aquí se explica cómo crearla: ' + KEY_GUIDE_URL);
 
   let lastError = null;
   const allErrors = [];
@@ -754,7 +820,7 @@ async function callGemini(base64, mediaType) {
   for (const model of GEMINI_MODELS) {
     try {
       updateProcessStatus(`Probando ${model}...`);
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -779,39 +845,8 @@ async function callGemini(base64, mediaType) {
 
       const data = await res.json();
       const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-      
-      // Robust JSON extraction and cleaning
-      let clean = text;
-      // Remove markdown fences
-      clean = clean.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
-      // Remove any text before the first { and after the last }
-      const firstBrace = clean.indexOf('{');
-      const lastBrace = clean.lastIndexOf('}');
-      if (firstBrace === -1 || lastBrace === -1) throw new Error('Gemini no devolvió un JSON válido. Intenta con otra foto más nítida.');
-      clean = clean.substring(firstBrace, lastBrace + 1);
-      // Fix trailing commas before ] or }
-      clean = clean.replace(/,\s*([}\]])/g, '$1');
-      // Fix single quotes to double quotes (rare but possible)
-      // Remove JS-style comments
-      clean = clean.replace(/\/\/[^\n]*/g, '');
-      clean = clean.replace(/\/\*[\s\S]*?\*\//g, '');
-      // Fix missing commas between properties (newline between "value"\n"key")
-      clean = clean.replace(/("(?:[^"\\]|\\.)*")\s*\n\s*(")/g, '$1,\n$2');
-      // Fix NaN or undefined values
-      clean = clean.replace(/:\s*(NaN|undefined)\b/g, ': 0');
-      
-      let parsed;
-      try {
-        parsed = JSON.parse(clean);
-      } catch (parseErr) {
-        // Last resort: try to eval as JS object (handles trailing commas, unquoted keys)
-        try {
-          parsed = (new Function('return (' + clean + ')'))();
-        } catch (evalErr) {
-          throw new Error(`Error parseando respuesta de Gemini: ${parseErr.message}\n\nRespuesta recibida (primeros 500 chars):\n${text.substring(0, 500)}`);
-        }
-      }
-      
+      const parsed = parseGeminiJSON(text);   // si no es JSON válido, lanza error → siguiente modelo
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Gemini no devolvió los datos de la nómina en el formato esperado.');
       updateProcessStatus(`✓ Extraído con ${model}`);
       return parsed;
     } catch (e) {
@@ -822,7 +857,7 @@ async function callGemini(base64, mediaType) {
     }
   }
 
-  throw new Error(`Todos los modelos fallaron:\n${allErrors.join("\n")}\n\n🔧 Si ves "limit: 0": crea un proyecto NUEVO en console.cloud.google.com, habilita "Generative Language API" y genera una API key nueva desde ese proyecto en aistudio.google.com/apikey`);
+  throw new Error(`Todos los modelos fallaron:\n${allErrors.join("\n")}\n\n🔧 Si la clave te la dio otra persona, mándale este mensaje: el problema suele estar en la clave o en su límite de gasto.\n🔧 Si la clave es tuya y ves "API key not valid", "limit: 0" o "quota", aquí tienes qué hacer: ${KEY_GUIDE_URL}`);
 }
 
 function updateProcessStatus(msg) {
@@ -837,18 +872,31 @@ function updateProcessStatus(msg) {
 // Leer apikey desde URL (para QR móvil)
 // Va tras "#" (fragmento): esa parte de la dirección nunca se envía a ningún servidor.
 // También se acepta "?apikey=" para que sigan funcionando los QR generados con versiones anteriores.
+// Si ya hay OTRA clave guardada, se pregunta antes de cambiarla: un enlace ajeno podría hacer que tus
+// nóminas se leyeran con la cuenta de Google de otra persona. Si no había ninguna o es la misma, sin preguntar.
 function readApiKeyFromUrl() {
   var params = new URLSearchParams(window.location.search);
   var hashParams = new URLSearchParams(window.location.hash.slice(1));
-  var keyFromUrl = hashParams.get('apikey') || params.get('apikey');
-  if (keyFromUrl) {
-    localStorage.setItem('nomina-auditor-apikey', keyFromUrl);
-    window.history.replaceState({}, document.title, window.location.pathname);
-    // Recargar para que la app lo detecte
-    window.location.reload();
-  }
+  var keyFromUrl = (hashParams.get('apikey') || params.get('apikey') || '').trim();
+  if (!keyFromUrl) return;
+  // La clave sale de la dirección (y del historial) pase lo que pase
+  window.history.replaceState({}, document.title, window.location.pathname);
+  var current = getApiKey();
+  if (current === keyFromUrl) return;
+  if (current && !confirm(
+      'Este enlace trae una clave de Gemini distinta de la que ya tienes.\n\n' +
+      'Tu clave: ' + maskKey(current) + '\nLa del enlace: ' + maskKey(keyFromUrl) + '\n\n' +
+      'Si la cambias, las nóminas que proceses a partir de ahora se leerán con la cuenta de Google de quien creó esa clave. ' +
+      'Acepta solo si te la ha dado alguien de confianza (por ejemplo, quien te pasó la app).\n\n¿Cambiar la clave?')) return;
+  localStorage.setItem('nomina-auditor-apikey', keyFromUrl);
+  var input = document.getElementById('apiKeyInput');
+  if (input) input.value = keyFromUrl;
+  updateApiStatus(keyFromUrl);
 }
-readApiKeyFromUrl();
+// Se comprueba con la app ya pintada (si hay que preguntar, la pregunta no sale sobre una pantalla en blanco).
+// Llamarla dos veces no pasa nada: la primera ya limpia la dirección.
+requestAnimationFrame(function () { setTimeout(readApiKeyFromUrl, 30); });
+window.addEventListener('load', function () { setTimeout(readApiKeyFromUrl, 30); });
 // Si la app ya estaba abierta en esa pestaña, un cambio tras "#" no recarga la página
 window.addEventListener('hashchange', readApiKeyFromUrl);
 
@@ -1421,7 +1469,7 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Tipo de nómina</div>
       <div class="type-picker">
         ${Object.entries(PAY_TYPES).map(([k, v]) =>
-          `<button class="type-opt ${k === pt ? 'active' : ''}" onclick="reclassifyPayroll('${p.id}','${k}')">${v.icon} ${v.label}</button>`).join('')}
+          `<button class="type-opt ${k === pt ? 'active' : ''}" onclick="reclassifyPayroll(${jsArg(p.id)},'${k}')">${v.icon} ${v.label}</button>`).join('')}
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5">Si esta nómina es una paga extra o unos atrasos y se guardó como mensual (o al revés), cámbiala aquí sin volver a procesarla.</div>
     </div>
@@ -1432,23 +1480,24 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
           <span style="font-size:20px;font-weight:800;font-family:'JetBrains Mono',monospace;color:${irpf.rate === null ? 'var(--danger)' : 'var(--text)'}">${irpf.rate === null ? 'N/L' : fmtPct(irpf.rate)}</span>
           <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${esc(IRPF_SOURCE_TEXT[irpf.source] || 'no aparece en la nómina: introdúcelo a mano')}</div>
         </div>
-        <button class="btn btn-secondary btn-sm" onclick="editIrpf('${p.id}')">✏ Corregir %</button>
+        <button class="btn btn-secondary btn-sm" onclick="editIrpf(${jsArg(p.id)})">✏ Corregir %</button>
       </div>
     </div>
     <div class="card" style="padding:14px 16px">
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">📎 Documento original</div>
       <div id="originalBody" class="doc-meta"></div>
-      <input type="file" id="attachInput" accept="image/*,.avif,.heic,.heif,.pdf,application/pdf" style="display:none" onchange="attachOriginal('${p.id}', this.files[0])">
+      <input type="file" id="attachInput" accept="image/*,.avif,.heic,.heif,.pdf,application/pdf" style="display:none" onchange="attachOriginal(${jsArg(p.id)}, this.files[0])">
     </div>
     <div class="card">
       <pre class="report-pre">${esc(reportText)}</pre>
     </div>
     <div class="btn-group">
-      <button class="btn btn-primary" onclick="copyText(this, \`${reportText.replace(/`/g,'\\`').replace(/\\/g,'\\\\')}\`)">📋 Copiar para Abogado</button>
+      <button class="btn btn-primary" onclick="copyText(this)">📋 Copiar para Abogado</button>
       <button class="btn btn-secondary" onclick="showView('dashboard')">Volver al Panel</button>
     </div>`;
 
-  // Store for copy
+  // El texto a copiar se guarda aquí, NUNCA dentro del onclick: con comillas o ${…} en los datos
+  // el botón dejaba de copiar o ejecutaba ese texto como código (corregido en la v2.7.1).
   document.getElementById('reportContent')._reportText = reportText;
   renderOriginalBody(p);
 }
@@ -1467,11 +1516,11 @@ function renderOriginalBody(p) {
       <div><strong>${esc(originalFileName(p))}</strong></div>
       <div style="color:var(--text-muted);font-size:11px">${o.type === 'application/pdf' ? 'PDF' : 'Foto'} · ${fmtBytes(o.size)}${saved ? ' · guardado el ' + saved : ''} · solo en este dispositivo</div>
       <div class="doc-actions">
-        <button class="btn btn-secondary btn-sm" onclick="viewOriginal('${id}')">👁 Ver</button>
-        ${canShareFiles() ? `<button class="btn btn-secondary btn-sm" onclick="shareOriginal('${id}')">📤 Guardar en… (Drive, iCloud…)</button>` : ''}
-        <button class="btn btn-secondary btn-sm" onclick="downloadOriginal('${id}')">⬇ Descargar</button>
+        <button class="btn btn-secondary btn-sm" onclick="viewOriginal(${jsArg(id)})">👁 Ver</button>
+        ${canShareFiles() ? `<button class="btn btn-secondary btn-sm" onclick="shareOriginal(${jsArg(id)})">📤 Guardar en… (Drive, iCloud…)</button>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="downloadOriginal(${jsArg(id)})">⬇ Descargar</button>
         <button class="btn btn-secondary btn-sm" onclick="document.getElementById('attachInput').click()">🔄 Cambiar</button>
-        <button class="btn btn-danger" onclick="removeOriginal('${id}')">🗑 Quitar</button>
+        <button class="btn btn-danger" onclick="removeOriginal(${jsArg(id)})">🗑 Quitar</button>
       </div>`;
     originalCache = null;
     originalAsFile(p).then(file => { originalCache = { key: o.key, file }; }).catch(() => {});
@@ -1685,7 +1734,7 @@ function showDocViewer(url, title) {
   m.id = 'docViewer';
   m.innerHTML = `<div class="doc-viewer">
     <div class="doc-viewer-bar"><span>${esc(title)}</span><button class="btn btn-secondary btn-sm" onclick="closeDocViewer()">✕ Cerrar</button></div>
-    <img src="${url}" alt="${esc(title)}">
+    <img src="${url}" alt="${escAttr(title)}">
   </div>`;
   m.onclick = e => { if (e.target === m) closeDocViewer(); };
   m._url = url;
@@ -1750,13 +1799,31 @@ function reclassifyPayroll(id, newType) {
   showReport(moved);
 }
 
-function copyText(btn, fallback) {
-  const text = document.getElementById('reportContent')._reportText || fallback;
-  navigator.clipboard.writeText(text).then(() => {
-    const orig = btn.innerHTML;
+function copyText(btn) {
+  copyToClipboard(document.getElementById('reportContent')._reportText || '', btn);
+}
+
+// Copia texto al portapapeles. Si el navegador no deja (algunos móviles antiguos), usa el método clásico.
+async function copyToClipboard(text, btn) {
+  if (!text) return;
+  let ok = false;
+  try { await navigator.clipboard.writeText(text); ok = true; } catch {}
+  if (!ok) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { ok = document.execCommand('copy'); } catch {}
+    document.body.removeChild(ta);
+  }
+  if (!ok) { alert('No se ha podido copiar automáticamente. Selecciona el texto del informe y cópialo a mano.'); return; }
+  if (btn) {
+    if (!btn.dataset.label) btn.dataset.label = btn.innerHTML;
     btn.innerHTML = '✓ ¡Copiado!';
-    setTimeout(() => btn.innerHTML = orig, 2000);
-  });
+    setTimeout(() => { btn.innerHTML = btn.dataset.label; }, 2000);
+  }
 }
 
 // ═══════════ DASHBOARD ═══════════
@@ -1766,7 +1833,7 @@ function renderDashboard() {
   years.sort();
 
   document.getElementById('yearPills').innerHTML = years.map(y =>
-    `<button class="year-pill ${y === currentYear ? 'active' : ''}" onclick="currentYear='${y}';renderDashboard()">${y}</button>`
+    `<button class="year-pill ${y === currentYear ? 'active' : ''}" onclick="currentYear=${jsArg(y)};renderDashboard()">${esc(y)}</button>`
   ).join('');
 
   const fp = payrolls.filter(p => p.period?.year === currentYear);
@@ -1785,7 +1852,7 @@ function renderDashboard() {
     document.getElementById('dashTable').innerHTML = `
       <div class="empty">
         <div class="empty-icon">📋</div>
-        <p style="color:var(--text-dim)">No hay nóminas procesadas en ${currentYear}</p>
+        <p style="color:var(--text-dim)">No hay nóminas procesadas en ${esc(currentYear)}</p>
         <button class="btn btn-primary" style="margin-top:16px" onclick="showView('upload')">Subir primera nómina</button>
       </div>`;
     return;
@@ -1797,14 +1864,14 @@ function renderDashboard() {
     <table>
       <thead><tr><th>Periodo</th><th class="r">Bruto</th><th class="r">Neto</th><th class="r">IRPF %</th><th style="text-align:center">Acciones</th></tr></thead>
       <tbody>
-        ${fp.map(p => `<tr class="clickable" ondblclick="showReport(payrolls.find(x=>x.id==='${p.id}'))">
+        ${fp.map(p => `<tr class="clickable" ondblclick="showReport(payrolls.find(x=>x.id===${jsArg(p.id)}))">
           <td>${esc(p.period?.month)} ${esc(p.period?.year)}${hasOriginal(p) ? '<span class="clip" title="Documento original guardado">📎</span>' : ''}${typeBadge(p)}</td>
           <td class="r">${fmt(p.totals?.grossTotal)} €</td>
           <td class="r">${fmt(p.totals?.netPay)} €</td>
           <td class="r">${irpfCell(p)}</td>
           <td style="text-align:center">
-            <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showReport(payrolls.find(x=>x.id==='${p.id}'))">Ver</button>
-            <button class="btn btn-danger" onclick="event.stopPropagation();deletePayroll('${p.id}')">🗑</button>
+            <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showReport(payrolls.find(x=>x.id===${jsArg(p.id)}))">Ver</button>
+            <button class="btn btn-danger" onclick="event.stopPropagation();deletePayroll(${jsArg(p.id)})">🗑</button>
           </td>
         </tr>`).join('')}
       </tbody>
@@ -1842,14 +1909,14 @@ function renderAnnual() {
   document.getElementById('annualContent').innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
       <span class="phase-badge phase-3">FASE 3</span>
-      <span style="font-size:18px;font-weight:800;color:var(--accent)">Informe Anual de Auditoría — ${currentYear}</span>
+      <span style="font-size:18px;font-weight:800;color:var(--accent)">Informe Anual de Auditoría — ${esc(currentYear)}</span>
     </div>
 
     <div class="year-pills">${years.map(y =>
-      `<button class="year-pill ${y === currentYear ? 'active' : ''}" onclick="currentYear='${y}';renderAnnual()">${y}</button>`
+      `<button class="year-pill ${y === currentYear ? 'active' : ''}" onclick="currentYear=${jsArg(y)};renderAnnual()">${esc(y)}</button>`
     ).join('')}</div>
 
-    ${fp.length === 0 ? `<div class="card empty"><p style="color:var(--text-dim)">No hay nóminas procesadas para ${currentYear}</p></div>` : `
+    ${fp.length === 0 ? `<div class="card empty"><p style="color:var(--text-dim)">No hay nóminas procesadas para ${esc(currentYear)}</p></div>` : `
     <div class="card" style="overflow-x:auto">
       <table>
         <thead><tr><th>Mes</th><th class="r">Bruto</th><th class="r">IRPF (Ret.)</th><th class="r">S.S. (Obrero)</th><th class="r">Base IRPF</th><th class="r">Líquido</th></tr></thead>
@@ -1857,7 +1924,7 @@ function renderAnnual() {
           ${fp.map(p => {
             const irpfDed = findIRPFDeduction(p);
             const ssTotal = calcSSTotal(p);
-            return `<tr class="clickable" onclick="showReport(payrolls.find(x=>x.id==='${p.id}'))">
+            return `<tr class="clickable" onclick="showReport(payrolls.find(x=>x.id===${jsArg(p.id)}))">
               <td>${esc(p.period?.month)}${typeBadge(p)}</td>
               <td class="r">${fmt(p.totals?.grossTotal)} €</td>
               <td class="r">${fmt(irpfDed)} €</td>
@@ -1896,13 +1963,7 @@ function renderAnnual() {
   // Bind copy button
   const copyBtn = document.getElementById('copyAnnualBtn');
   if (copyBtn) {
-    copyBtn.onclick = () => {
-      navigator.clipboard.writeText(annualText).then(() => {
-        const orig = copyBtn.innerHTML;
-        copyBtn.innerHTML = '✓ ¡Copiado!';
-        setTimeout(() => copyBtn.innerHTML = orig, 2000);
-      });
-    };
+    copyBtn.onclick = () => copyToClipboard(annualText, copyBtn);
   }
 }
 
@@ -2088,7 +2149,7 @@ function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.7',
+      version: '2.7.1',
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },
@@ -2181,24 +2242,56 @@ function isZIP(arrayBuffer) {
   return b[0]===0x50 && b[1]===0x4B && b[2]===0x03 && b[3]===0x04;
 }
 
+// ── Validación de lo que se importa ──
+// Un backup es un archivo que puede venir de cualquier sitio (o estar manipulado): solo entra lo que tiene
+// la forma exacta que crea la app. El resto se ignora y se avisa de cuántos registros eran.
+const PAYROLL_ID_RE = /^\d{4}-(0[1-9]|1[0-2])(-(extra|atrasos)(-\d+)?)?$/;
+const DOC_KEY_RE = /^doc-[\w-]+$/;
+
+function backupPayrollList(data) {
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.payrolls)) return data.payrolls;
+  return null;
+}
+
+function sanitizeImportedPayroll(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  if (typeof raw.id !== 'string' || !PAYROLL_ID_RE.test(raw.id)) return null;
+  const period = raw.period && typeof raw.period === 'object' ? raw.period : null;
+  if (!period) return null;
+  const year = String(period.year ?? '').trim();
+  if (!/^\d{4}$/.test(year)) return null;
+  const month = normalizeMonth(period.month);
+  if (!month) return null;
+  if (raw.payType !== undefined && raw.payType !== null && !PAY_TYPES[raw.payType]) return null;
+  const p = { ...raw, period: { ...period, year, month } };
+  for (const k of ['earnings', 'deductions']) {
+    if (p[k] !== undefined) p[k] = Array.isArray(p[k]) ? p[k].filter(e => e && typeof e === 'object') : [];
+  }
+  if (p.original !== undefined && !(p.original && typeof p.original === 'object' && typeof p.original.key === 'string' && DOC_KEY_RE.test(p.original.key))) {
+    delete p.original;   // referencia rota o extraña: la nómina entra, sin documento
+  }
+  return p;
+}
+
 async function processImportedJSON(jsonText, resultDiv, restoredDocs = 0) {
   try {
     const data = JSON.parse(jsonText);
-    let importedPayrolls = [];
-    if (Array.isArray(data)) {
-      importedPayrolls = data;
-    } else if (data.payrolls && Array.isArray(data.payrolls)) {
-      importedPayrolls = data.payrolls;
-    } else {
-      throw new Error('Formato no reconocido');
-    }
+    const importedPayrolls = backupPayrollList(data);
+    if (!importedPayrolls) throw new Error('Formato no reconocido');
     if (importedPayrolls.length === 0) {
       resultDiv.innerHTML = '<div class="alert alert-error">El archivo no contiene nóminas.</div>';
       return;
     }
+    const valid = importedPayrolls.map(sanitizeImportedPayroll).filter(Boolean);
+    const ignored = importedPayrolls.length - valid.length;
+    if (valid.length === 0) {
+      resultDiv.innerHTML = `<div class="alert alert-error"><div><b>No se ha importado nada</b><br>
+        Ninguno de los ${importedPayrolls.length} registros del archivo tiene el formato de una nómina de esta app. Tus datos no se han tocado.</div></div>`;
+      return;
+    }
     let newCount = 0, updatedCount = 0;
-    for (let p of importedPayrolls) {
-      if (!p.id) continue;
+    for (let p of valid) {
       const existing = payrolls.find(x => x.id === p.id);
       if (existing) {
         // Nunca perder un documento original que ya está en este dispositivo
@@ -2212,20 +2305,25 @@ async function processImportedJSON(jsonText, resultDiv, restoredDocs = 0) {
     }
     sortPayrolls();
     saveData();
-    const meta = data._meta ? `<br><span style="color:var(--text-muted)">Backup del: ${new Date(data._meta.exportedAt).toLocaleString('es-ES')}</span>` : '';
+    const exportedAt = data._meta?.exportedAt ? new Date(data._meta.exportedAt) : null;
+    const meta = exportedAt && !isNaN(exportedAt) ? `<br><span style="color:var(--text-muted)">Backup del: ${esc(exportedAt.toLocaleString('es-ES'))}</span>` : '';
+    const ignoredMsg = ignored > 0
+      ? `<br><span style="color:var(--warning)">⚠ ${ignored} ${ignored === 1 ? 'registro ignorado' : 'registros ignorados'}: no ${ignored === 1 ? 'tiene' : 'tienen'} el formato de una nómina de esta app (mes, año o identificador no válidos)</span>`
+      : '';
     resultDiv.innerHTML = `<div class="alert alert-info" style="margin-top:0"><div>
       <b>✓ Importación completada</b>
       <div style="margin-top:4px">
         ${newCount > 0 ? `<span style="color:var(--success)">+${newCount} nóminas nuevas &nbsp;</span>` : ''}
         ${updatedCount > 0 ? `<span style="color:var(--warning)">${updatedCount} actualizadas &nbsp;</span>` : ''}
         ${restoredDocs > 0 ? `<span style="color:var(--success)">📎 ${restoredDocs} documentos originales restaurados</span>` : ''}
+        ${ignoredMsg}
         ${meta}
       </div></div></div>`;
     renderDashboard();
     renderBackupView();
     document.getElementById('importFileInput').value = '';
   } catch(e) {
-    resultDiv.innerHTML = `<div class="alert alert-error"><b>Error al importar</b><br>${e.message}</div>`;
+    resultDiv.innerHTML = `<div class="alert alert-error"><div><b>Error al importar</b><br>${esc(e.message)}</div></div>`;
   }
 }
 
@@ -2250,14 +2348,19 @@ function importBackup(file) {
         const jsonText = await zip.files[jsonName].async('string');
         resultDiv.innerHTML = `<div class="alert alert-info">📦 ZIP descomprimido — procesando <em>${esc(jsonName)}</em>...</div>`;
         // Restaurar los documentos originales que lleve dentro
+        // Solo los que tienen clave y ruta válidas y pertenecen a una nómina válida del backup (así no quedan huérfanos)
         let restored = 0;
         try {
-          const docsMap = JSON.parse(jsonText)?._meta?.documents || {};
-          for (const [key, path] of Object.entries(docsMap)) {
+          const parsed = JSON.parse(jsonText);
+          const docsMap = parsed?._meta?.documents;
+          const wanted = new Set((backupPayrollList(parsed) || []).map(sanitizeImportedPayroll)
+            .filter(p => p?.original?.key).map(p => p.original.key));
+          for (const [key, path] of Object.entries(docsMap && typeof docsMap === 'object' ? docsMap : {})) {
+            if (!DOC_KEY_RE.test(key) || typeof path !== 'string' || !path.startsWith('documentos/') || !wanted.has(key)) continue;
             const entry = zip.file(path);
             if (!entry) continue;
             const data = await entry.async('arraybuffer');
-            const type = /\.pdf$/i.test(path) ? 'application/pdf' : 'image/jpeg';
+            const type = isPDF(data) ? 'application/pdf' : 'image/jpeg';
             await putDoc(key, { data, type, name: path.split('/').pop(), size: data.byteLength, savedAt: new Date().toISOString() });
             docKeys.add(key);
             restored++;
@@ -2268,7 +2371,7 @@ function importBackup(file) {
         }
         await processImportedJSON(jsonText, resultDiv, restored);
       } catch(e) {
-        resultDiv.innerHTML = `<div class="alert alert-error"><b>Error leyendo ZIP</b><br>${e.message}</div>`;
+        resultDiv.innerHTML = `<div class="alert alert-error"><div><b>Error leyendo ZIP</b><br>${esc(e.message)}</div></div>`;
       }
     } else {
       // ── JSON ── leer como texto directamente
@@ -2329,6 +2432,7 @@ function renderBackupView() {
         <div>📄 Nóminas sin original: <strong style="color:var(--text)">${payrolls.length - withDoc.length}</strong></div>
       </div>
       <div id="persistInfo" style="margin-top:6px;font-size:11px;color:var(--text-muted)"></div>
+      <div id="orphanInfo"></div>
       ${payrolls.length > 0 ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
         <strong style="color:var(--text)">Nóminas almacenadas:</strong><br>
         ${payrolls.map(p => `<span style="display:inline-block;margin:4px 4px 0 0;padding:3px 10px;border-radius:12px;background:var(--bg2);border:1px solid ${payTypeOf(p) === 'ordinaria' ? 'var(--border)' : 'var(--warning)'};font-size:11px">${esc(payName(p))}${hasOriginal(p) ? ' 📎' : ''}</span>`).join('')}
@@ -2341,7 +2445,46 @@ function renderBackupView() {
           : 'ℹ El navegador podría liberar espacio si el móvil se llena. Descarga de vez en cuando un backup completo.';
       }).catch(() => {});
     }
+    renderOrphanInfo();
   }
+}
+
+// ── Documentos sin nómina ("huérfanos") ──
+// Pueden quedar si se interrumpe una importación o un guardado. No se ven, pero ocupan espacio.
+// NUNCA se borran solos: si los datos de las nóminas no se hubieran podido leer, parecerían huérfanos todos.
+function orphanDocKeys() {
+  const used = new Set(payrolls.map(p => p.original?.key).filter(Boolean));
+  return [...docKeys].filter(k => !used.has(k));
+}
+
+async function renderOrphanInfo() {
+  const el = document.getElementById('orphanInfo');
+  if (!el) return;
+  await refreshDocKeys();
+  const keys = orphanDocKeys();
+  if (!keys.length) { el.innerHTML = ''; return; }
+  let bytes = 0;
+  for (const k of keys) {
+    try { const r = await getDoc(k); bytes += r?.size || r?.data?.byteLength || 0; } catch {}
+  }
+  const n = keys.length;
+  const what = `${n} ${n === 1 ? 'documento' : 'documentos'} sin nómina (${fmtBytes(bytes)})`;
+  el.innerHTML = payrolls.length === 0
+    ? `<div class="alert alert-error" style="margin:12px 0 0"><div><b>⚠ Hay ${what} y ninguna nómina</b>
+        Si acabas de perder tus datos, <strong>no borres nada</strong>: importa tu último backup y los documentos volverán a su nómina.</div></div>`
+    : `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+        <span>🧹 <strong style="color:var(--text)">${what}</strong>: ${n === 1 ? 'ocupa espacio pero no pertenece' : 'ocupan espacio pero no pertenecen'} a ninguna nómina (por ejemplo, de una importación interrumpida).</span>
+        <button class="btn btn-danger" onclick="deleteOrphanDocs()">🗑 Borrar</button>
+      </div>`;
+}
+
+async function deleteOrphanDocs() {
+  await refreshDocKeys();
+  const keys = orphanDocKeys();
+  if (!keys.length || payrolls.length === 0) { renderBackupView(); return; }
+  if (!confirm(`¿Borrar ${keys.length} ${keys.length === 1 ? 'documento que no pertenece' : 'documentos que no pertenecen'} a ninguna nómina?\n\nTus nóminas y sus documentos originales no se tocan. No se puede deshacer.`)) return;
+  for (const k of keys) await discardOriginal({ key: k });
+  renderBackupView();
 }
 
 // ═══════════ MODO SIN CONEXIÓN ═══════════

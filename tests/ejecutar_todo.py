@@ -27,6 +27,7 @@ SUITES = [
     ("Documentos originales y backup completo", "test_originales.py", None),
     ("Compartir a Drive/iCloud", "test_compartir.py", None),
     ("Visor de PDF", "test_visor_pdf.py", None),
+    ("Seguridad: datos, backups, SRI y API key", "test_seguridad.py", None),
     ("Modo sin conexión", "test_sin_conexion.py", "site"),
     ("Visor de PDF sin conexión", "test_pdf_sin_conexion.py", "site"),
     ("Versión nueva a la primera (caché de GitHub Pages)", "test_actualizacion.py", "pages"),
@@ -62,6 +63,19 @@ def comprobar_librerias():
         if instalada != en_app:
             sys.exit(f"La app usa {paquete} {en_app}, pero en tests/node_modules está la {instalada}.\n"
                      f'Pon "{paquete}": "{en_app}" en tests/package.json y ejecuta:  cd tests && npm install')
+
+    # JSZip: la huella SRI de index.html debe ser la del archivo local (idéntico byte a byte al de cdnjs)
+    m = re.search(r'/jszip/[\d.]+/jszip\.min\.js"\s+integrity="(sha384-[A-Za-z0-9+/=]+)"\s+crossorigin="anonymous"', html)
+    if not m:
+        sys.exit('index.html carga JSZip sin huella SRI (integrity="sha384-…" crossorigin="anonymous").')
+    real = "sha384-" + base64.b64encode(hashlib.sha384((TESTS / "node_modules" / "jszip" / "dist" / "jszip.min.js").read_bytes()).digest()).decode()
+    if real != m.group(1):
+        sys.exit(f"La huella SRI de JSZip en index.html no coincide con jszip {jszip_app}:\n"
+                 f"  index.html: {m.group(1)}\n  archivo:    {real}\n"
+                 "Si has cambiado de versión, calcula la huella nueva (ver docs/TECNICO.md).")
+    # QRCode.js no tiene copia local (las pruebas no lo cargan): al menos debe llevar su huella
+    if not re.search(r'/qrcode\.min\.js"\s+integrity="sha384-[A-Za-z0-9+/=]+"\s+crossorigin="anonymous"', html):
+        sys.exit('index.html carga QRCode.js sin huella SRI (integrity="sha384-…" crossorigin="anonymous").')
 
     if len(PDFJS_SRI) != 2:
         sys.exit("No encuentro las huellas SRI de PDF.js en index.html (constante PDFJS_FILES).")

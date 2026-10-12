@@ -1,6 +1,6 @@
 import json, sys, zipfile
 from playwright.sync_api import sync_playwright
-from _comun import APP, JSZIP, FX, OUT as S
+from _comun import APP, JSZIP, FX, OUT as S, CORS
 
 
 fails = []
@@ -22,7 +22,7 @@ def extracted(month, gross, net, **kw):
 def new_context(browser):
     ctx = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=2,
                               is_mobile=True, has_touch=True, accept_downloads=True)
-    ctx.route("**/jszip.min.js", lambda r: r.fulfill(path=JSZIP, content_type="application/javascript"))
+    ctx.route("**/jszip.min.js", lambda r: r.fulfill(path=JSZIP, content_type="application/javascript", headers=CORS))  # CORS: la app la carga con integrity + crossorigin
     ctx.route("**/qrcode.min.js", lambda r: r.fulfill(body="", content_type="application/javascript"))
     ctx.route("https://fonts.googleapis.com/**", lambda r: r.fulfill(body="", content_type="text/css"))
     page = ctx.new_page()

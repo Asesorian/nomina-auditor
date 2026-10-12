@@ -21,7 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 const CACHE_PREFIX = 'nomina-auditor-';
-const CACHE_VERSION = CACHE_PREFIX + 'sw2';
+const CACHE_VERSION = CACHE_PREFIX + 'sw3';   // sw3 (v2.7.1): librerías con SRI; borra copias opacas antiguas
 const APP_SHELL = './';
 const NETWORK_TIMEOUT_MS = 4000;
 const CDN_ASSETS = [
@@ -93,10 +93,12 @@ async function networkFirst(network) {
 }
 
 async function cacheFirst(event) {
+  const req = event.request;
   const cache = await caches.open(CACHE_VERSION);
-  const hit = await cache.match(event.request);
-  if (hit) return hit;
-  const res = await fetch(event.request);
-  if (res.ok || res.type === 'opaque') event.waitUntil(cache.put(event.request, res.clone()));
+  const hit = await cache.match(req);
+  // Una copia "opaca" (guardada sin CORS) no sirve a un <script> con integrity (SRI): se ignora y se pide a la red
+  if (hit && !(hit.type === 'opaque' && req.mode === 'cors')) return hit;
+  const res = await fetch(req);
+  if (res.ok || res.type === 'opaque') event.waitUntil(cache.put(req, res.clone()));
   return res;
 }
