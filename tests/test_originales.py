@@ -169,11 +169,25 @@ with sync_playwright() as pw:
     zf = zipfile.ZipFile(S + "backup_completo.zip")
     names = sorted(zf.namelist())
     print("     contenido:", names)
-    check("nominas.json" in names and "LEEME.txt" in names, "incluye nominas.json y LEEME.txt")
-    check("documentos/2026/2026-07 Julio.jpg" in names and "documentos/2026/2026-07 Julio - Paga extra.jpg" in names, "documentos ordenados por año con nombre automático")
-    meta = json.loads(zf.read("nominas.json"))["_meta"]
+    check("datos-app.json" in names and "LEEME.txt" in names and "nominas.json" not in names, "incluye datos-app.json y LEEME.txt (v2.7.3)")
+    check("nominas/2026/2026-07 Julio.jpg" in names and "nominas/2026/2026-07 Julio - Paga extra.jpg" in names, "nóminas en la carpeta nominas/, por año y con nombre automático")
+    check(not any(n.startswith("documentos/") for n in names), "ya no hay carpeta documentos/")
+    leeme = zf.read("LEEME.txt").decode("utf-8")
+    check("nominas/: tus nóminas" in leeme and "datos-app.json" in leeme, "el LEEME explica la carpeta y el archivo de datos")
+    meta = json.loads(zf.read("datos-app.json"))["_meta"]
     check(meta.get("totalDocuments") == 2 and len(meta.get("documents", {})) == 2, "el JSON enlaza cada documento con su nómina")
-    check(zf.read("documentos/2026/2026-07 Julio.jpg")[:3] == b"\xff\xd8\xff", "los documentos dentro del ZIP están intactos")
+    check(all(v.startswith("nominas/2026/") for v in meta["documents"].values()), "con las rutas nuevas")
+    check(zf.read("nominas/2026/2026-07 Julio.jpg")[:3] == b"\xff\xd8\xff", "los documentos dentro del ZIP están intactos")
+    # El mismo backup con el formato de antes de la v2.7.3 (nominas.json + documentos/), para el punto 10b
+    old_zip = S + "backup_completo_formato_antiguo.zip"
+    data_old = json.loads(zf.read("datos-app.json"))
+    data_old["_meta"]["documents"] = {k: v.replace("nominas/", "documentos/", 1) for k, v in data_old["_meta"]["documents"].items()}
+    with zipfile.ZipFile(old_zip, "w") as zo:
+        zo.writestr("nominas.json", json.dumps(data_old))
+        for n in names:
+            if n.startswith("nominas/") and not n.endswith("/"):
+                zo.writestr(n.replace("nominas/", "documentos/", 1), zf.read(n))
+        zo.writestr("LEEME.txt", "formato antiguo")
     snapshot = page.evaluate("JSON.stringify(createBackupData())")
     check(not errors, f"sin errores JS en el dispositivo 1: {errors}")
     ctx.close()
@@ -192,6 +206,16 @@ with sync_playwright() as pw:
     page2.wait_for_timeout(300)
     check(page2.evaluate("document.querySelector('#docViewer img').naturalWidth") > 0, "el original restaurado se ve en el nuevo dispositivo")
     page2.click("#docViewer >> text=✕ Cerrar")
+
+    print("10b) Un backup completo antiguo (nominas.json + documentos/) se sigue restaurando")
+    ctx4, page4, errors4 = new_context(b)
+    page4.evaluate("showView('backup')")
+    page4.set_input_files("#importFileInput", old_zip)
+    page4.wait_for_selector("#importResult >> text=documentos originales restaurados", timeout=8000)
+    check("2 documentos originales restaurados" in page4.inner_text("#importResult") and page4.evaluate("payrolls.length") == 2
+          and page4.evaluate("payrolls.every(p => hasOriginal(p))"), "nóminas y originales restaurados desde el formato antiguo")
+    check(not errors4, f"sin errores JS: {errors4}")
+    ctx4.close()
 
     print("11) Importar un backup SOLO de datos no borra los originales del dispositivo")
     old_json = json.loads(snapshot)

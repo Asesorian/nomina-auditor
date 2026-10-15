@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.7.2-blue)
+![Version](https://img.shields.io/badge/version-2.7.3-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -209,9 +209,9 @@ Gemini **solo lee** la nómina, y a veces se equivoca: se salta una fila, pone u
 |---|---|---|
 | **Backup automático** (`nominas-backup-FECHA.json`) | Solo los datos. Se descarga solo cada vez que guardas una nómina (se puede desactivar en *Datos*) | Copia de seguridad ligera del día a día |
 | **Exportar datos** (*Datos → Exportar datos*) | Lo mismo, cuando tú quieras | Pasar los datos a otro dispositivo |
-| **Backup completo** (*Datos → Descargar backup completo*) | ZIP con `nominas.json` + carpeta `documentos/AÑO/` con todos los originales | Guardarlo en Drive y **restaurarlo todo** (datos y documentos) en otro dispositivo |
+| **Backup completo** (*Datos → Descargar backup completo*) | ZIP con la carpeta `nominas/AÑO/` (tus nóminas: las fotos y PDF originales) y `datos-app.json` (los datos leídos) | Guardarlo en Drive y **restaurarlo todo** (datos y documentos) en otro dispositivo |
 
-- **Restaurar:** *Datos → Importar backup*. Acepta el `.json` o el `.zip` directamente, sin descomprimir. Con el backup completo se restauran también los documentos originales.
+- **Restaurar:** *Datos → Importar backup*. Acepta el `.json` o el `.zip` directamente, sin descomprimir. Con el backup completo se restauran también los documentos originales. Los backups completos de antes de la v2.7.3 (con `nominas.json` y la carpeta `documentos/`) se siguen importando igual.
 - **Importar nunca borra un original que ya tengas en el dispositivo:** si el backup no trae el documento de una nómina, se conserva el que ya había.
 
 **Móvil y ordenador no se sincronizan solos.** Cada dispositivo guarda sus propias nóminas y documentos. Para tener lo mismo en los dos: backup completo en uno e importarlo en el otro.
@@ -571,6 +571,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.7.3 (Octubre 2026)
+- **Backup completo más claro:** dentro del ZIP, la carpeta de las fotos y PDF se llama ahora **`nominas/`** (antes `documentos/`) y el archivo de datos **`datos-app.json`** (antes `nominas.json`, que se confundía con la carpeta). Los backups anteriores se siguen importando igual
 
 ### v2.7.2 (Octubre 2026) · Lecturas que no cuadran
 - **Comprobación de las cuentas** de cada nómina (sumas, líquido, IRPF y cotizaciones = base × %, unidades × precio y códigos frente a tus otras nóminas), en la revisión, en *Ver*, en el Panel y en el Informe anual. [Detalles](#-comprobación-de-las-cuentas)

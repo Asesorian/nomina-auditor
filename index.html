@@ -260,7 +260,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.7.2</span>
+    <span class="logo-badge">Forense v2.7.3</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -2719,7 +2719,7 @@ function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.7.2',
+      version: '2.7.3',
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },
@@ -2760,7 +2760,16 @@ function exportBackup() {
   }
 }
 
-// Backup completo: ZIP con nominas.json + documentos/AÑO/"2026-07 Julio - Paga extra.pdf"
+// Backup completo (v2.7.3): ZIP con
+//   nominas/AÑO/"2026-07 Julio - Paga extra.pdf"   ← las nóminas (fotos y PDF originales)
+//   datos-app.json                                  ← los datos leídos, para restaurarlos en la app
+//   LEEME.txt
+// Hasta la v2.7.2 eran "documentos/" y "nominas.json": importar sigue aceptando los dos formatos.
+const ZIP_DOCS_DIR = 'nominas';
+const ZIP_DATA_FILE = 'datos-app.json';
+const ZIP_DOCS_DIRS_OK = /^(nominas|documentos)\//;           // carpetas de originales que se aceptan al importar
+const ZIP_DATA_FILES_OK = [ZIP_DATA_FILE, 'nominas.json'];      // archivo de datos (nuevo y antiguo)
+
 async function exportFullBackup() {
   if (payrolls.length === 0) { alert('No hay nóminas para exportar.'); return; }
   if (typeof JSZip === 'undefined') { alert('No se ha podido cargar el compresor ZIP. Comprueba la conexión y vuelve a intentarlo.'); return; }
@@ -2781,17 +2790,17 @@ async function exportFullBackup() {
       let name = originalFileName(p, rec.type), n = 2;
       while (used.has(`${year}/${name}`)) name = originalFileName(p, rec.type).replace(/(\.\w+)$/, ` (${n++})$1`);
       used.add(`${year}/${name}`);
-      const path = `documentos/${year}/${name}`;
+      const path = `${ZIP_DOCS_DIR}/${year}/${name}`;
       zip.file(path, rec.data);
       data._meta.documents[p.original.key] = path;
       nDocs++;
     }
     data._meta.totalDocuments = nDocs;
-    zip.file('nominas.json', JSON.stringify(data, null, 2));
+    zip.file(ZIP_DATA_FILE, JSON.stringify(data, null, 2));
     zip.file('LEEME.txt',
       'Backup completo de Nómina Auditor\n\n' +
-      '- nominas.json: los datos de tus nóminas.\n' +
-      '- documentos/: las fotos y PDF originales, ordenados por año.\n\n' +
+      '- nominas/: tus nóminas (las fotos y PDF originales), ordenadas por año.\n' +
+      '- datos-app.json: los datos que la app ha leído de tus nóminas, para restaurarlos.\n\n' +
       'Para restaurarlo todo: en la app, Datos → Importar backup y elige este ZIP.\n' +
       'Contiene datos personales (DNI, salario…): guárdalo en un sitio privado.\n');
     const blob = await zip.generateAsync({ type: 'blob' });
@@ -2905,7 +2914,8 @@ function importBackup(file) {
   const sniffer = new FileReader();
   sniffer.onload = async (sniffEvt) => {
     if (isZIP(sniffEvt.target.result)) {
-      // ── ZIP ── backup completo (nominas.json + documentos/) o un ZIP con un .json dentro
+      // ── ZIP ── backup completo (datos-app.json + nominas/, o el formato antiguo nominas.json + documentos/)
+      //          o un ZIP con un .json dentro
       try {
         if (typeof JSZip === 'undefined') throw new Error('No se ha podido cargar el descompresor ZIP. Comprueba la conexión.');
         const zip = await JSZip.loadAsync(file);
@@ -2914,7 +2924,7 @@ function importBackup(file) {
           resultDiv.innerHTML = '<div class="alert alert-error">El ZIP no contiene ningún archivo .json</div>';
           return;
         }
-        const jsonName = jsonFiles.find(n => n.split('/').pop() === 'nominas.json') || jsonFiles[0];
+        const jsonName = ZIP_DATA_FILES_OK.map(f => jsonFiles.find(n => n.split('/').pop() === f)).find(Boolean) || jsonFiles[0];
         const jsonText = await zip.files[jsonName].async('string');
         resultDiv.innerHTML = `<div class="alert alert-info">📦 ZIP descomprimido — procesando <em>${esc(jsonName)}</em>...</div>`;
         // Restaurar los documentos originales que lleve dentro
@@ -2926,7 +2936,7 @@ function importBackup(file) {
           const wanted = new Set((backupPayrollList(parsed) || []).map(sanitizeImportedPayroll)
             .filter(p => p?.original?.key).map(p => p.original.key));
           for (const [key, path] of Object.entries(docsMap && typeof docsMap === 'object' ? docsMap : {})) {
-            if (!DOC_KEY_RE.test(key) || typeof path !== 'string' || !path.startsWith('documentos/') || !wanted.has(key)) continue;
+            if (!DOC_KEY_RE.test(key) || typeof path !== 'string' || !ZIP_DOCS_DIRS_OK.test(path) || !wanted.has(key)) continue;
             const entry = zip.file(path);
             if (!entry) continue;
             const data = await entry.async('arraybuffer');

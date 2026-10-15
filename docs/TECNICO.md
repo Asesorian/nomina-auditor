@@ -2,7 +2,7 @@
 
 Para quien quiera entender, mantener o adaptar Nómina Auditor. Para **usarla**, basta con el [README](../README.md).
 
-Refleja la **v2.7.2** (octubre de 2026). Los nombres de funciones y constantes son los de `index.html`, para poder buscarlos directamente.
+Refleja la **v2.7.3** (octubre de 2026). Los nombres de funciones y constantes son los de `index.html`, para poder buscarlos directamente.
 
 ## Índice
 
@@ -260,7 +260,7 @@ Con los mismos importes, el botón destacado es *Cancelar — ya la tengo*.
 ### JSON (`nominas-backup-AAAA-MM-DD-HHMM.json`)
 
 ```json
-{ "_meta": { "app": "Nomina Auditor Forense", "version": "2.7.1", "exportedAt": "…", "totalPayrolls": 12 },
+{ "_meta": { "app": "Nomina Auditor Forense", "version": "2.7.3", "exportedAt": "…", "totalPayrolls": 12 },
   "payrolls": [ … ] }
 ```
 
@@ -269,16 +269,18 @@ El **backup automático** descarga este JSON al guardar una nómina, reclasifica
 ### ZIP completo (`nominas-backup-completo-AAAA-MM-DD-HHMM.zip`)
 
 ```
-├── nominas.json        el JSON de arriba + _meta.documents + _meta.totalDocuments
-├── LEEME.txt           qué contiene y cómo restaurarlo
-└── documentos/
-    └── 2026/
-        ├── 2026-07 Julio.jpg
-        └── 2026-07 Julio - Paga extra.pdf
+├── nominas/            las nóminas (fotos y PDF originales), por año
+│   └── 2026/
+│       ├── 2026-07 Julio.jpg
+│       └── 2026-07 Julio - Paga extra.pdf
+├── datos-app.json      el JSON de arriba + _meta.documents + _meta.totalDocuments
+└── LEEME.txt           qué contiene y cómo restaurarlo
 ```
 
-- `_meta.documents` enlaza cada clave con su ruta: `{ "doc-3f2a…": "documentos/2026/2026-07 Julio.jpg" }`.
-- Nombres repetidos → ` (2)`, ` (3)`… Año que no tenga 4 cifras → `documentos/otros/`.
+- Nombres en las constantes `ZIP_DOCS_DIR` y `ZIP_DATA_FILE`. **Hasta la v2.7.2** eran `documentos/` y `nominas.json`; se cambiaron porque lo que hay dentro son las nóminas y `nominas/` junto a `nominas.json` se confundía. Importar acepta los dos formatos (`ZIP_DOCS_DIRS_OK`, `ZIP_DATA_FILES_OK`).
+- Una versión anterior a la v2.7.3 que importe un ZIP nuevo restaura los datos (encuentra el `.json`) pero **no los originales** (solo aceptaba `documentos/`). No debería pasar: la app se actualiza sola al abrirla con conexión.
+- `_meta.documents` enlaza cada clave con su ruta: `{ "doc-3f2a…": "nominas/2026/2026-07 Julio.jpg" }`.
+- Nombres repetidos → ` (2)`, ` (3)`… Año que no tenga 4 cifras → `nominas/otros/`.
 
 ### Importar (`importBackup`, `processImportedJSON`)
 
@@ -288,7 +290,7 @@ El **backup automático** descarga este JSON al guardar una nómina, reclasifica
   - `id` con el patrón `^\d{4}-(0[1-9]|1[0-2])(-(extra|atrasos)(-\d+)?)?$`; `period.year` de 4 cifras (se guarda como texto); `period.month` de la lista (se normaliza: `mayo` → `Mayo`); `payType` válido o ausente.
   - `earnings`/`deductions` que no sean listas se vacían; `original` cuya clave no cumpla `^doc-[\w-]+$` se quita (la nómina entra, sin documento).
   - Lo que no pasa se ignora y el resultado dice cuántos registros eran. Si no pasa ninguno, no se toca nada.
-- En un ZIP usa `nominas.json` (esté en la carpeta que esté) o, si no hay, el primer `.json`. Antes de fusionar restaura los documentos de `_meta.documents` con **su misma clave**, pero solo si la clave cumple `^doc-[\w-]+$`, la ruta empieza por `documentos/` y pertenece a una nómina **válida** del backup (así no quedan huérfanos). El tipo se decide por el **contenido** (`%PDF` → PDF; si no, JPEG), no por la extensión.
+- En un ZIP usa `datos-app.json` o `nominas.json` (estén en la carpeta que estén) o, si no hay, el primer `.json`. Antes de fusionar restaura los documentos de `_meta.documents` con **su misma clave**, pero solo si la clave cumple `^doc-[\w-]+$`, la ruta empieza por `nominas/` o `documentos/` y pertenece a una nómina **válida** del backup (así no quedan huérfanos). El tipo se decide por el **contenido** (`%PDF` → PDF; si no, JPEG), no por la extensión.
 - Los mensajes de error se insertan escapados (`esc()`): el de `JSON.parse` incluye un trozo del archivo.
 - **Fusión por id:** las nuevas se añaden; si ya existe una con el mismo id, **la del backup la sustituye**.
 - **Originales:** si la del backup no trae documento disponible y la del dispositivo sí, se conserva el del dispositivo. Si las dos tienen y son distintos, se queda el del backup y se borra el otro.
