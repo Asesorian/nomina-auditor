@@ -408,6 +408,7 @@ Encontrados al revisar un backup con nóminas reales (15-10-2026), **resueltos e
 | 9 | La línea de IRPF dependía de leer «irpf»: con «I.R.P.P.» el IRPF del mes contaba 0 | ✅ `findIRPFLine()` por texto ampliado y, si no, por la cuenta base × % |
 | 10 | Nada comprobaba que las líneas sumaran los totales: dos nóminas con filas corridas se guardaron sin aviso | ✅ `checkPayroll()`, segunda lectura, marcas ⚠ y corrección de guardadas ([§20](#20-comprobación-de-las-cuentas-y-corrección)) |
 | 11 | `fmt()` usaba `toLocaleString('es-ES')`, que no pone punto en las cifras de 4 dígitos (2100,10 pero 21.000,00); y `editField` leía «2.100,10» como 2,1 | ✅ `fmt()` agrupa siempre a mano; `num()` lee los formatos españoles |
+| 12 | La segunda lectura y el prompt nuevo solo estaban probados con respuestas simuladas | ✅ Comprobado con nóminas reales (15-10-2026): las dos que no cuadraban quedaron bien con *🔁 Releer con Gemini*, y una foto en la que antes se leyó «Octo.» por «Dcto.» se lee bien con el prompt nuevo (también como foto, no solo en PDF). Muestra pequeña, pero coherente |
 
 Pendiente:
 
@@ -415,7 +416,6 @@ Pendiente:
 |---|---|---|---|
 | 6 | Las pruebas solo usan Chromium | El menú de compartir, el almacenamiento de iPhone/Safari y pegar el enlace en la app instalada de iPhone no están cubiertos | Añadir WebKit a las pruebas y probar en un iPhone real |
 | 7 | La key va en la URL de la petición a Gemini (`?key=`) | Es HTTPS y va a Google, pero las URLs acaban más a menudo en registros que las cabeceras | Enviarla en la cabecera `x-goog-api-key` (comprobar antes con una lectura real) |
-| 12 | La segunda lectura y el prompt nuevo solo están probados con respuestas simuladas | No se sabe aún cuántas veces la segunda lectura arregla de verdad una nómina mal leída | Probarlo con las nóminas reales que no cuadraban (releerlas desde *Ver*) |
 | 13 | Las comprobaciones no ven un error que siga cuadrando (conceptos cambiados con sus importes bien) | Raro, pero posible | La revisión humana sigue siendo obligatoria. La plantilla de códigos (§20) cubre parte |
 | 14 | En el móvil, las tablas de la revisión necesitan desplazarse a los lados para ver la columna de importe | Las celdas marcadas de importe pueden quedar fuera de la vista | Diseño de tabla para pantallas estrechas |
 
