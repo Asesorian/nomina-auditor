@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.7.4-blue)
+![Version](https://img.shields.io/badge/version-2.7.5-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -30,10 +30,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.7.4)
+## 🆕 Novedades (v2.3 – v2.7.5)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 📱 **Revisión cómoda en el móvil (v2.7.5)** | En pantallas estrechas cada línea de la nómina ocupa dos filas: código, concepto e **importe siempre a la vista** (con sus marcas rojas), y debajo unidades y precio. Ya no hay que desplazar las tablas a los lados | Subir · Corregir datos |
 | 💾 **Aviso de copia pendiente (v2.7.4)** | Cuando cambias algo y no tienes copia, el Panel te avisa con un botón para descargar el backup completo. El backup automático (un archivo en Descargas cada vez que guardabas) pasa a venir **desactivado** | Panel · Datos |
 | 🗂️ **Backup completo más claro (v2.7.3)** | Dentro del ZIP, tus nóminas van en la carpeta `nominas/` y los datos en `datos-app.json` | Datos |
 | 🧮 **La app comprueba las cuentas (v2.7.2)** | Cada nómina se comprueba sola: devengos = bruto, deducciones = total a deducir, bruto − deducciones = líquido, IRPF y cotizaciones = base × %. Si la lectura de Gemini no cuadra, **la vuelve a leer** diciéndole qué falla y se queda con la que cuadra; si sigue sin cuadrar, marca en rojo los valores sospechosos. Las que no cuadran salen con ⚠ en el Panel y el Informe anual | [Ver sección](#-comprobación-de-las-cuentas) |
@@ -587,6 +588,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.7.5 (Octubre 2026)
+- **Revisión en el móvil:** en pantallas estrechas las líneas de devengos y deducciones se muestran en dos filas, con el importe y sus marcas siempre a la vista; los datos administrativos y las bases tampoco se desplazan a los lados
+- **Clave de Gemini en la cabecera** `x-goog-api-key` en vez de en la dirección (`?key=`): así no queda en historiales ni registros de direcciones. Si la clave pegada tiene espacios o caracteres raros, la app lo dice claramente
 
 ### v2.7.4 (Octubre 2026)
 - **Aviso de copia pendiente:** cuando hay cambios sin backup completo, el Panel avisa con un botón para descargarlo (y *Ahora no* para ocultarlo hasta el próximo cambio). En *Datos*, fecha del último backup completo

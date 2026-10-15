@@ -2,7 +2,7 @@
 
 Para quien quiera entender, mantener o adaptar Nómina Auditor. Para **usarla**, basta con el [README](../README.md).
 
-Refleja la **v2.7.4** (octubre de 2026). Los nombres de funciones y constantes son los de `index.html`, para poder buscarlos directamente.
+Refleja la **v2.7.5** (octubre de 2026). Los nombres de funciones y constantes son los de `index.html`, para poder buscarlos directamente.
 
 ## Índice
 
@@ -355,7 +355,7 @@ PDFJS_FILES = [['pdf.min.js', 'sha384-…'], ['pdf.worker.min.js', 'sha384-…']
 
 ## 14. Gemini
 
-- **Petición:** `POST https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key=…` con la imagen o el PDF en `inlineData` y `EXTRACTION_PROMPT` (más, en la segunda lectura, el texto de `feedbackFor()`: `callGemini(base64, tipo, extra)`). `temperature: 0`, `maxOutputTokens: 8192` (en los modelos 2.5 el razonamiento interno cuenta dentro de ese límite) y `responseMimeType: "application/json"` (desde la v2.7.2).
+- **Petición:** `POST https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent` con la clave en la cabecera `x-goog-api-key` (desde la v2.7.5; antes iba en la dirección como `?key=`) y la imagen o el PDF en `inlineData` y `EXTRACTION_PROMPT` (más, en la segunda lectura, el texto de `feedbackFor()`: `callGemini(base64, tipo, extra)`). `temperature: 0`, `maxOutputTokens: 8192` (en los modelos 2.5 el razonamiento interno cuenta dentro de ese límite) y `responseMimeType: "application/json"` (desde la v2.7.2).
 - **Prompt (v2.7.2):** pide `price` aparte de `amount` (en una nómina real se tomó el precio por día como importe), que cada importe vaya en la fila de su concepto, que el porcentaje de las cotizaciones e IRPF vaya en `units`, copiar los conceptos tal cual y comprobar las sumas antes de responder sin inventar cifras.
 - **Segunda lectura** (`readWithChecks`, `feedbackFor`): solo si la primera tiene errores de cuadre. Le dice qué cuentas fallan (sin dar cifras "buenas") y, como referencia de formato, los códigos y conceptos de tus otras nóminas de esa empresa. Detalle en [§20](#20-comprobación-de-las-cuentas-y-corrección).
 - **Cadena de modelos** (`GEMINI_MODELS`): `gemini-2.5-flash` → `gemini-2.5-flash-lite` → `gemini-2.5-pro`. Cualquier error pasa al siguiente; si fallan todos, el mensaje lista el motivo de cada uno. Google retira modelos cada cierto tiempo: se cambian en ese array.
@@ -410,14 +410,19 @@ Encontrados al revisar un backup con nóminas reales (15-10-2026), **resueltos e
 | 11 | `fmt()` usaba `toLocaleString('es-ES')`, que no pone punto en las cifras de 4 dígitos (2100,10 pero 21.000,00); y `editField` leía «2.100,10» como 2,1 | ✅ `fmt()` agrupa siempre a mano; `num()` lee los formatos españoles |
 | 12 | La segunda lectura y el prompt nuevo solo estaban probados con respuestas simuladas | ✅ Comprobado con nóminas reales (15-10-2026): las dos que no cuadraban quedaron bien con *🔁 Releer con Gemini*, y una foto en la que antes se leyó «Octo.» por «Dcto.» se lee bien con el prompt nuevo (también como foto, no solo en PDF). Muestra pequeña, pero coherente |
 
+Resueltos en la **v2.7.5** (`tests/test_lecturas.py`, apartados 14 y 15):
+
+| # | Qué era | Estado |
+|---|---|---|
+| 7 | La key iba en la URL de la petición a Gemini (`?key=`): las URLs acaban más a menudo en registros que las cabeceras | ✅ Cabecera `x-goog-api-key`. Comprobado contra Google (16-10-2026): la petición previa CORS desde `https://asesorian.github.io` permite `x-goog-api-key` y la clave se lee de la cabecera. Una clave con espacios o caracteres no ASCII da un error claro (una cabecera no los admite) |
+| 14 | En el móvil, las tablas de la revisión necesitaban desplazarse a los lados para ver la columna de importe | ✅ Por debajo de 600 px, `table.lines` muestra cada línea en dos filas (código · concepto · importe; debajo, unidades y precio) y `table.kv` (datos administrativos y bases) sin ancho mínimo. Probado a 360 px |
+
 Pendiente:
 
 | # | Qué | Efecto | Solución prevista |
 |---|---|---|---|
 | 6 | Las pruebas solo usan Chromium | El menú de compartir, el almacenamiento de iPhone/Safari y pegar el enlace en la app instalada de iPhone no están cubiertos | Añadir WebKit a las pruebas y probar en un iPhone real |
-| 7 | La key va en la URL de la petición a Gemini (`?key=`) | Es HTTPS y va a Google, pero las URLs acaban más a menudo en registros que las cabeceras | Enviarla en la cabecera `x-goog-api-key` (comprobar antes con una lectura real) |
 | 13 | Las comprobaciones no ven un error que siga cuadrando (conceptos cambiados con sus importes bien) | Raro, pero posible | La revisión humana sigue siendo obligatoria. La plantilla de códigos (§20) cubre parte |
-| 14 | En el móvil, las tablas de la revisión necesitan desplazarse a los lados para ver la columna de importe | Las celdas marcadas de importe pueden quedar fuera de la vista | Diseño de tabla para pantallas estrechas |
 
 ---
 

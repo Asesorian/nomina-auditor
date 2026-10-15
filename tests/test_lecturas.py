@@ -1,4 +1,5 @@
 """Lecturas que no cuadran (v2.7.2): comprobaciones, segunda lectura, corrección de nóminas guardadas.
+Desde la v2.7.5: la clave va en la cabecera y la revisión se ve entera en pantallas estrechas.
 
 Todo con datos inventados. Los errores de lectura que se simulan son los que se vieron de verdad:
   - filas de deducciones corridas (cada importe en la fila de al lado, falta el MEI y el IRPF leído como «I.R.P.P.»)
@@ -334,9 +335,10 @@ with sync_playwright() as pw:
     check(P(page, "2026-05") is not None and len(page.evaluate("listDocKeys()")) == 2, "se guarda como nueva con su documento")
 
     print("14) Lo que se envía a Gemini (sin salir a internet)")
-    sent = []
+    sent, req = [], []
     def gemini(route):
         sent.append(json.loads(route.request.post_data))
+        req.append({"url": route.request.url, "headers": route.request.headers})
         route.fulfill(status=200, content_type="application/json",
                       body=json.dumps({"candidates": [{"content": {"parts": [{"text": json.dumps(ABR)}]}}]}))
     page.route("https://generativelanguage.googleapis.com/**", gemini)
@@ -347,7 +349,33 @@ with sync_playwright() as pw:
     prompt = body["contents"][0]["parts"][1]["text"]
     gc = body["generationConfig"]
     check(prompt.endswith("INSTRUCCIONES EXTRA") and '"price"' in prompt and "NUNCA pongas el precio" in prompt, "prompt con precio aparte y las instrucciones al final")
+    clave = page.evaluate("getApiKey()")
+    check(clave and req[0]["headers"].get("x-goog-api-key") == clave, "la clave va en la cabecera x-goog-api-key")
+    check("key=" not in req[0]["url"] and clave not in req[0]["url"], f"y no en la dirección: {req[0]['url']}")
     check(gc.get("responseMimeType") == "application/json" and gc.get("temperature") == 0 and gc.get("maxOutputTokens", 0) >= 8192, f"respuesta JSON forzada: {gc}")
+
+    print("15) Pantalla estrecha (360 px): el importe y sus marcas siempre a la vista, sin desplazarse a los lados")
+    page.unroute("https://generativelanguage.googleapis.com/**")
+    page.set_viewport_size({"width": 360, "height": 780}); page.wait_for_timeout(150)
+    upload(page, FX + "nomina_julio.jpg", [ABR_MAL, ABR_MAL])
+    m = page.evaluate("""() => {
+        const W = document.documentElement.clientWidth;
+        const out = s => [...document.querySelectorAll(s)].filter(e => { const r = e.getBoundingClientRect(); return r.width && (r.right > W + 0.5 || r.left < -0.5); }).length;
+        const cards = [...document.querySelectorAll('#verifyPhase .card')].filter(c => c.scrollWidth > c.clientWidth + 1).length;
+        return { W, page: document.documentElement.scrollWidth, amounts: document.querySelectorAll('#verifyPhase table.lines td.c-amount').length,
+                 outAmounts: out('#verifyPhase table.lines td.c-amount span'), outFlags: out('#verifyPhase .flag-err, #verifyPhase .flag-warn'),
+                 flags: document.querySelectorAll('#verifyPhase .flag-err').length, cards,
+                 head: getComputedStyle(document.querySelector('#verifyPhase table.lines thead')).display };
+    }""")
+    check(m["amounts"] > 5 and m["outAmounts"] == 0, f"todos los importes dentro de la pantalla: {m}")
+    check(m["flags"] >= 3 and m["outFlags"] == 0, "las celdas marcadas en rojo también")
+    check(m["cards"] == 0 and m["page"] <= m["W"], "ninguna tabla se desplaza a los lados")
+    check(m["head"] == "none", "en estrecho cada línea va en dos filas (sin cabecera de columnas)")
+    page.screenshot(path=S + "86_revision_360px.png", full_page=True)
+    page.locator("#verifyPhase span.editable[onclick*=\"'deductions.1.units'\"]").click()
+    check(page.locator(".edit-input").count() == 1, "las unidades siguen siendo editables")
+    page.keyboard.press("Escape")
+    page.set_viewport_size({"width": 390, "height": 844})
 
     check(not errors, f"sin errores JS: {errors}")
     b.close()

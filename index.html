@@ -254,6 +254,28 @@ code { font-family:'JetBrains Mono',monospace; }
 .backup-reminder .doc-actions { margin-top:10px; }
 .backup-reminder.done { display:flex;gap:8px;align-items:flex-start;background:var(--success-bg);border-color:rgba(74,222,128,0.35); }
 .backup-reminder.done strong { color:var(--success); }
+/* Revisión en pantallas estrechas (v2.7.5): cada línea en dos filas, el importe siempre a la vista */
+.editable:empty { display:inline-block; min-width:2.2em; min-height:1em; vertical-align:bottom; }
+@media (max-width:600px) {
+  table.kv { min-width:0; }
+  table.kv td.dim { width:auto !important; }
+  table.lines { min-width:0; }
+  table.lines thead { display:none; }
+  table.lines tr { display:grid; grid-template-columns:auto minmax(0,1fr) auto; column-gap:10px; row-gap:3px; padding:7px 0; border-bottom:1px solid var(--border); align-items:baseline; }
+  table.lines td { padding:0; border:none; width:auto !important; }
+  table.lines td.c-code { grid-column:1; grid-row:1; color:var(--text-dim); }
+  table.lines td.c-concept { grid-column:2; grid-row:1; overflow-wrap:anywhere; }
+  table.lines td.c-amount { grid-column:3; grid-row:1; font-size:12px; white-space:nowrap; }
+  table.lines td.c-units { grid-column:2; grid-row:2; text-align:left; font-size:10px; color:var(--text-dim); }
+  table.lines td.c-price { grid-column:3; grid-row:2; font-size:10px; color:var(--text-dim); white-space:nowrap; }
+  table.lines td.c-units::before { content:'Uds. '; }
+  table.lines td.c-price::before { content:'Precio '; }
+  table.lines tr.total-row, table.lines tr.total-row-danger { border-bottom:none; }
+  table.lines tr.total-row td, table.lines tr.total-row-danger td { border-top:none; }
+  table.lines tr.total-row { border-top:2px solid var(--accent); }
+  table.lines tr.total-row-danger { border-top:2px solid var(--danger); }
+  table.lines td.c-total { grid-column:1 / 3; grid-row:1; }
+}
 .hidden { display:none !important; }
 </style>
 <!-- Librerías externas con huella SRI: si cdnjs sirviera otro archivo, el navegador no lo ejecuta -->
@@ -267,7 +289,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.7.4</span>
+    <span class="logo-badge">Forense v2.7.5</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -893,6 +915,8 @@ async function callGemini(base64, mediaType, extra) {
   const key = getApiKey();
   const prompt = extra ? `${EXTRACTION_PROMPT}\n\n${extra}` : EXTRACTION_PROMPT;
   if (!key) throw new Error('Falta la clave de Gemini (barra superior).\n\n→ Si alguien te ha pasado la app, pídele la clave o el enlace con la clave.\n→ Si quieres usar la tuya, aquí se explica cómo crearla: ' + KEY_GUIDE_URL);
+  // Va en una cabecera: un espacio o una letra con acento en medio haría fallar la llamada con un error incomprensible
+  if (!/^[\x21-\x7e]+$/.test(key)) throw new Error('La clave de Gemini tiene espacios o caracteres raros. Vuelve a pegarla en la barra superior (solo la clave, que empieza por «AIza…», o el enlace entero).');
 
   let lastError = null;
   const allErrors = [];
@@ -900,9 +924,10 @@ async function callGemini(base64, mediaType, extra) {
   for (const model of GEMINI_MODELS) {
     try {
       updateProcessStatus(`Probando ${model}...`);
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        // La clave va en la cabecera, no en la dirección: así no queda en historiales ni registros de URLs.
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
         body: JSON.stringify({
           contents: [{
             parts: [
@@ -1355,19 +1380,19 @@ function renderVerification() {
   const hasPrice = side => (d[side] || []).some(l => Number.isFinite(num(l.price)));
   const lineTable = (side, totalLabel, totalPath, totalClass) => {
     const showPrice = hasPrice(side);
-    return `<table>
+    return `<table class="lines">
         <thead><tr><th>Cód.</th><th>Concepto</th><th class="r">Uds.</th>${showPrice ? '<th class="r">Precio</th>' : ''}<th class="r">Importe</th></tr></thead>
         <tbody>
           ${(d[side]||[]).map((e,i) => `<tr>
-            <td style="width:60px"><span class="editable${fl(`${side}.${i}.code`)}" onclick="editField(this,'${side}.${i}.code')">${esc(e.code||'-')}</span></td>
-            <td><span class="editable${fl(`${side}.${i}.concept`)}" onclick="editField(this,'${side}.${i}.concept')">${esc(e.concept)}</span></td>
-            <td class="r"><span class="editable" onclick="editField(this,'${side}.${i}.units')">${esc(e.units||'')}</span></td>
-            ${showPrice ? `<td class="r"><span class="editable" onclick="editField(this,'${side}.${i}.price',true)">${Number.isFinite(num(e.price)) ? esc(String(e.price).replace('.', ',')) : ''}</span></td>` : ''}
-            <td class="r"><span class="editable${fl(`${side}.${i}.amount`)}" onclick="editField(this,'${side}.${i}.amount',true)">${fmt(e.amount)}</span></td>
+            <td class="c-code" style="width:60px"><span class="editable${fl(`${side}.${i}.code`)}" onclick="editField(this,'${side}.${i}.code')">${esc(e.code||'-')}</span></td>
+            <td class="c-concept"><span class="editable${fl(`${side}.${i}.concept`)}" onclick="editField(this,'${side}.${i}.concept')">${esc(e.concept)}</span></td>
+            <td class="r c-units"><span class="editable" onclick="editField(this,'${side}.${i}.units')">${esc(e.units||'')}</span></td>
+            ${showPrice ? `<td class="r c-price"><span class="editable" onclick="editField(this,'${side}.${i}.price',true)">${Number.isFinite(num(e.price)) ? esc(String(e.price).replace('.', ',')) : ''}</span></td>` : ''}
+            <td class="r c-amount"><span class="editable${fl(`${side}.${i}.amount`)}" onclick="editField(this,'${side}.${i}.amount',true)">${fmt(e.amount)}</span></td>
           </tr>`).join('')}
           <tr class="${totalClass}">
-            <td colspan="${showPrice ? 4 : 3}" style="text-align:right">${totalLabel}</td>
-            <td class="r"><span class="editable${fl(totalPath)}" onclick="editField(this,'${totalPath}',true)">${fmt(getNestedVal(d, totalPath))}</span></td>
+            <td class="c-total" colspan="${showPrice ? 4 : 3}" style="text-align:right">${totalLabel}</td>
+            <td class="r c-amount"><span class="editable${fl(totalPath)}" onclick="editField(this,'${totalPath}',true)">${fmt(getNestedVal(d, totalPath))}</span></td>
           </tr>
         </tbody>
       </table>
@@ -1391,7 +1416,7 @@ function renderVerification() {
 
     <div class="card">
       <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">ZONA 1 — Datos Administrativos</h3>
-      <table>
+      <table class="kv">
         <tbody>
           ${adminFields.map(([label, path]) => {
             const val = getNestedVal(d, path);
@@ -1416,7 +1441,7 @@ function renderVerification() {
 
     <div class="card">
       <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">ZONA 3 — Bases de Cotización</h3>
-      <table>
+      <table class="kv">
         <tbody>
           ${[
             ['Remuneración Total','bases.totalRemuneration'],
@@ -2781,7 +2806,7 @@ function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.7.4',
+      version: '2.7.5',
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },
