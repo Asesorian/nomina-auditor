@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.7.3-blue)
+![Version](https://img.shields.io/badge/version-2.7.4-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -19,20 +19,23 @@
 ✅ Haz la foto desde la propia app (o elige el PDF): la IA (Gemini) lee los datos y tú revisas cada uno antes de guardarlo  
 ✅ **Guarda el documento original** de cada nómina con nombre automático, solo en tu dispositivo, y cópialo a Drive o iCloud con un toque  
 ✅ Todos los cálculos y comprobaciones los hace código determinista: la IA nunca calcula cifras  
+✅ **La app comprueba las cuentas** de cada nómina (sumas, líquido, IRPF y cotizaciones) y, si la lectura no cuadra, la repite y te marca qué revisar  
 ✅ **Mensual, paga extra y atrasos** guardados por separado: varias nóminas en el mismo mes sin pisarse  
 ✅ **% de retención de IRPF** siempre visible: leído, deducido de la propia nómina o calculado, y corregible a mano  
 ✅ Informe mensual e informe anual en texto listo para tu abogado, con avisos de cambios y de meses que faltan  
 ✅ Aviso antes de sobrescribir una nómina, con comparación de importes  
-✅ Backup automático de datos y **backup completo con los documentos** (ZIP), para restaurarlo todo en otro dispositivo  
+✅ **Backup completo** (ZIP con tus nóminas y sus datos) para restaurarlo todo en otro dispositivo, y **aviso** cuando tienes cambios sin copia  
 ✅ Instalable en el móvil, **funciona sin conexión** y se actualiza sola  
 ✅ Tus datos y documentos se quedan en tu dispositivo: ningún servidor guarda copia (solo la foto/PDF viaja a Gemini en el momento de leerla)
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.7.2)
+## 🆕 Novedades (v2.3 – v2.7.4)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 💾 **Aviso de copia pendiente (v2.7.4)** | Cuando cambias algo y no tienes copia, el Panel te avisa con un botón para descargar el backup completo. El backup automático (un archivo en Descargas cada vez que guardabas) pasa a venir **desactivado** | Panel · Datos |
+| 🗂️ **Backup completo más claro (v2.7.3)** | Dentro del ZIP, tus nóminas van en la carpeta `nominas/` y los datos en `datos-app.json` | Datos |
 | 🧮 **La app comprueba las cuentas (v2.7.2)** | Cada nómina se comprueba sola: devengos = bruto, deducciones = total a deducir, bruto − deducciones = líquido, IRPF y cotizaciones = base × %. Si la lectura de Gemini no cuadra, **la vuelve a leer** diciéndole qué falla y se queda con la que cuadra; si sigue sin cuadrar, marca en rojo los valores sospechosos. Las que no cuadran salen con ⚠ en el Panel y el Informe anual | [Ver sección](#-comprobación-de-las-cuentas) |
 | ✏ **Corregir una nómina guardada (v2.7.2)** | *Ver → ✏ Corregir datos* abre la misma revisión que al subirla. Y *🔁 Releer con Gemini* vuelve a leer el documento que ya tienes guardado, sin subirlo otra vez | Panel → Ver |
 | 🔢 **S.S. bien sumada y cifras con punto de miles (v2.7.2)** | La Seguridad Social suma todas las cotizaciones aunque vengan abreviadas (`CONT.COMU`, `MEI`…). Las cifras salen como `2.100,10` y puedes escribirlas así al corregir | Panel · Anual · Ver |
@@ -62,6 +65,7 @@ Tus nóminas y backups de versiones anteriores siguen funcionando tal cual: no h
 - Pestaña **Subir** → **📷 Hacer foto** (abre la cámara) o **📁 Elegir archivo** (foto o PDF). En el ordenador también puedes arrastrarla
 - Pulsa **Procesar con Gemini IA**. En unos segundos verás los datos extraídos
 - Necesita conexión a internet (la lectura la hace Gemini)
+- Consejo: el PDF que te da la empresa, o la nómina escaneada con el móvil, se leen mejor que una foto ([cómo](#-problemas-frecuentes))
 
 ### 3️⃣ Revisa los datos (fase 1, obligatoria)
 - Arriba aparece el **Tipo de nómina**: 📄 *Mensual*, 💰 *Paga extra* o 📎 *Atrasos*, con el motivo por el que se ha detectado. Si no es correcto, tócalo para cambiarlo
@@ -85,7 +89,7 @@ Tus nóminas y backups de versiones anteriores siguen funcionando tal cual: no h
 | ♻ Sustituir la guardada | Reemplaza la anterior (se pierde) |
 | Cancelar | No guarda nada. Si los importes coinciden, la app te avisa de que probablemente ya la tenías |
 
-- Si el backup automático está activado, se descarga una copia de seguridad
+- Si has activado el backup automático (viene desactivado), se descarga una copia de los datos. Si no, el Panel te avisará de que tienes cambios sin copia
 
 ### 5️⃣ Consulta
 - **Panel:** totales del año (bruto, neto, IRPF, Seguridad Social) y lista de nóminas. Bajo el mes aparece en negrita **Paga extra** o **Atrasos** (y **Paga extra 2** si hay otra el mismo mes). El 📎 indica que tiene guardado el documento original y el ⚠ que sus cuentas no cuadran (encima de la lista se dice cuáles)
@@ -101,7 +105,8 @@ Tus nóminas y backups de versiones anteriores siguen funcionando tal cual: no h
 - Para eliminar una nómina: botón 🗑 en el Panel (borra también su documento original)
 
 ### 7️⃣ Haz copias de seguridad
-Pestaña **Datos**. Ver [Copias de seguridad y varios dispositivos](#-copias-de-seguridad-y-varios-dispositivos).
+- Cuando tengas cambios sin copia, el **Panel te avisa**. Pulsa **🗂️ Descargar backup completo** y guarda el ZIP en Drive (o fuera del móvil). **Ahora no** oculta el aviso hasta el siguiente cambio
+- También desde la pestaña **Datos**. Ver [Copias de seguridad y varios dispositivos](#-copias-de-seguridad-y-varios-dispositivos)
 
 ---
 
@@ -207,18 +212,20 @@ Gemini **solo lee** la nómina, y a veces se equivoca: se salta una fila, pone u
 
 | Copia | Qué contiene | Para qué |
 |---|---|---|
-| **Backup automático** (`nominas-backup-FECHA.json`) | Solo los datos. Se descarga solo cada vez que guardas una nómina (se puede desactivar en *Datos*) | Copia de seguridad ligera del día a día |
+| **Backup automático** (`nominas-backup-FECHA.json`) | Solo los datos. **Viene desactivado** (desde la v2.7.4); si lo activas en *Datos*, se descarga cada vez que guardas o corriges una nómina | Para quien prefiera una copia ligera en cada cambio |
 | **Exportar datos** (*Datos → Exportar datos*) | Lo mismo, cuando tú quieras | Pasar los datos a otro dispositivo |
 | **Backup completo** (*Datos → Descargar backup completo*) | ZIP con la carpeta `nominas/AÑO/` (tus nóminas: las fotos y PDF originales) y `datos-app.json` (los datos leídos) | Guardarlo en Drive y **restaurarlo todo** (datos y documentos) en otro dispositivo |
 
 - **Restaurar:** *Datos → Importar backup*. Acepta el `.json` o el `.zip` directamente, sin descomprimir. Con el backup completo se restauran también los documentos originales. Los backups completos de antes de la v2.7.3 (con `nominas.json` y la carpeta `documentos/`) se siguen importando igual.
 - **Importar nunca borra un original que ya tengas en el dispositivo:** si el backup no trae el documento de una nómina, se conserva el que ya había.
 
+**Aviso de copia pendiente:** cada vez que cambias algo (guardar, corregir, adjuntar un original…), la app lo apunta. Si no has descargado un backup completo después, el **Panel te avisa** con un botón para hacerlo. Solo cuenta el backup completo: el de solo datos no lleva tus nóminas. En *Datos* ves la fecha del último backup completo.
+
 **Móvil y ordenador no se sincronizan solos.** Cada dispositivo guarda sus propias nóminas y documentos. Para tener lo mismo en los dos: backup completo en uno e importarlo en el otro.
 
 > ⚠️ **Al importar,** las nóminas del backup se añaden y, si ya tienes una en el mismo sitio (mismo mes y tipo), **se sustituye por la del backup**. Usa siempre el backup más reciente para no perder correcciones posteriores.
 
-> ⚠️ **Si borras los datos de navegación** de la web de la app, se borran también tus nóminas y sus documentos. La app se recupera sola con conexión, pero las nóminas y los originales solo desde un backup. Mantén activado el backup automático y descarga de vez en cuando el backup completo.
+> ⚠️ **Si borras los datos de navegación** de la web de la app, se borran también tus nóminas y sus documentos. La app se recupera sola con conexión, pero las nóminas y los originales solo desde un backup. Haz el backup completo cuando el Panel te avise y guárdalo fuera del móvil (por ejemplo, en Drive).
 
 ---
 
@@ -300,6 +307,13 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige, 
 **Subí una paga extra y machacó la nómina mensual (versiones anteriores a 2.3)**
 1. Panel → la nómina de ese mes → **Ver** → en *Tipo de nómina* toca **Paga extra**. Pasa a su propio sitio
 2. Vuelve a subir la nómina mensual, o importa un backup anterior al error, que la recupera sin tocar la extra
+
+**El Panel dice «Tienes cambios sin copia de seguridad»**
+- Has guardado o cambiado algo desde tu último backup completo. Pulsa **🗂️ Descargar backup completo** y guarda el ZIP en Drive. El aviso desaparece
+- Si ahora no puedes, **Ahora no** lo oculta hasta el próximo cambio
+
+**Ya no se descarga un archivo cada vez que guardo una nómina**
+- Desde la v2.7.4 el backup automático viene desactivado: llenaba Descargas de copias casi iguales con tus datos. En su lugar, el Panel te avisa cuando toca hacer el backup completo. Si lo prefieres como antes: *Datos → Backup automático*
 
 **Una nómina sale con ⚠ o «Las cuentas no cuadran»**
 - Gemini leyó mal alguna línea. Ábrela con **Ver**: verás qué falla
@@ -457,6 +471,7 @@ Este repo aplica la filosofía **"código científico, IA divulgadora"** a un ca
 │ FASE 5 — Informe final (plantilla de texto, sin LLM)        │
 │ Tabla resumen anual con extras y atrasos etiquetados        │
 │ Observaciones ("⚠ VARIACIÓN" / "✓ Sin cambios")             │
+│ Aviso si alguna nómina no cuadra                            │
 │ Formato exportable para abogados                            │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -504,12 +519,13 @@ PERÍODO Y TIPO
 DEVENGOS (Ganancias)
 ├─ Salario Base
 ├─ Pluses, incentivos, seguros…
-└─ Pagas extra y atrasos
+├─ Pagas extra y atrasos
+└─ De cada línea: código, concepto, unidades, precio e importe
 
 DEDUCCIONES
 ├─ IRPF (retención)
-├─ Cotizaciones SS (contingencias, desempleo, formación)
-└─ Otros descuentos
+├─ Cotizaciones SS (contingencias comunes, MEI, formación, desempleo, horas extra…)
+└─ Otros descuentos (conceptos en especie, embargos, anticipos…)
 
 BASES Y TOTALES
 ├─ Bruto, deducciones, neto
@@ -551,7 +567,7 @@ BASES Y TOTALES
 - **Deploy:** GitHub Pages (HTTPS obligatorio para PWA y modo sin conexión)
 
 **Archivos:**
-- `index.html` (~120 KB): toda la aplicación. Sin frameworks, sin build step
+- `index.html` (~170 KB): toda la aplicación. Sin frameworks, sin build step
 - `sw.js` (~5 KB): modo sin conexión. Solo guarda el código de la app
 - `docs/TECNICO.md`: documentación técnica
 - `tests/`: pruebas automáticas (no forman parte de la app)
@@ -566,11 +582,16 @@ BASES Y TOTALES
 ### 🧑‍💻 Para desarrolladores
 
 - **[docs/TECNICO.md](docs/TECNICO.md):** cómo funciona por dentro. Almacenamiento y modelo de datos, reglas de clasificación y de IRPF, ciclo de vida de los originales, formatos de backup, service worker, visor de PDF, seguridad, **deuda técnica conocida** y cómo publicar una versión
-- **[tests/](tests/README.md):** 10 baterías de pruebas automáticas (más de 200 comprobaciones) con navegador real, sin internet y sin gastar lecturas de Gemini. Se ejecutan con `python tests/ejecutar_todo.py`
+- **[tests/](tests/README.md):** 11 baterías de pruebas automáticas (más de 300 comprobaciones) con navegador real, sin internet y sin gastar lecturas de Gemini. Se ejecutan con `python tests/ejecutar_todo.py`
 
 ---
 
 ## 📋 Changelog
+
+### v2.7.4 (Octubre 2026)
+- **Aviso de copia pendiente:** cuando hay cambios sin backup completo, el Panel avisa con un botón para descargarlo (y *Ahora no* para ocultarlo hasta el próximo cambio). En *Datos*, fecha del último backup completo
+- **El backup automático viene desactivado:** ya no se descarga un archivo de datos cada vez que guardas. Quien lo quiera, lo activa en *Datos*
+- Restaurar un backup en un dispositivo vacío no genera aviso (lo que hay es justo lo del backup)
 
 ### v2.7.3 (Octubre 2026)
 - **Backup completo más claro:** dentro del ZIP, la carpeta de las fotos y PDF se llama ahora **`nominas/`** (antes `documentos/`) y el archivo de datos **`datos-app.json`** (antes `nominas.json`, que se confundía con la carpeta). Los backups anteriores se siguen importando igual

@@ -2,7 +2,7 @@
 
 Para quien quiera entender, mantener o adaptar Nómina Auditor. Para **usarla**, basta con el [README](../README.md).
 
-Refleja la **v2.7.3** (octubre de 2026). Los nombres de funciones y constantes son los de `index.html`, para poder buscarlos directamente.
+Refleja la **v2.7.4** (octubre de 2026). Los nombres de funciones y constantes son los de `index.html`, para poder buscarlos directamente.
 
 ## Índice
 
@@ -43,7 +43,7 @@ Refleja la **v2.7.3** (octubre de 2026). Los nombres de funciones y constantes s
 
 | Archivo | Qué es |
 |---|---|
-| `index.html` | La app completa (~165 KB). El *manifest* de la PWA y el icono van incrustados como `data:` URI |
+| `index.html` | La app completa (~170 KB). El *manifest* de la PWA y el icono van incrustados como `data:` URI |
 | `sw.js` | Service worker del modo sin conexión (~5 KB) |
 | `docs/TECNICO.md` | Este documento |
 | `tests/` | Pruebas automáticas con navegador real ([tests/README.md](../tests/README.md)) |
@@ -95,8 +95,11 @@ doSave(payroll)           storeOriginal() si la casilla está marcada · gestion
 |---|---|
 | `nomina-auditor-data` | Array JSON con todas las nóminas |
 | `nomina-auditor-apikey` | API key de Gemini |
-| `nomina-auditor-autobackup` | `'false'` desactiva el backup automático (ausente o cualquier otro valor = activado) |
-| `nomina-auditor-lastbackup` | Fecha ISO del último backup descargado |
+| `nomina-auditor-autobackup` | `'true'` activa el backup automático. **Desde la v2.7.4, ausente o cualquier otro valor = desactivado** (antes era al revés) |
+| `nomina-auditor-lastbackup` | Fecha ISO del último backup descargado (de cualquier tipo) |
+| `nomina-auditor-lastchange` | Fecha ISO del último cambio en las nóminas (la escribe `saveData()`) — v2.7.4 |
+| `nomina-auditor-lastfullbackup` | Fecha ISO del último **backup completo** (ZIP) — v2.7.4 |
+| `nomina-auditor-backupnag-dismissed` | Fecha ISO del último «Ahora no» del aviso de copia — v2.7.4 |
 
 ### IndexedDB (documentos originales)
 
@@ -264,7 +267,15 @@ Con los mismos importes, el botón destacado es *Cancelar — ya la tengo*.
   "payrolls": [ … ] }
 ```
 
-El **backup automático** descarga este JSON al guardar una nómina, reclasificarla o corregir su % de IRPF (si está activado).
+El **backup automático** descarga este JSON al guardar una nómina, corregirla, reclasificarla o corregir su % de IRPF, **solo si se ha activado** (desde la v2.7.4 viene desactivado).
+
+### Aviso de copia pendiente (v2.7.4)
+
+- `needsBackup()`: hay nóminas y (no hay backup completo, o `lastchange` > `lastfullbackup`). Solo cuenta el backup completo: el de solo datos no lleva las nóminas.
+- `renderBackupReminder()` (desde `renderDashboard()`) pinta el aviso en `#backupReminder` con *🗂️ Descargar backup completo* (`exportFullBackup(this)`) y *Ahora no* (`dismissBackupReminder()`: oculta el aviso mientras `backupnag-dismissed` ≥ `lastchange`).
+- Tras descargarlo desde el aviso, muestra «✓ Backup completo descargado… guárdalo en Drive» (`backupJustDone`).
+- Restaurar en un dispositivo **vacío** (`processImportedJSON` con `wasEmpty`) marca `lastfullbackup`: lo que hay es justo lo del backup.
+- *Datos* muestra la fecha del último backup completo, en naranja si hay cambios después.
 
 ### ZIP completo (`nominas-backup-completo-AAAA-MM-DD-HHMM.zip`)
 
