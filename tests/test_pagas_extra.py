@@ -9,8 +9,9 @@ def nomina(month, year, earnings, gross, net, base_cc=1900, irpf=12.0, prorrata=
         "company": {"name": "EMPRESA TEST SL"}, "worker": {"name": "TRABAJADOR PRUEBA"},
         "employment": {"category": "Oficial", "contractCode": "100"},
         "earnings": [{"code": "", "concept": c, "units": "", "amount": a} for c, a in earnings],
+        # Deducciones coherentes con los totales (desde la v2.7.2 la app comprueba que las cuentas cuadren)
         "deductions": [{"concept": "IRPF", "amount": round(gross * irpf / 100, 2)},
-                       {"concept": "Contingencias comunes", "amount": 89.3}],
+                       {"concept": "Contingencias comunes", "amount": round(gross - net - round(gross * irpf / 100, 2), 2)}],
         "totals": {"grossTotal": gross, "totalDeductions": gross - net, "netPay": net},
         "bases": {"totalRemuneration": base_cc - prorrata, "extraPayProrata": prorrata, "baseCC": base_cc,
                   "baseAT": base_cc, "baseIRPF": gross, "irpfPercentage": irpf},
@@ -91,7 +92,7 @@ with sync_playwright() as pw:
     check(page.is_visible("#dupModal"), "salta el aviso de hueco ocupado")
     page.screenshot(path=OUT + "02_aviso_duplicado.png")
     body = page.inner_text("#dupModal")
-    check("distintos" in body and "1510,00" in body and "1496,00" in body, "compara importes guardada vs nueva")
+    check("distintos" in body and "1.510,00" in body and "1.496,00" in body, "compara importes guardada vs nueva (con punto de miles)")
     page.click("#dupModalBtns button:has-text('Es una paga extra')")
     page.wait_for_timeout(200)
     check(ids() == ["2026-06", "2026-07", "2026-07-extra"], f"guardada aparte: {ids()}")

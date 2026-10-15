@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.7.1-blue)
+![Version](https://img.shields.io/badge/version-2.7.2-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -29,10 +29,13 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.7.1)
+## 🆕 Novedades (v2.3 – v2.7.2)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 🧮 **La app comprueba las cuentas (v2.7.2)** | Cada nómina se comprueba sola: devengos = bruto, deducciones = total a deducir, bruto − deducciones = líquido, IRPF y cotizaciones = base × %. Si la lectura de Gemini no cuadra, **la vuelve a leer** diciéndole qué falla y se queda con la que cuadra; si sigue sin cuadrar, marca en rojo los valores sospechosos. Las que no cuadran salen con ⚠ en el Panel y el Informe anual | [Ver sección](#-comprobación-de-las-cuentas) |
+| ✏ **Corregir una nómina guardada (v2.7.2)** | *Ver → ✏ Corregir datos* abre la misma revisión que al subirla. Y *🔁 Releer con Gemini* vuelve a leer el documento que ya tienes guardado, sin subirlo otra vez | Panel → Ver |
+| 🔢 **S.S. bien sumada y cifras con punto de miles (v2.7.2)** | La Seguridad Social suma todas las cotizaciones aunque vengan abreviadas (`CONT.COMU`, `MEI`…). Las cifras salen como `2.100,10` y puedes escribirlas así al corregir | Panel · Anual · Ver |
 | 🔒 **Más segura (v2.7.1)** | Si te pasan la app con un enlace, puedes pegar el enlace entero en la casilla de la clave (útil en iPhone). Si un enlace trae una clave distinta de la tuya, la app pregunta antes de cambiarla. Los backups se comprueban antes de importarlos y *Datos* avisa si hay documentos sin nómina ocupando espacio | Barra de la clave · Datos |
 | 📎 **Documento original de cada nómina** | Haz la foto desde la app y queda guardada junto a la nómina, con nombre automático (`2026-07 Julio - Paga extra.pdf`). Desde *Ver* la abres, la copias a Drive/iCloud o la descargas. A las nóminas antiguas puedes adjuntarles el original sin volver a procesarlas | [Ver sección](#-documentos-originales) |
 | 📄 **Visor de PDF propio** | Los PDF se ven dentro de la app, aunque el móvil no tenga lector de PDF, y también sin conexión. Si el PDF tiene contraseña, la pide | *Ver → 👁 Ver* |
@@ -62,12 +65,16 @@ Tus nóminas y backups de versiones anteriores siguen funcionando tal cual: no h
 
 ### 3️⃣ Revisa los datos (fase 1, obligatoria)
 - Arriba aparece el **Tipo de nómina**: 📄 *Mensual*, 💰 *Paga extra* o 📎 *Atrasos*, con el motivo por el que se ha detectado. Si no es correcto, tócalo para cambiarlo
-- Toca cualquier valor subrayado para corregirlo. Los números se pueden escribir con coma (`20,42`)
+- Arriba del todo, **Comprobación de las cuentas**: ✓ en verde si todo cuadra; si no, la lista de lo que falla y los valores sospechosos marcados en rojo (o en ámbar si solo conviene mirarlos). Ver [Comprobación de las cuentas](#-comprobación-de-las-cuentas)
+- **👁 Ver documento** abre la foto o el PDF para compararlo mientras revisas. **🔁 Releer con Gemini** lo vuelve a leer indicando qué no cuadra
+- Toca cualquier valor subrayado para corregirlo. Los números se pueden escribir como en el papel: `2.100,10`, `2100,10` o `20,42`
+- Si a la lectura le falta una fila o le sobra una, usa **＋ Añadir línea** o **－ Quitar una línea…** debajo de cada tabla
 - Revisa sobre todo importes, % IRPF y bases de cotización. Si el % de IRPF no venía en las bases, la app lo rellena y te avisa en naranja para que lo compruebes con el papel
 
 ### 4️⃣ Guarda
 - Deja marcada la casilla **📎 Guardar también el documento original** (viene marcada) si quieres conservar la foto o el PDF junto a la nómina
 - Pulsa **✓ Confirmar y Guardar**
+- Si las cuentas no cuadran, la app te lo dice y te pregunta si la guardas igualmente. Si aceptas, queda marcada con ⚠ hasta que la corrijas
 - Si ya tienes una nómina en ese mismo sitio (mismo mes y tipo), aparece un aviso con los importes de las dos y estas opciones:
 
 | Opción | Qué hace |
@@ -81,11 +88,13 @@ Tus nóminas y backups de versiones anteriores siguen funcionando tal cual: no h
 - Si el backup automático está activado, se descarga una copia de seguridad
 
 ### 5️⃣ Consulta
-- **Panel:** totales del año (bruto, neto, IRPF, Seguridad Social) y lista de nóminas. Bajo el mes aparece en negrita **Paga extra** o **Atrasos** (y **Paga extra 2** si hay otra el mismo mes). El 📎 indica que tiene guardado el documento original
+- **Panel:** totales del año (bruto, neto, IRPF, Seguridad Social) y lista de nóminas. Bajo el mes aparece en negrita **Paga extra** o **Atrasos** (y **Paga extra 2** si hay otra el mismo mes). El 📎 indica que tiene guardado el documento original y el ⚠ que sus cuentas no cuadran (encima de la lista se dice cuáles)
 - **Ver** (en cada nómina): informe completo, listo para copiar y enviar a tu abogado
 - **Anual:** tabla de todo el año, totales y observaciones automáticas
 
 ### 6️⃣ Corrige algo ya guardado (desde Ver)
+- **✏ Corregir datos:** abre la revisión con los datos guardados. Cambia lo que haga falta y pulsa **✓ Guardar cambios** (se guarda en su sitio, con su documento original). **Cancelar** o salir de la pantalla no cambia nada
+- **🔁 Releer con Gemini** (si las cuentas no cuadran y tienes el original guardado): vuelve a leer ese documento sin subirlo otra vez (~1 céntimo) y te deja la nueva lectura en la revisión para que la confirmes
 - **Tipo de nómina:** cambia entre Mensual, Paga extra y Atrasos sin volver a procesarla
 - **% Retención IRPF → ✏ Corregir %:** escribe el porcentaje correcto. Si lo dejas vacío, la app lo vuelve a calcular sola
 - **📎 Documento original:** verlo, guardarlo en Drive/iCloud, descargarlo, cambiarlo o quitarlo. Si la nómina no lo tiene, **📎 Adjuntar original** (no la vuelve a procesar ni gasta lecturas)
@@ -150,6 +159,31 @@ El % de IRPF aparece en el Panel, en el informe de cada nómina y en el informe 
 4. **Aproximado:** importe retenido ÷ bruto, si la nómina no trae base IRPF
 
 Los valores calculados o aproximados llevan un asterisco (`20,42 %*`). En el informe de cada nómina se indica de dónde sale el valor. Si no hay forma de obtenerlo, aparece `N/L` y puedes escribirlo a mano con **Ver → ✏ Corregir %**.
+
+---
+
+## 🧮 Comprobación de las cuentas
+
+Gemini **solo lee** la nómina, y a veces se equivoca: se salta una fila, pone un importe en la fila de al lado o toma el precio por día como importe. Una nómina se puede comprobar con sus propias cifras, así que la app lo hace siempre, con código y sin IA:
+
+| Comprobación | Si falla |
+|---|---|
+| Suma de devengos = total bruto | ✗ error |
+| Suma de deducciones = total a deducir | ✗ error |
+| Bruto − deducciones = líquido | ✗ error |
+| IRPF = base IRPF × % | ⚠ aviso |
+| Cada cotización = su base × su % (contingencias comunes y MEI sobre la base C.C.; formación y desempleo sobre la A.T.; horas extra sobre su importe) | ⚠ aviso |
+| Unidades × precio = importe, en los devengos | ⚠ aviso |
+| Remuneración + prorrata = base C.C. (solo mensual) | ⚠ aviso |
+| Cada código lleva el mismo concepto que en tus otras nóminas de esa empresa (si no, probablemente las filas están corridas) | ⚠ aviso |
+
+**Qué hace con eso:**
+- **Al subir:** si la primera lectura tiene errores, la app la manda **una vez más** a Gemini diciéndole exactamente qué no cuadra, y se queda con la lectura que cuadre mejor. Solo pasa cuando hay errores, y cuesta lo mismo que una lectura (~1 céntimo)
+- **En la revisión:** lista lo que falla y marca los valores sospechosos. **La app nunca cambia una cifra por su cuenta**: eliges tú entre releer o corregir a mano mirando el documento
+- **Al guardar:** si hay errores, pregunta antes
+- **Después:** las nóminas que no cuadran salen con ⚠ en el Panel y en el Informe anual (con un aviso de que sus totales pueden estar mal), y la copia para el abogado lo advierte arriba y lo detalla al final. Se arreglan con **Ver → ✏ Corregir datos** o **🔁 Releer con Gemini**
+
+**Lo que no puede detectar:** un error de lectura que siga cuadrando (por ejemplo, dos conceptos con el nombre cambiado pero con sus importes bien). Por eso la revisión humana sigue siendo obligatoria.
 
 ---
 
@@ -267,6 +301,14 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige, 
 1. Panel → la nómina de ese mes → **Ver** → en *Tipo de nómina* toca **Paga extra**. Pasa a su propio sitio
 2. Vuelve a subir la nómina mensual, o importa un backup anterior al error, que la recupera sin tocar la extra
 
+**Una nómina sale con ⚠ o «Las cuentas no cuadran»**
+- Gemini leyó mal alguna línea. Ábrela con **Ver**: verás qué falla
+- **🔁 Releer con Gemini** la vuelve a leer con el documento guardado indicando el fallo. Si la nueva lectura cuadra, revísala y pulsa **✓ Guardar cambios**
+- O **✏ Corregir datos** y corrige a mano los valores marcados en rojo, mirando el documento con **👁 Ver documento**
+
+**Al actualizar a la v2.7.2 ha cambiado el total de S.S. obrero**
+- Es lo correcto: hasta la v2.7.1 solo se sumaban las líneas que decían «contingencia», «formación» o «desempleo», y se quedaban fuera las abreviadas (`CONT.COMU`) y el MEI. Ahora entran todas las cotizaciones del trabajador
+
 **El % de IRPF sale `N/L` o con `*`**
 - `*`: no venía en las bases y se ha calculado. Compruébalo con el papel
 - `N/L`: no se ha podido obtener. En ambos casos: **Ver → ✏ Corregir %**
@@ -325,9 +367,10 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige, 
 - Si alguno falla, el error muestra cuál y por qué. Se cambia en el array `GEMINI_MODELS` del código
 
 **La foto no se extrae bien**
-- Foto bien enfocada, con la nómina ocupando casi toda la imagen
-- Resolución mínima recomendada: 1024 px
-- Si un campo falla siempre, corrígelo a mano en la verificación
+- Si la empresa te da la nómina en PDF, sube ese PDF
+- Si solo la tienes en papel, mejor **escanearla** que fotografiarla: el escáner del móvil recorta la hoja, la endereza y mejora el contraste (Android: *Google Drive → + → Escanear*; iPhone: *Notas → Escanear documentos*). Puedes subir el PDF que crea
+- Si es una foto: bien enfocada, de frente, sin sombras y con la nómina ocupando casi toda la imagen
+- Si un campo falla siempre, corrígelo a mano en la verificación. La comprobación de las cuentas te dirá si queda algo mal
 
 **No me sale el botón de instalar en el móvil**
 - Usa Chrome (Android) o Safari (iOS) y espera a que la página cargue del todo
@@ -337,7 +380,7 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige, 
 ## ⚠️ Limitaciones conocidas
 
 - **Procesar necesita internet** y una API key de Gemini. Sin conexión se puede consultar y corregir, pero no leer nóminas nuevas
-- **La IA puede leer mal un dato:** por eso la verificación es obligatoria. Revisa siempre importes, bases y % de IRPF antes de guardar
+- **La IA puede leer mal un dato:** la app comprueba las cuentas y avisa de casi todos los errores, pero no de los que siguen cuadrando. Por eso la verificación es obligatoria: revisa siempre importes, bases y % de IRPF antes de guardar
 - **Solo nóminas españolas**
 - **No hay sincronización** entre dispositivos, ni entre navegadores del mismo dispositivo: todo se pasa con el backup completo
 - **Si se borran los datos del navegador**, se pierden las nóminas y los originales que no estén en un backup
@@ -376,8 +419,17 @@ Este repo aplica la filosofía **"código científico, IA divulgadora"** a un ca
 └─────────────────────────────────────────────────────────────┘
                              ↓
 ┌─────────────────────────────────────────────────────────────┐
+│ FASE 1c — Comprobación de las cuentas (código, v2.7.2)      │
+│ Sumas, líquido, IRPF y cotizaciones = base × %,             │
+│ uds × precio, códigos frente a tus otras nóminas            │
+│ Si no cuadra: 2ª lectura de Gemini diciéndole qué falla     │
+│ y se queda con la que cuadra mejor (nunca toca cifras)      │
+└─────────────────────────────────────────────────────────────┘
+                             ↓
+┌─────────────────────────────────────────────────────────────┐
 │ FASE 2 — Verificación humana (obligatoria)                  │
 │ El usuario corrige cualquier campo y confirma el tipo       │
+│ Ve qué no cuadra y los valores sospechosos marcados         │
 │ Si el sitio mes+tipo ya existe: aviso con comparación y     │
 │ opción de guardar aparte en vez de sobrescribir             │
 │ Hasta que confirma, no se guarda ni se calcula nada         │
@@ -387,7 +439,7 @@ Este repo aplica la filosofía **"código científico, IA divulgadora"** a un ca
 │ FASE 3 — Cálculos (100% código determinista)                │
 │ calcTotals() suma brutos, netos, IRPF, bases                │
 │ findIRPFDeduction() / irpfRateOf() retención y su %         │
-│ calcSSTotal() suma contingencias + desempleo + formación    │
+│ calcSSTotal() suma todas las cotizaciones del trabajador    │
 │ CERO LLM en esta fase. Matemática pura en JavaScript.       │
 └─────────────────────────────────────────────────────────────┘
                              ↓
@@ -519,6 +571,18 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.7.2 (Octubre 2026) · Lecturas que no cuadran
+- **Comprobación de las cuentas** de cada nómina (sumas, líquido, IRPF y cotizaciones = base × %, unidades × precio y códigos frente a tus otras nóminas), en la revisión, en *Ver*, en el Panel y en el Informe anual. [Detalles](#-comprobación-de-las-cuentas)
+- **Segunda lectura automática** cuando la primera no cuadra, diciéndole a Gemini qué falla; la app se queda con la que cuadra mejor. Botón **🔁 Releer con Gemini** en la revisión y en *Ver* (con el documento guardado)
+- **✏ Corregir datos** de una nómina ya guardada, con **👁 Ver documento** al lado. Se guarda en su sitio y conserva su original; si se cambia el mes o el tipo, solo pasa a un hueco libre
+- **＋ Añadir línea / － Quitar una línea** en la revisión
+- **Guardar una nómina que no cuadra** pide confirmación, y la copia para el abogado lo advierte
+- **S.S. obrero:** suma todas las cotizaciones (antes se quedaban fuera `CONT.COMU` y el MEI, y el total salía muy por debajo)
+- **IRPF:** la línea se encuentra aunque Gemini lea «I.R.P.P.» o «TRIBUTACIÓN…», o por la cuenta base × % si el texto es ilegible. Las retenciones judiciales y embargos no se confunden con el IRPF
+- **Cifras con punto de miles** en toda la app (`2.100,10`). Al corregir, «2.100,10» se guarda como 2100,10 (antes se guardaba 2,1)
+- **Instrucciones a Gemini:** el precio por unidad va aparte del importe, cada importe en su fila y respuesta siempre en JSON
+- Nueva batería de pruebas `test_lecturas.py`
 
 ### v2.7.1 (Octubre 2026) · Seguridad
 - **📋 Copiar para Abogado** ya funciona aunque algún dato lleve comillas (`TALLERES "EL SOL" SL`), y el texto de la nómina nunca puede ejecutarse como código al copiarlo

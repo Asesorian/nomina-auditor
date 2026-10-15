@@ -28,6 +28,7 @@ SUITES = [
     ("Compartir a Drive/iCloud", "test_compartir.py", None),
     ("Visor de PDF", "test_visor_pdf.py", None),
     ("Seguridad: datos, backups, SRI y API key", "test_seguridad.py", None),
+    ("Lecturas que no cuadran: comprobaciones, segunda lectura y corrección", "test_lecturas.py", None),
     ("Modo sin conexión", "test_sin_conexion.py", "site"),
     ("Visor de PDF sin conexión", "test_pdf_sin_conexion.py", "site"),
     ("Versión nueva a la primera (caché de GitHub Pages)", "test_actualizacion.py", "pages"),

@@ -1,6 +1,6 @@
 # 🧪 Pruebas automáticas
 
-Diez baterías (más de 200 comprobaciones) que abren **la app real** en Chromium con tamaño de móvil (390×844) y la usan como lo haría una persona: suben nóminas, pulsan botones, descargan backups, abren PDFs, cortan la conexión…
+Once baterías (más de 300 comprobaciones) que abren **la app real** en Chromium con tamaño de móvil (390×844) y la usan como lo haría una persona: suben nóminas, pulsan botones, descargan backups, abren PDFs, cortan la conexión…
 
 - **No gastan lecturas de Gemini ni usan ninguna API key:** las respuestas de la IA se simulan.
 - **No dependen de internet:** las librerías de la CDN (JSZip y PDF.js) se sirven en local, en la **misma versión exacta** que carga la app.
@@ -20,6 +20,7 @@ Conviene ejecutarlas **antes de publicar cualquier cambio** en `index.html` o `s
 | Documentos originales y backup completo | `test_originales.py` | Botones *Hacer foto* / *Elegir archivo*, casilla marcada por defecto, nombre automático, ver y descargar, 📎 en el panel, reclasificar conserva el original, adjuntar sin llamar a la IA, cambiar/sustituir/eliminar sin dejar documentos huérfanos, ZIP completo y restauración en un dispositivo vacío, importar un JSON no borra originales, *Borrar todo* borra también los documentos |
 | Compartir a Drive/iCloud | `test_compartir.py` | En móvil aparece *Guardar en… (Drive, iCloud…)* y abre el menú de compartir con el archivo y su nombre |
 | Seguridad (v2.7.1) | `test_seguridad.py` | *Copiar para Abogado* con comillas, `${…}`, comillas invertidas y barras (copia exacto y no ejecuta nada), respuesta de Gemini que no es JSON (no se ejecuta, se prueban los 3 modelos) y respuesta desordenada pero válida (se repara sin estropear `//` ni comillas de los datos), backup JSON y ZIP manipulados (solo entran nóminas y documentos válidos, aviso de ignorados, error mostrado como texto), datos raros ya guardados, **JSZip manipulado bloqueado por SRI**, pegar el enlace entero en la casilla de la clave, confirmación al abrir un enlace con otra clave, textos de ayuda, documentos sin nómina (aviso, borrado con confirmación, nunca solos) |
+| Lecturas que no cuadran (v2.7.2) | `test_lecturas.py` | Formato con punto de miles y lectura de `2.100,10`, qué es cada línea de deducción (`CONT.COMU`, MEI, «I.R.P.P.», embargos…), S.S. e IRPF con textos reales, todas las comprobaciones (sin falsas alarmas en nóminas correctas, con horas extra o paga extra), **filas corridas** y **precio tomado como importe** (los dos errores reales), segunda lectura automática (mejor, igual o peor), releer a mano, añadir y quitar líneas, confirmación al guardar una que no cuadra, ⚠ en Panel, Anual, Ver y copia para el abogado, **✏ Corregir una guardada** (mismo sitio, conserva el original, a un mes ocupado no, a uno libre sí, Cancelar), **🔁 Releer desde Ver** con el documento guardado, y lo que se envía a Gemini (prompt, instrucciones extra y JSON forzado) |
 | Visor de PDF | `test_visor_pdf.py` | Aviso visual mientras se prepara, dibuja la página, varias páginas, resolución para ampliar, segunda apertura directa, contraseña incorrecta / correcta / cancelada, PDF dañado, fotos intactas, cerrar mientras carga, visor no disponible, sin conexión la primera vez, **visor manipulado bloqueado por SRI**, **los PDF se abren sin permitirles ejecutar código** (`isEvalSupported: false`, mitigación de CVE-2024-4367) |
 | Modo sin conexión | `test_sin_conexion.py` | Service worker y copia guardada, abrir sin red, aviso visible, nóminas intactas, procesar avisa de que necesita internet, versión nueva a la primera al volver la red, *Forzar actualización*, las peticiones a Gemini nunca pasan por la copia, en `file://` no aplica |
 | Visor de PDF sin conexión | `test_pdf_sin_conexion.py` | Con conexión el visor se precarga en segundo plano sin ejecutarse; sin red el PDF se abre dentro de la app |
@@ -44,7 +45,7 @@ cd tests && npm install && cd ..
 Desde la raíz del repositorio:
 
 ```bash
-python tests/ejecutar_todo.py              # todas (~1 minuto)
+python tests/ejecutar_todo.py              # todas (~2 minutos)
 python tests/ejecutar_todo.py visor irpf   # solo las que contengan esas palabras
 ```
 
@@ -66,7 +67,7 @@ Las baterías que no necesitan servidor también se pueden lanzar sueltas (`pyth
   - puerto **8766**: `servidor_pages.py`, que imita las cabeceras de caché de GitHub Pages
 
   Ambos escuchan solo en `127.0.0.1` y se cierran al terminar.
-- **Gemini simulada.** Las pruebas sustituyen `callGemini` por una función que devuelve datos de ejemplo, o rellenan directamente los datos extraídos. Nunca sale una petición a Google.
+- **Gemini simulada.** Las pruebas sustituyen `callGemini` por una función que devuelve datos de ejemplo (en `test_lecturas.py`, una lista de lecturas en orden, apuntando con qué se la llamó), o rellenan directamente los datos extraídos. Cuando se prueba la petición en sí, la respuesta de Google se simula con una ruta de Playwright. Nunca sale una petición a Google.
 - **Librerías de la CDN interceptadas.** Las peticiones a `cdnjs.cloudflare.com` se responden con los archivos de `tests/node_modules/`. Como las librerías se cargan con **SRI** (PDF.js desde la v2.7; JSZip y QRCode.js desde la v2.7.1), el navegador comprueba que el archivo local sea idéntico byte a byte al publicado: si no lo es, se niega a ejecutarlo (lo comprueban la prueba 10 del visor y la 6 de seguridad). Por eso las respuestas simuladas llevan la cabecera `Access-Control-Allow-Origin: *` (`CORS` en `_comun.py`), como las de cdnjs. QRCode.js no tiene copia local: se sirve vacío y simplemente no se carga.
 - **Service worker y rutas de Playwright.** `ejecutar_todo.py` activa `PW_EXPERIMENTAL_SERVICE_WORKER_NETWORK_EVENTS=1` para que también las peticiones que hace el service worker pasen por esas rutas. Sin ella, el visor de PDF sin conexión fallaría solo en las pruebas (no en la app).
 - **Sin números de versión fijos.** La versión de la app (`Forense v…`), la de PDF.js y sus huellas SRI se leen del propio `index.html` (`_comun.py`).

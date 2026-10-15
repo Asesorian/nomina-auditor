@@ -78,7 +78,8 @@ with sync_playwright() as pw:
     print("2) Segunda vez: abre directamente (visor ya cargado)")
     p.click("#originalBody >> text=👁 Ver")
     p.wait_for_timeout(50)
-    st = p.inner_text("#pdfStatus") if p.query_selector("#pdfStatus") else "(ya renderizado)"
+    # leído de una vez: el aviso puede desaparecer entre dos llamadas si el PDF se dibuja muy rápido
+    st = p.evaluate("document.querySelector('#pdfStatus')?.innerText ?? '(ya renderizado)'")
     check("Preparando" not in st, f"no repite la preparación: '{st.strip()}'")
     p.wait_for_function("document.querySelectorAll('#docViewer canvas.pdf-page').length === 2", timeout=10000)
     p.click("#docViewer >> text=✕ Cerrar")

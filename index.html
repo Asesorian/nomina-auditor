@@ -230,6 +230,23 @@ code { font-family:'JetBrains Mono',monospace; }
 .pdf-fallback .doc-actions { justify-content:center;margin-top:14px; }
 .pdf-more { padding:10px 14px 14px;text-align:center;font-size:11px;color:var(--text-muted); }
 .pdf-more button { background:none;border:none;color:var(--accent);cursor:pointer;text-decoration:underline;font-size:11px;font-family:inherit;padding:0 2px; }
+/* Comprobación de las cuentas (v2.7.2) */
+.checks-card.bad { border-color:var(--danger); background:rgba(239,68,68,0.04); }
+.checks-card.meh { border-color:rgba(245,158,11,0.6); }
+.checks-card.good { border-color:rgba(74,222,128,0.35); }
+.chk-title { font-size:13px;font-weight:800;margin-bottom:6px; }
+.chk-title.bad { color:var(--danger); } .chk-title.meh { color:var(--warning); } .chk-title.good { color:var(--success); }
+.chk { display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:12px;line-height:1.45; }
+.chk.err { color:var(--danger); } .chk.warn { color:var(--warning); } .chk.ok { color:var(--text-dim); }
+.chk-hint { font-size:11px;color:var(--text-dim);margin-top:8px;line-height:1.5; }
+.read-info { font-size:12px;color:var(--text);background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:10px;line-height:1.5; }
+.editable.flag-err { color:var(--danger);border-bottom:2px solid var(--danger);background:var(--danger-bg);border-radius:2px; }
+.editable.flag-warn { color:var(--warning);border-bottom:2px solid var(--warning);background:var(--warning-bg);border-radius:2px; }
+.chk-flag { color:var(--danger);font-size:12px;font-weight:800;margin-left:5px;cursor:help; }
+.edit-banner { padding:10px 14px;border-radius:8px;margin-bottom:14px;font-size:12px;line-height:1.5;background:var(--info-bg);border:1px solid rgba(96,165,250,0.35);color:var(--info); }
+.edit-banner strong { color:var(--text); }
+.line-tools { display:flex;gap:14px;justify-content:flex-end;margin-top:8px; }
+.link-btn { background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;font-family:inherit;padding:2px 0;text-decoration:underline; }
 .hidden { display:none !important; }
 </style>
 <!-- Librerías externas con huella SRI: si cdnjs sirviera otro archivo, el navegador no lo ejecuta -->
@@ -243,7 +260,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.7.1</span>
+    <span class="logo-badge">Forense v2.7.2</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -445,6 +462,8 @@ let imageMediaType = 'image/jpeg';
 let pendingFileName = '';   // nombre del archivo que eligió el usuario
 let keepOriginal = true;    // casilla "Guardar también el documento original"
 let savingPayroll = false;  // evita guardar dos veces con un doble toque
+let editingId = null;       // id de la nómina guardada que se está corrigiendo (✏ Corregir datos), o null
+let readInfo = null;        // cómo fue la lectura: { reads, chosen, okNow, firstErrors, manual, worse… }
 
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
@@ -702,10 +721,44 @@ function downloadBlob(blob, filename) {
 }
 
 // ═══════════ FORMATTING ═══════════
-function fmt(n) {
-  if (n === undefined || n === null || n === 'N/L') return 'N/L';
-  return Number(n).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// Convierte un importe en número. Acepta lo que devuelve Gemini (1234.56) y lo que escribe una persona
+// en español ("2.100,10", "2100,10", "2.100"). Si no es un número (vacío, "N/L"…) devuelve NaN.
+//   - con coma: la coma es el decimal y los puntos son de miles ("1.234,56")
+//   - con coma y punto: el último que aparece es el decimal ("1,234.56" también vale)
+//   - solo puntos en grupos de 3 ("2.100", "1.234.567"): son de miles
+//   - un punto y otra cosa ("20.5", "2100.10"): es el decimal
+function num(v) {
+  if (typeof v === 'number') return Number.isFinite(v) ? v : NaN;
+  let s = String(v ?? '').replace(/[€\s ]/g, '');
+  if (!s) return NaN;
+  const neg = /^-|^\(.*\)$/.test(s);
+  s = s.replace(/^[-+(]+|\)+$/g, '');
+  const lastComma = s.lastIndexOf(','), lastDot = s.lastIndexOf('.');
+  if (lastComma >= 0 && lastDot >= 0) {
+    s = lastComma > lastDot ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  } else if (lastComma >= 0) {
+    s = s.replace(/,/g, (m, i) => i === lastComma ? '.' : '');
+  } else if (/^\d{1,3}(\.\d{3})+$/.test(s)) {
+    s = s.replace(/\./g, '');
+  }
+  if (!/^\d*\.?\d+$/.test(s)) return NaN;
+  const n = parseFloat(s);
+  return neg ? -n : n;
 }
+
+// Importe con 2 decimales y punto de miles en TODAS las cifras: 2.100,10 · 21.000,00 · 999,50.
+// Se hace a mano: el navegador, en español, no agrupa las cifras de 4 dígitos (2100,10) y salían mezcladas.
+function fmt(n) {
+  if (n === undefined || n === null || n === '' || n === 'N/L') return 'N/L';
+  const v = num(n);
+  if (!Number.isFinite(v)) return 'N/L';
+  const [i, d] = (Math.round(Math.abs(v) * 100 + 1e-7) / 100).toFixed(2).split('.');
+  return (v < 0 && (i !== '0' || d !== '00') ? '-' : '') + i.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + d;
+}
+
+// Importe para sumar: lo que no es un número cuenta como 0 (nunca concatena textos como "N/L")
+function amt(v) { const n = num(v); return Number.isFinite(n) ? n : 0; }
+function round2(n) { return Math.round(n * 100 + (n >= 0 ? 1e-7 : -1e-7)) / 100; }
 
 function esc(s) {
   const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
@@ -724,6 +777,8 @@ function jsArg(v) {
 
 // ═══════════ NAVIGATION ═══════════
 function showView(name) {
+  // Salir de la revisión de una nómina guardada sin pulsar "Guardar cambios" la deja como estaba
+  if (editingId && name !== 'upload') clearUpload();
   ['dashboard','upload','report','annual','backup'].forEach(v => {
     document.getElementById('view-' + v).classList.toggle('hidden', v !== name);
   });
@@ -736,6 +791,9 @@ function showView(name) {
 }
 
 // ═══════════ GEMINI FLASH API ═══════════
+// Gemini solo LEE: lo que devuelve se comprueba después con las cuentas de la propia nómina (checkPayroll).
+// v2.7.2: "price" separado de "amount" (en agosto de 2026 se tomó el precio por día como importe) y reglas
+// para no desplazar importes de una fila a otra.
 const EXTRACTION_PROMPT = `Eres un sistema OCR forense especializado en nóminas españolas. Extrae TODOS los datos visibles de esta nómina.
 
 Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta (sin markdown, sin backticks, sin explicaciones, SOLO el JSON):
@@ -746,20 +804,26 @@ Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta (sin markdown, s
   "company": { "name": "", "cif": "", "ccc": "" },
   "worker": { "name": "", "naf": "", "dni": "" },
   "employment": { "category": "", "seniority": "", "contractCode": "", "cotizationGroup": "" },
-  "earnings": [{ "code": "", "concept": "", "units": "", "amount": 0 }],
-  "deductions": [{ "code": "", "concept": "", "units": "", "amount": 0 }],
+  "earnings": [{ "code": "", "concept": "", "units": "", "price": "", "amount": 0 }],
+  "deductions": [{ "code": "", "concept": "", "units": "", "price": "", "amount": 0 }],
   "totals": { "grossTotal": 0, "totalDeductions": 0, "netPay": 0 },
   "bases": { "totalRemuneration": 0, "extraPayProrata": 0, "baseCC": 0, "baseAT": 0, "baseIRPF": 0, "irpfPercentage": 0 }
 }
 
 REGLAS:
-- Importes como números decimales con punto (1234.56), sin símbolo €
-- Si un campo no es legible escribe "N/L"
+- Importes como números decimales con punto (1234.56), sin símbolo € ni separador de miles
+- Si un campo no es legible escribe "N/L". NUNCA inventes una cifra ni la calcules para que cuadre: copia lo que pone el documento
 - payType: "extra" si el documento es una nómina de paga extraordinaria emitida aparte de la mensual (cabecera o conceptos tipo "Paga Extra", "Gratificación extraordinaria", "Extra Verano/Navidad/Beneficios"); "atrasos" si es una nómina solo de atrasos o diferencias de convenio; "ordinaria" para la nómina mensual normal, AUNQUE incluya la prorrata de pagas extras o la paga extra como una línea más
 - month debe ser el nombre del mes en español (Enero, Febrero...)
 - year debe ser el año con 4 dígitos
-- Incluye TODOS los conceptos de devengos y deducciones que aparezcan
-- Las unidades pueden ser días, horas o vacío
+- Incluye TODOS los conceptos de devengos y deducciones que aparezcan, en el mismo orden que en el documento
+- concept: copia el texto tal cual, con sus abreviaturas (ej: "COTIZACION CONT.COMU", "TRIBUTACION I.R.P.F.")
+- COLUMNAS: las nóminas suelen tener CUANTÍA (unidades), PRECIO, DEVENGOS y DEDUCCIONES.
+  · units = la cuantía (días, horas) o el porcentaje de la línea (ej: 4,70 en una cotización, 20,42 en el IRPF); vacío si no hay
+  · price = el precio por unidad; vacío si no hay
+  · amount = el importe de la columna DEVENGOS (en earnings) o DEDUCCIONES (en deductions). NUNCA pongas el precio ni el porcentaje en amount
+- FILAS: cada código, concepto e importe son de la MISMA fila. No pases un importe a la fila de arriba o de abajo, aunque una fila no tenga importe
+- Antes de responder, comprueba: la suma de amount de earnings = grossTotal; la de deductions = totalDeductions; grossTotal − totalDeductions = netPay. Si no cuadra, vuelve a leer las filas (pero no cambies cifras que se leen claras)
 - irpfPercentage es el porcentaje de retención (ej: 15.0)
 - NO añadas comas después del último elemento de un array o objeto
 - NO uses comentarios en el JSON
@@ -810,8 +874,10 @@ function parseGeminiJSON(text) {
   catch (e) { throw new Error(`Error leyendo la respuesta de Gemini (no es JSON válido): ${e.message}\n\nRespuesta recibida (primeros 500 caracteres):\n${String(text).substring(0, 500)}`); }
 }
 
-async function callGemini(base64, mediaType) {
+// extra: instrucciones añadidas al final del prompt (en la segunda lectura, qué cuentas no cuadraron)
+async function callGemini(base64, mediaType, extra) {
   const key = getApiKey();
+  const prompt = extra ? `${EXTRACTION_PROMPT}\n\n${extra}` : EXTRACTION_PROMPT;
   if (!key) throw new Error('Falta la clave de Gemini (barra superior).\n\n→ Si alguien te ha pasado la app, pídele la clave o el enlace con la clave.\n→ Si quieres usar la tuya, aquí se explica cómo crearla: ' + KEY_GUIDE_URL);
 
   let lastError = null;
@@ -827,10 +893,12 @@ async function callGemini(base64, mediaType) {
           contents: [{
             parts: [
               { inlineData: { mimeType: mediaType, data: base64 } },
-              { text: EXTRACTION_PROMPT }
+              { text: prompt }
             ]
           }],
-          generationConfig: { temperature: 0.1, maxOutputTokens: 4096 }
+          // responseMimeType: Gemini devuelve siempre JSON (menos respuestas que reparar).
+          // 8192: el razonamiento interno de los modelos 2.5 cuenta dentro de este límite y con 4096 podía cortar el JSON.
+          generationConfig: { temperature: 0, maxOutputTokens: 8192, responseMimeType: 'application/json' }
         })
       });
 
@@ -1016,6 +1084,8 @@ function readNominaFile(file) {
 
 async function handleFile(file) {
   if (!file) return;
+  editingId = null;   // una subida nueva nunca es la corrección de una guardada
+  readInfo = null;
   try {
     const f = await readNominaFile(file);
     imageBase64 = f.base64;
@@ -1043,6 +1113,8 @@ function clearUpload() {
   imageBase64 = null;
   extractedData = null;
   typeDetection = null;
+  editingId = null;
+  readInfo = null;
   pendingFileName = '';
   keepOriginal = true;
   document.getElementById('previewImg').classList.add('hidden');
@@ -1076,8 +1148,10 @@ async function processImage() {
   document.getElementById('uploadError').innerHTML = '';
 
   try {
-    extractedData = await callGemini(imageBase64, imageMediaType);
-    prepareExtracted(extractedData);
+    const r = await readWithChecks(imageBase64, imageMediaType);
+    extractedData = r.data;
+    typeDetection = r.detection;
+    readInfo = r.info;
     renderVerification();
   } catch (e) {
     document.getElementById('uploadError').innerHTML = `
@@ -1090,20 +1164,73 @@ async function processImage() {
   btn.innerHTML = '✓ Procesar con Gemini IA';
 }
 
-// Normaliza mes/año y decide el tipo de nómina antes de la verificación
+// Normaliza mes/año, importes y tipo de nómina antes de la verificación. Devuelve la detección del tipo.
 function prepareExtracted(d) {
   d.period = d.period || {};
   const m = normalizeMonth(d.period.month);
   if (m) d.period.month = m;
   if (d.period.year !== undefined && d.period.year !== null) d.period.year = String(d.period.year).trim();
+  // Importes que lleguen como texto ("1.234,56", "2100.10") → número. "N/L" se queda como está.
+  const toNum = (o, k) => { if (o && typeof o[k] === 'string' && Number.isFinite(num(o[k]))) o[k] = num(o[k]); };
+  for (const side of ['earnings', 'deductions']) {
+    d[side] = Array.isArray(d[side]) ? d[side].filter(l => l && typeof l === 'object') : [];
+    d[side].forEach(l => { toNum(l, 'amount'); toNum(l, 'price'); if (l.price === '') delete l.price; });
+  }
+  d.totals = d.totals || {};
+  ['grossTotal', 'totalDeductions', 'netPay'].forEach(k => toNum(d.totals, k));
+  d.bases = d.bases || {};
+  ['totalRemuneration', 'extraPayProrata', 'baseCC', 'baseAT', 'baseIRPF'].forEach(k => toNum(d.bases, k));
   typeDetection = classifyPayroll(d);
   d.payType = typeDetection.type;
   // Si Gemini no rellenó el % de IRPF, se deduce aquí para que lo veas (y corrijas) en la verificación
-  d.bases = d.bases || {};
   if (parsePct(d.bases.irpfPercentage) === null) {
     const r = irpfRateOf(d);
     if (r.rate !== null) { d.bases.irpfPercentage = r.rate; d.bases.irpfSource = r.source; }
   }
+  return typeDetection;
+}
+
+// ── Lectura con comprobación ──
+// 1. Gemini lee la nómina.  2. El código comprueba las cuentas.  3. Si no cuadran, Gemini la vuelve a leer
+// UNA vez sabiendo qué falla, y la app se queda con la lectura que mejor cuadra. El código nunca cambia una
+// cifra para que cuadre: solo elige entre lo que se ha leído y marca lo que hay que revisar.
+// La segunda lectura solo se hace si hay errores (cuesta lo mismo que la primera, ~1 céntimo).
+async function readWithChecks(base64, mediaType) {
+  const first = await callGemini(base64, mediaType);
+  const det1 = prepareExtracted(first);
+  const errs1 = checkErrors(first);
+  if (!errs1.length) return { data: first, detection: det1, info: { reads: 1 } };
+
+  updateProcessStatus('Los importes no cuadran: segunda lectura…');
+  let second, det2;
+  try {
+    second = await callGemini(base64, mediaType, feedbackFor(first));
+    det2 = prepareExtracted(second);
+  } catch (e) {
+    return { data: first, detection: det1, info: { reads: 1, retryFailed: true, firstErrors: errs1.length } };
+  }
+  const useSecond = readScore(second) < readScore(first);
+  const best = useSecond ? second : first;
+  return {
+    data: best, detection: useSecond ? det2 : det1,
+    info: { reads: 2, chosen: useSecond ? 2 : 1, firstErrors: errs1.length, okNow: !checkErrors(best).length }
+  };
+}
+
+// Instrucciones para la segunda lectura: qué cuentas fallaron (sin dar cifras "buenas": Gemini debe volver a leerlas)
+function feedbackFor(d) {
+  const issues = checkPayroll(d).slice(0, 10).map(c => '- ' + c.text);
+  const tpl = codeTemplate(d);
+  const ref = ['earnings', 'deductions'].map(side => Object.entries(tpl[side]).map(([c, t]) => `${c} ${t}`).join(' · ')).filter(Boolean);
+  return `ATENCIÓN: es la SEGUNDA lectura de esta misma nómina. El programa ha comprobado la primera lectura y estas cuentas NO cuadran:
+${issues.join('\n')}
+
+Vuelve a leer el documento entero, fila por fila, con cuidado:
+- Cada importe va en la fila de su concepto: no lo pases a la fila de al lado.
+- amount es la columna DEVENGOS o DEDUCCIONES, nunca la de PRECIO ni la del porcentaje.
+- Comprueba que no te dejas ninguna fila (por ejemplo una cotización o la línea de IRPF).
+- No cuadres cifras a la fuerza: copia lo que pone el documento; si algo no se lee, "N/L".` +
+  (ref.length ? `\n\nReferencia (solo para el formato; puede que este mes falte alguna línea o haya otras): en otras nóminas de esta empresa, los códigos y conceptos eran: ${ref.join(' | ')}` : '');
 }
 
 function setPayType(t) {
@@ -1118,7 +1245,11 @@ function setPayType(t) {
 function renderTypeCard(d) {
   const t = payTypeOf(d);
   let info = '';
-  if (typeDetection) {
+  if (typeDetection?.saved) {
+    info = typeDetection.manual
+      ? `✋ Cambiado por ti (estaba guardada como ${esc(PAY_TYPES[typeDetection.type].label.toLowerCase())}).`
+      : `📌 Guardada como <strong>${esc(PAY_TYPES[typeDetection.type].label.toLowerCase())}</strong>. Si no es así, cámbialo.`;
+  } else if (typeDetection) {
     const det = PAY_TYPES[typeDetection.type].label.toLowerCase();
     info = typeDetection.manual
       ? `✋ Elegido por ti (la detección automática decía: ${det}, porque ${esc(typeDetection.reason)})`
@@ -1137,12 +1268,69 @@ function renderTypeCard(d) {
 }
 
 // ═══════════ RENDER VERIFICATION (FASE 1) ═══════════
+// Celdas sospechosas según las comprobaciones: ruta → 'err' | 'warn'
+function flagMap(checks) {
+  const m = {};
+  for (const c of checks) for (const path of c.paths || []) if (m[path] !== 'err') m[path] = c.level;
+  return m;
+}
+
+function readInfoHtml() {
+  const i = readInfo;
+  if (!i) return '';
+  let t = '';
+  if (i.manual) {
+    t = i.worse ? '🔁 La nueva lectura cuadraba peor que la que ya tenías: se mantiene la anterior.'
+      : i.okNow ? '🔁 Nueva lectura de Gemini: ahora las cuentas cuadran. Revísala igualmente con el documento.'
+      : '🔁 Nueva lectura de Gemini: sigue sin cuadrar. Corrige a mano los valores marcados mirando el documento.';
+  } else if (i.reads === 2) {
+    t = i.chosen === 2
+      ? (i.okNow ? '🔁 La primera lectura de Gemini no cuadraba. Se ha leído otra vez y la segunda sí cuadra. Revísala igualmente.'
+                 : '🔁 La primera lectura no cuadraba. La segunda cuadra mejor, pero sigue habiendo descuadres: corrígelos mirando el documento.')
+      : '🔁 Gemini la ha leído dos veces y ninguna lectura cuadra (se muestra la que cuadra mejor). Corrige a mano los valores marcados mirando el documento.';
+  } else if (i.retryFailed) {
+    t = '⚠ La lectura no cuadra y no se ha podido hacer la segunda lectura. Puedes pulsar «Releer con Gemini» o corregirla a mano.';
+  }
+  return t ? `<div class="read-info">${esc(t)}</div>` : '';
+}
+
+function docAvailable() {
+  if (editingId) return hasOriginal(payrolls.find(p => p.id === editingId));
+  return !!imageBase64;
+}
+
+function renderChecks(d, checks) {
+  const errs = checks.filter(c => c.level === 'err'), warns = checks.filter(c => c.level === 'warn');
+  const state = errs.length ? 'bad' : warns.length ? 'meh' : 'good';
+  const title = errs.length ? `✗ Las cuentas no cuadran (${errs.length} error${errs.length > 1 ? 'es' : ''}${warns.length ? ` y ${warns.length} aviso${warns.length > 1 ? 's' : ''}` : ''})`
+    : warns.length ? `⚠ Las sumas cuadran, pero hay ${warns.length} cosa${warns.length > 1 ? 's' : ''} que mirar`
+    : '✓ Las cuentas cuadran';
+  const doc = docAvailable();
+  return `
+    <div class="card checks-card ${state}" id="checksCard">
+      <h3 style="margin:0 0 10px;font-size:13px;color:var(--accent)">COMPROBACIÓN DE LAS CUENTAS</h3>
+      ${readInfoHtml()}
+      <div class="chk-title ${state}">${esc(title)}</div>
+      ${checks.length ? checks.map(c => `<div class="chk ${c.level}">${c.level === 'err' ? '✗' : '⚠'} <span>${esc(c.text)}</span></div>`).join('')
+        : `<div class="chk ok">Devengos = bruto · deducciones = total a deducir · bruto − deducciones = líquido · IRPF y cotizaciones = base × %.</div>`}
+      ${checks.length ? `<div class="chk-hint">Los valores marcados ${errs.length ? 'en rojo' : 'en ámbar'} son los sospechosos. Compáralos con el documento y toca el valor para corregirlo. La app no cambia ninguna cifra por su cuenta.</div>` : ''}
+      ${doc ? `<div class="doc-actions">
+        <button class="btn btn-secondary btn-sm" onclick="viewCurrentDocument()">👁 Ver documento</button>
+        ${checks.length ? `<button class="btn btn-secondary btn-sm" id="rereadBtn" onclick="rereadCurrent(this)">🔁 Releer con Gemini</button>` : ''}
+      </div>` : ''}
+    </div>`;
+}
+
 function renderVerification() {
   document.getElementById('uploadPhase').classList.add('hidden');
   const vp = document.getElementById('verifyPhase');
   vp.classList.remove('hidden');
 
   const d = extractedData;
+  const checks = checkPayroll(d);
+  const flags = flagMap(checks);
+  const fl = path => flags[path] ? ' flag-' + flags[path] : '';
+  const editing = editingId ? payrolls.find(p => p.id === editingId) : null;
   const adminFields = [
     ['Empresa','company.name'],['CIF','company.cif'],['CCC','company.ccc'],
     ['Trabajador','worker.name'],['NAF','worker.naf'],['DNI','worker.dni'],
@@ -1150,12 +1338,40 @@ function renderVerification() {
     ['Contrato','employment.contractCode'],['Grupo Cot.','employment.cotizationGroup'],
     ['Mes','period.month'],['Año','period.year'],['Días','period.days']
   ];
+  const hasPrice = side => (d[side] || []).some(l => Number.isFinite(num(l.price)));
+  const lineTable = (side, totalLabel, totalPath, totalClass) => {
+    const showPrice = hasPrice(side);
+    return `<table>
+        <thead><tr><th>Cód.</th><th>Concepto</th><th class="r">Uds.</th>${showPrice ? '<th class="r">Precio</th>' : ''}<th class="r">Importe</th></tr></thead>
+        <tbody>
+          ${(d[side]||[]).map((e,i) => `<tr>
+            <td style="width:60px"><span class="editable${fl(`${side}.${i}.code`)}" onclick="editField(this,'${side}.${i}.code')">${esc(e.code||'-')}</span></td>
+            <td><span class="editable${fl(`${side}.${i}.concept`)}" onclick="editField(this,'${side}.${i}.concept')">${esc(e.concept)}</span></td>
+            <td class="r"><span class="editable" onclick="editField(this,'${side}.${i}.units')">${esc(e.units||'')}</span></td>
+            ${showPrice ? `<td class="r"><span class="editable" onclick="editField(this,'${side}.${i}.price',true)">${Number.isFinite(num(e.price)) ? esc(String(e.price).replace('.', ',')) : ''}</span></td>` : ''}
+            <td class="r"><span class="editable${fl(`${side}.${i}.amount`)}" onclick="editField(this,'${side}.${i}.amount',true)">${fmt(e.amount)}</span></td>
+          </tr>`).join('')}
+          <tr class="${totalClass}">
+            <td colspan="${showPrice ? 4 : 3}" style="text-align:right">${totalLabel}</td>
+            <td class="r"><span class="editable${fl(totalPath)}" onclick="editField(this,'${totalPath}',true)">${fmt(getNestedVal(d, totalPath))}</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="line-tools">
+        <button class="link-btn" onclick="addLine('${side}')">＋ Añadir línea</button>
+        ${(d[side]||[]).length ? `<button class="link-btn" onclick="removeLine('${side}')">－ Quitar una línea…</button>` : ''}
+      </div>`;
+  };
 
   let html = `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap">
       <span class="phase-badge phase-1">FASE 1</span>
       <span style="color:var(--text-dim);font-size:13px">Verificación Visual — Haz clic en cualquier valor para corregirlo</span>
     </div>
+
+    ${editing ? `<div class="edit-banner">✏ Estás corrigiendo la nómina guardada de <strong>${esc(payName(editing))}</strong>. Los cambios no se guardan hasta que pulses «Guardar cambios».</div>` : ''}
+
+    ${renderChecks(d, checks)}
 
     ${renderTypeCard(d)}
 
@@ -1176,40 +1392,12 @@ function renderVerification() {
 
     <div class="card">
       <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">ZONA 2 — Conceptos Retributivos (Devengos)</h3>
-      <table>
-        <thead><tr><th>Cód.</th><th>Concepto</th><th class="r">Uds.</th><th class="r">Importe</th></tr></thead>
-        <tbody>
-          ${(d.earnings||[]).map((e,i) => `<tr>
-            <td style="width:60px"><span class="editable" onclick="editField(this,'earnings.${i}.code')">${esc(e.code||'-')}</span></td>
-            <td><span class="editable" onclick="editField(this,'earnings.${i}.concept')">${esc(e.concept)}</span></td>
-            <td class="r"><span class="editable" onclick="editField(this,'earnings.${i}.units')">${esc(e.units||'')}</span></td>
-            <td class="r"><span class="editable" onclick="editField(this,'earnings.${i}.amount',true)">${fmt(e.amount)}</span></td>
-          </tr>`).join('')}
-          <tr class="total-row">
-            <td colspan="3" style="text-align:right">TOTAL BRUTO</td>
-            <td class="r"><span class="editable" onclick="editField(this,'totals.grossTotal',true)">${fmt(d.totals?.grossTotal)}</span></td>
-          </tr>
-        </tbody>
-      </table>
+      ${lineTable('earnings', 'TOTAL BRUTO', 'totals.grossTotal', 'total-row')}
     </div>
 
     <div class="card">
       <h3 style="margin:0 0 12px;font-size:13px;color:var(--danger)">Deducciones</h3>
-      <table>
-        <thead><tr><th>Cód.</th><th>Concepto</th><th class="r">Uds.</th><th class="r">Importe</th></tr></thead>
-        <tbody>
-          ${(d.deductions||[]).map((dd,i) => `<tr>
-            <td style="width:60px"><span class="editable" onclick="editField(this,'deductions.${i}.code')">${esc(dd.code||'-')}</span></td>
-            <td><span class="editable" onclick="editField(this,'deductions.${i}.concept')">${esc(dd.concept)}</span></td>
-            <td class="r"><span class="editable" onclick="editField(this,'deductions.${i}.units')">${esc(dd.units||'')}</span></td>
-            <td class="r"><span class="editable" onclick="editField(this,'deductions.${i}.amount',true)">${fmt(dd.amount)}</span></td>
-          </tr>`).join('')}
-          <tr class="total-row-danger">
-            <td colspan="3" style="text-align:right">TOTAL DEDUCIR</td>
-            <td class="r"><span class="editable" onclick="editField(this,'totals.totalDeductions',true)">${fmt(d.totals?.totalDeductions)}</span></td>
-          </tr>
-        </tbody>
-      </table>
+      ${lineTable('deductions', 'TOTAL DEDUCIR', 'totals.totalDeductions', 'total-row-danger')}
     </div>
 
     <div class="card">
@@ -1225,7 +1413,7 @@ function renderVerification() {
             ['% IRPF','bases.irpfPercentage'],
           ].map(([label,path]) => `<tr>
             <td class="dim" style="width:200px">${label}</td>
-            <td class="r"><span class="editable" onclick="editField(this,'${path}',true)">${fmt(getNestedVal(d,path))}</span></td>
+            <td class="r"><span class="editable${fl(path)}" onclick="editField(this,'${path}',true)">${fmt(getNestedVal(d,path))}</span></td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -1236,18 +1424,21 @@ function renderVerification() {
     <div class="card card-highlight">
       <div class="liquido-box">
         <span class="liquido-label">LÍQUIDO A PERCIBIR</span>
-        <span class="liquido-value"><span class="editable" onclick="editField(this,'totals.netPay',true)">${fmt(d.totals?.netPay)}</span> €</span>
+        <span class="liquido-value"><span class="editable${fl('totals.netPay')}" onclick="editField(this,'totals.netPay',true)">${fmt(d.totals?.netPay)}</span> €</span>
       </div>
     </div>
 
-    ${imageBase64 ? `<label class="keep-original">
+    ${imageBase64 && !editing ? `<label class="keep-original">
       <input type="checkbox" ${keepOriginal ? 'checked' : ''} onchange="keepOriginal=this.checked">
       <span>📎 Guardar también el documento original (${imageMediaType === 'application/pdf' ? 'PDF' : 'foto'}) junto a esta nómina. Se queda solo en este dispositivo.</span>
     </label>` : ''}
 
     <div class="btn-group">
-      <button class="btn btn-primary" onclick="confirmAndSave()">✓ Confirmar y Guardar</button>
-      <button class="btn btn-secondary" onclick="clearUpload()">Descartar</button>
+      ${editing
+        ? `<button class="btn btn-primary" onclick="confirmAndSave()">✓ Guardar cambios</button>
+           <button class="btn btn-secondary" onclick="cancelEdit()">Cancelar</button>`
+        : `<button class="btn btn-primary" onclick="confirmAndSave()">✓ Confirmar y Guardar</button>
+           <button class="btn btn-secondary" onclick="clearUpload()">Descartar</button>`}
     </div>`;
 
   vp.innerHTML = html;
@@ -1259,15 +1450,94 @@ function renderValidation(d) {
       ℹ Nómina de ${esc(payLabelOf(d).toLowerCase())}: la comprobación Remuneración + Prorrata = Base C.C. solo aplica a la nómina mensual ordinaria.
     </div>`;
   }
-  const rem = d.bases?.totalRemuneration || 0;
-  const pro = d.bases?.extraPayProrata || 0;
-  const bcc = d.bases?.baseCC || 0;
+  const rem = amt(d.bases?.totalRemuneration);
+  const pro = amt(d.bases?.extraPayProrata);
+  const bcc = amt(d.bases?.baseCC);
   const diff = Math.abs((rem + pro) - bcc);
   const ok = diff < 0.02;
   return `<div class="validation ${ok ? 'ok' : 'err'}">
     ${ok ? '✓' : '⚠'} Validación: Remuneración (${fmt(rem)}) + Prorrata (${fmt(pro)}) = ${fmt(rem+pro)}
     ${ok ? '✓ Coincide con Base C.C.' : `≠ Base C.C. (${fmt(bcc)}) — Diferencia: ${fmt(diff)} €`}
   </div>`;
+}
+
+// Añadir o quitar líneas en la revisión (cuando Gemini se deja una fila o se inventa una)
+function addLine(side) {
+  if (!extractedData) return;
+  extractedData[side] = extractedData[side] || [];
+  extractedData[side].push({ code: '', concept: side === 'earnings' ? 'Nuevo devengo' : 'Nueva deducción', units: '', amount: 0 });
+  renderVerification();
+}
+
+function removeLine(side) {
+  const lines = extractedData?.[side] || [];
+  if (!lines.length) return;
+  const list = lines.map((l, i) => `${i + 1}. ${l.code ? '[' + l.code + '] ' : ''}${l.concept || ''}: ${fmt(l.amount)} €`).join('\n');
+  const v = prompt(`¿Qué línea quieres quitar? Escribe su número:\n\n${list}`, '');
+  if (v === null || v.trim() === '') return;
+  const n = parseInt(v, 10);
+  if (!(n >= 1 && n <= lines.length)) { alert(`"${v}" no es un número de línea válido.`); return; }
+  lines.splice(n - 1, 1);
+  renderVerification();
+}
+
+// 👁 Ver el documento mientras se revisa (el que se acaba de subir, o el original guardado si se está corrigiendo)
+function viewCurrentDocument() {
+  if (editingId) return viewOriginal(editingId);
+  if (!imageBase64) return;
+  const file = new File([b64ToArrayBuffer(imageBase64)], pendingFileName || (imageMediaType === 'application/pdf' ? 'nomina.pdf' : 'nomina.jpg'), { type: imageMediaType });
+  if (imageMediaType === 'application/pdf') showPdfViewer(file);
+  else showDocViewer(URL.createObjectURL(file), file.name);
+}
+
+function arrayBufferToB64(buf) {
+  const bytes = new Uint8Array(buf);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+// Documento con el que releer: el recién subido, o el original guardado de la nómina que se corrige
+async function currentDocument() {
+  if (editingId) {
+    const p = payrolls.find(x => x.id === editingId);
+    if (!hasOriginal(p)) return null;
+    const rec = await getDoc(p.original.key);
+    return rec ? { base64: arrayBufferToB64(rec.data), type: rec.type } : null;
+  }
+  return imageBase64 ? { base64: imageBase64, type: imageMediaType } : null;
+}
+
+// 🔁 Releer con Gemini: nueva lectura indicando qué no cuadra. Se queda con ella solo si cuadra igual o mejor.
+async function rereadCurrent(btn) {
+  if (!extractedData) return;
+  if (!navigator.onLine) { alert('Sin conexión: para releer la nómina hace falta internet.'); return; }
+  const doc = await currentDocument().catch(() => null);
+  if (!doc) { alert('No hay documento con el que releer esta nómina.'); return; }
+  const before = extractedData;
+  const prevDet = typeDetection;
+  // El tipo se respeta si es el de una guardada o si lo eligió la persona a mano
+  const keepType = !!(editingId || prevDet?.manual);
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner light"></span> Releyendo… <span id="processStatus" style="font-weight:400;opacity:0.7"></span>'; }
+  try {
+    const issues = checkPayroll(before);
+    const fresh = await callGemini(doc.base64, doc.type, issues.length ? feedbackFor(before) : '');
+    const det = prepareExtracted(fresh);
+    typeDetection = prevDet;                            // prepareExtracted la cambia: se decide abajo
+    if (keepType) fresh.payType = payTypeOf(before);
+    if (extractedData !== before) return;               // se ha salido de la revisión mientras tanto
+    if (readScore(fresh) <= readScore(before)) {
+      extractedData = fresh;
+      if (!keepType) typeDetection = det;
+      readInfo = { manual: true, okNow: !checkErrors(fresh).length };
+    } else {
+      readInfo = { manual: true, worse: true };
+    }
+    renderVerification();
+  } catch (e) {
+    alert(e.message || e);
+    if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = '🔁 Releer con Gemini'; }
+  }
 }
 
 // ═══════════ INLINE EDITING ═══════════
@@ -1290,12 +1560,15 @@ function editField(el, path, isNumber) {
   const currentVal = getNestedVal(extractedData, path);
   const input = document.createElement('input');
   input.className = 'edit-input';
-  input.value = currentVal ?? '';
+  // Los números se muestran con coma decimal, como se escriben en español
+  input.value = isNumber && typeof currentVal === 'number' ? String(currentVal).replace('.', ',') : (currentVal ?? '');
+  if (isNumber) input.inputMode = 'decimal';
   input.style.width = isNumber ? '100px' : '200px';
 
   const finish = () => {
-    const raw = isNumber ? String(input.value).replace(',', '.') : input.value;
-    const newVal = isNumber ? (parseFloat(raw) || 0) : raw;
+    // Los importes se leen como los escribe una persona: "2.100,10", "2100,10" o "2100.10" son lo mismo
+    const parsed = isNumber ? num(input.value) : NaN;
+    const newVal = isNumber ? (Number.isFinite(parsed) ? parsed : 0) : input.value;
     setNestedVal(extractedData, path, newVal);
     if (path === 'bases.irpfPercentage') {
       if (newVal) extractedData.bases.irpfSource = 'manual'; else delete extractedData.bases.irpfSource;
@@ -1323,7 +1596,15 @@ function confirmAndSave() {
   extractedData.period.month = month;
   extractedData.period.year = year;
 
+  // Si las cuentas no cuadran, se puede guardar igualmente (la persona decide), pero sabiéndolo
+  const errs = checkErrors(extractedData);
+  if (errs.length && !confirm(
+    `Las cuentas de esta nómina no cuadran:\n\n${errs.map(e => '• ' + e.text).join('\n')}\n\n` +
+    `Lo normal es que Gemini haya leído mal alguna línea. Puedes corregir los valores marcados en rojo mirando el documento, o pulsar «Releer con Gemini».\n\n` +
+    `¿Guardarla igualmente? Quedará marcada con ⚠ hasta que la corrijas.`)) return;
+
   const draft = { ...extractedData, payType: payTypeOf(extractedData) };
+  if (editingId) { saveEdited(draft); return; }
   const id = payrollId(draft);
   const existing = payrolls.find(p => p.id === id);
   if (existing) openDupModal(draft, existing);
@@ -1418,6 +1699,59 @@ async function doSave(payroll) {
   }
 }
 
+// ── ✏ Corregir una nómina ya guardada ──
+// Abre la misma revisión que al subirla, con sus datos. Se guarda en su sitio, con su documento original;
+// si se cambia el mes o el tipo, pasa al hueco nuevo solo si está libre (nunca pisa otra nómina).
+function editPayroll(id) {
+  const p = payrolls.find(x => x.id === id);
+  if (!p) return;
+  clearUpload();
+  const copy = JSON.parse(JSON.stringify(p));
+  ['id', 'savedAt', 'editedAt', 'original'].forEach(k => delete copy[k]);
+  extractedData = copy;
+  typeDetection = { type: payTypeOf(p), reason: '', saved: true };
+  showView('upload');
+  editingId = id;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  renderVerification();
+  window.scrollTo(0, 0);
+}
+
+// Desde "Ver": abre la corrección y relee directamente el documento guardado
+async function editAndReread(id) {
+  editPayroll(id);
+  if (!editingId) return;
+  await rereadCurrent(document.getElementById('rereadBtn'));
+}
+
+function cancelEdit() {
+  const id = editingId;
+  clearUpload();
+  const p = payrolls.find(x => x.id === id);
+  if (p) showReport(p); else showView('dashboard');
+}
+
+function saveEdited(draft) {
+  const old = payrolls.find(p => p.id === editingId);
+  if (!old) { alert('Esta nómina ya no existe (¿se ha borrado o importado otro backup?). No se ha guardado nada.'); clearUpload(); showView('dashboard'); return; }
+  const sameSlot = monthKey(draft) === monthKey(old) && payTypeOf(draft) === payTypeOf(old);
+  const id = sameSlot ? old.id : freePayrollId(draft, old.id);
+  if (!id) {
+    alert(`Ya tienes guardada la nómina mensual de ${draft.period?.month} ${draft.period?.year}: no puedo mover esta allí.\n\nSi esta es una paga extra o unos atrasos, elige ese tipo arriba. No se ha cambiado nada.`);
+    return;
+  }
+  const updated = { ...draft, id, savedAt: old.savedAt, editedAt: new Date().toISOString() };
+  delete updated.original;
+  if (old.original) updated.original = old.original;
+  payrolls = payrolls.filter(p => p.id !== old.id);
+  payrolls.push(updated);
+  sortPayrolls();
+  saveData();
+  if (isAutoBackupEnabled()) autoBackup();
+  clearUpload();
+  showReport(updated);
+}
+
 // ═══════════ MONTHLY REPORT (FASE 2) ═══════════
 function showReport(p) {
   showView('report');
@@ -1430,7 +1764,20 @@ function showReport(p) {
   const pt = payTypeOf(p);
   const lbl = payLabelOf(p);
   const irpf = irpfRateOf(p);
-  const reportText = `RESUMEN DE DATOS DE NÓMINA - PERIODO: ${p.period?.month || '?'} ${p.period?.year || '?'}${lbl ? ' — ' + lbl.toUpperCase() : ''}
+  const checks = checkPayroll(p);
+  const errs = checks.filter(c => c.level === 'err');
+  // Si las cuentas no cuadran, el texto para el abogado lo dice arriba y al final (nunca sale "limpio" con datos dudosos)
+  const warnHead = errs.length ? `⚠ AVISO: LAS CUENTAS DE ESTA NÓMINA NO CUADRAN (detalle al final).
+Revisar con el documento original antes de usar estos datos.
+============================================================
+` : '';
+  const warnTail = checks.length ? `
+
+5. AVISOS DE LA COMPROBACIÓN AUTOMÁTICA
+------------------------------------------------------------
+${checks.map(c => (c.level === 'err' ? '✗ ' : '⚠ ') + c.text).join('\n')}
+------------------------------------------------------------` : '';
+  const reportText = `${warnHead}RESUMEN DE DATOS DE NÓMINA - PERIODO: ${p.period?.month || '?'} ${p.period?.year || '?'}${lbl ? ' — ' + lbl.toUpperCase() : ''}
 ------------------------------------------------------------
 1. DATOS IDENTIFICATIVOS
 ------------------------------------------------------------
@@ -1458,12 +1805,23 @@ TOTAL DEDUCIR: ${fmt(p.totals?.totalDeductions)} €
 LÍQUIDO A PERCIBIR (NETO): ${fmt(p.totals?.netPay)} €
 BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} €
 % RETENCIÓN IRPF: ${irpf.rate === null ? 'N/L' : fmtPct(irpf.rate)}${irpf.source && irpf.source !== 'nomina' ? ' (' + IRPF_SOURCE_TEXT[irpf.source] + ')' : ''}
-------------------------------------------------------------`;
+------------------------------------------------------------${warnTail}`;
 
+  const state = errs.length ? 'bad' : checks.length ? 'meh' : 'good';
   document.getElementById('reportContent').innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
       <span class="phase-badge phase-2">FASE 2</span>
       <span style="font-size:18px;font-weight:800;color:var(--accent)">Informe Ejecutivo — ${esc(p.period?.month)} ${esc(p.period?.year)}${typeBadge(p)}</span>
+    </div>
+    <div class="card checks-card ${state}" style="padding:14px 16px">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Comprobación de las cuentas</div>
+      <div class="chk-title ${state}">${errs.length ? '✗ Las cuentas no cuadran: Gemini leyó mal alguna línea' : checks.length ? '⚠ Las sumas cuadran, pero hay algo que mirar' : '✓ Las cuentas cuadran'}</div>
+      ${checks.map(c => `<div class="chk ${c.level}">${c.level === 'err' ? '✗' : '⚠'} <span>${esc(c.text)}</span></div>`).join('')}
+      <div class="doc-actions">
+        <button class="btn ${errs.length ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="editPayroll(${jsArg(p.id)})">✏ Corregir datos</button>
+        ${checks.length && hasOriginal(p) ? `<button class="btn btn-secondary btn-sm" onclick="editAndReread(${jsArg(p.id)})">🔁 Releer con Gemini</button>` : ''}
+      </div>
+      ${p.editedAt ? `<div style="font-size:11px;color:var(--text-muted);margin-top:8px">Datos corregidos después de guardarla, el ${esc(new Date(p.editedAt).toLocaleDateString('es-ES'))}</div>` : ''}
     </div>
     <div class="card" style="padding:14px 16px">
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Tipo de nómina</div>
@@ -1859,13 +2217,16 @@ function renderDashboard() {
   }
 
   const missingDocs = fp.filter(p => !hasOriginal(p)).length;
+  const flagged = fp.filter(p => checkErrors(p).length);
   document.getElementById('dashTable').innerHTML = `
     <h3 style="margin:0 0 16px;font-size:14px;color:var(--accent)">Nóminas Procesadas</h3>
+    ${flagged.length ? `<div class="alert alert-error" id="dashCheckAlert"><div><b>⚠ ${flagged.length === 1 ? '1 nómina no cuadra' : `${flagged.length} nóminas no cuadran`}: ${esc(flagged.map(p => payName(p)).join(', '))}</b>
+      Gemini leyó mal alguna línea y los totales de IRPF y S.S. de arriba pueden estar mal. Ábrela con <strong>Ver</strong> y pulsa <strong>✏ Corregir datos</strong> o <strong>🔁 Releer con Gemini</strong>.</div></div>` : ''}
     <table>
       <thead><tr><th>Periodo</th><th class="r">Bruto</th><th class="r">Neto</th><th class="r">IRPF %</th><th style="text-align:center">Acciones</th></tr></thead>
       <tbody>
         ${fp.map(p => `<tr class="clickable" ondblclick="showReport(payrolls.find(x=>x.id===${jsArg(p.id)}))">
-          <td>${esc(p.period?.month)} ${esc(p.period?.year)}${hasOriginal(p) ? '<span class="clip" title="Documento original guardado">📎</span>' : ''}${typeBadge(p)}</td>
+          <td>${esc(p.period?.month)} ${esc(p.period?.year)}${hasOriginal(p) ? '<span class="clip" title="Documento original guardado">📎</span>' : ''}${checkFlag(p)}${typeBadge(p)}</td>
           <td class="r">${fmt(p.totals?.grossTotal)} €</td>
           <td class="r">${fmt(p.totals?.netPay)} €</td>
           <td class="r">${irpfCell(p)}</td>
@@ -1893,6 +2254,12 @@ async function deletePayroll(id) {
   payrolls = payrolls.filter(x => x.id !== id);
   saveData();
   renderDashboard();
+}
+
+// Marca ⚠ junto al mes si las cuentas de esa nómina no cuadran
+function checkFlag(p) {
+  const e = checkErrors(p);
+  return e.length ? `<span class="chk-flag" title="${escAttr('Las cuentas no cuadran: ' + e.map(x => x.text).join(' · '))}">⚠</span>` : '';
 }
 
 // ═══════════ ANNUAL REPORT (FASE 3) ═══════════
@@ -1925,7 +2292,7 @@ function renderAnnual() {
             const irpfDed = findIRPFDeduction(p);
             const ssTotal = calcSSTotal(p);
             return `<tr class="clickable" onclick="showReport(payrolls.find(x=>x.id===${jsArg(p.id)}))">
-              <td>${esc(p.period?.month)}${typeBadge(p)}</td>
+              <td>${esc(p.period?.month)}${checkFlag(p)}${typeBadge(p)}</td>
               <td class="r">${fmt(p.totals?.grossTotal)} €</td>
               <td class="r">${fmt(irpfDed)} €</td>
               <td class="r">${fmt(ssTotal)} €</td>
@@ -1973,6 +2340,11 @@ function buildAnnualObservations(fp) {
   const ord = fp.filter(p => payTypeOf(p) === 'ordinaria');
   const others = fp.filter(p => payTypeOf(p) !== 'ordinaria');
   const obs = [];
+
+  // Lo primero: si alguna nómina no cuadra, los totales de este informe no son fiables
+  const bad = fp.filter(p => checkErrors(p).length);
+  if (bad.length) obs.push({ level: 'warn', text: '⚠ LAS CUENTAS NO CUADRAN en: ' + bad.map(p => payName(p)).join(', ') +
+    '. Los totales de IRPF y S.S. de este informe pueden estar mal: corrígelas en la app (Ver → Corregir datos) antes de entregarlo' });
 
   const irpfRates = ord.map(p => ({ month: p.period?.month, rate: irpfRateOf(p).rate, cell: irpfCell(p) }));
   const rateChanges = irpfRates.some((r, i) => i > 0 && r.rate !== irpfRates[0].rate);
@@ -2023,12 +2395,55 @@ ${obs.map(o => o.text).join('\n')}`;
 }
 
 // ═══════════ HELPERS ═══════════
+// ── Qué es cada línea de deducción ──
+// Lo decide el código con el texto del concepto (como venga escrito o abreviado), nunca la IA:
+//   irpf · cc (contingencias comunes) · mei · fp (formación) · desempleo · solidaridad · ss (otra cotización)
+//   especie (descuento de conceptos en especie) · otra
+// Las cotizaciones (todas menos irpf, especie y otra) son la S.S. del trabajador.
+function compactText(s) {
+  return String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '');
+}
+function spacedText(s) {
+  return ' ' + String(s ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim() + ' ';
+}
+
+const SS_KINDS = ['cc', 'mei', 'fp', 'desempleo', 'solidaridad', 'ss'];
+const LINE_KIND_TEXT = {
+  irpf: 'IRPF', cc: 'contingencias comunes', mei: 'MEI', fp: 'formación profesional', desempleo: 'desempleo',
+  solidaridad: 'cotización de solidaridad', ss: 'cotización', especie: 'conceptos en especie', otra: 'otra deducción'
+};
+
+function deductionKind(line) {
+  const c = compactText(line?.concept), w = spacedText(line?.concept);
+  if (/irp[fp]|tributa|hacienda/.test(c) || (/retenc/.test(c) && !/judic|embarg|pension|alimen/.test(c))) return 'irpf';
+  if (/especie/.test(c)) return 'especie';
+  if (/contcom|contingcom|contingenciacom|contingenciascom|ccomun|contcomun/.test(c) || / cc /.test(w)) return 'cc';
+  if (/ mei | m e i |equidad|intergen/.test(w) || /^mei|cotizacionmei|cotizmei|cotmei/.test(c)) return 'mei';
+  if (/formacion|formprof|fprof/.test(c) || / fp /.test(w)) return 'fp';
+  if (/desemp/.test(c)) return 'desempleo';
+  if (/solidar/.test(c)) return 'solidaridad';
+  if (/cotiz|segsoc|segurosocial|seguridadsocial/.test(c) || / ss /.test(w)) return 'ss';
+  return 'otra';
+}
+function isSSKind(k) { return SS_KINDS.includes(k); }
+
+// Línea de IRPF: primero por el texto; si Gemini lo leyó mal ("I.R.P.P.", "TRIBUT…"), por la cuenta:
+// la línea cuyo importe es exactamente base IRPF × % (si el % viene de la nómina o lo puso la persona).
 function findIRPFLine(p) {
-  return (p.deductions || []).find(d => d.concept?.toLowerCase().replace(/\./g, '').includes('irpf'));
+  const ded = p.deductions || [];
+  const byText = ded.find(d => deductionKind(d) === 'irpf');
+  if (byText) return byText;
+  const pct = parsePct(p.bases?.irpfPercentage);
+  const base = amt(p.bases?.baseIRPF);
+  if (pct !== null && base > 0 && ['nomina', 'manual', undefined].includes(p.bases?.irpfSource)) {
+    const expected = round2(base * pct / 100);
+    return ded.find(d => deductionKind(d) === 'otra' && Math.abs(amt(d.amount) - expected) <= 0.02);
+  }
+  return undefined;
 }
 
 function findIRPFDeduction(p) {
-  return findIRPFLine(p)?.amount || 0;
+  return amt(findIRPFLine(p)?.amount);
 }
 
 // ── % de retención de IRPF ──
@@ -2108,23 +2523,178 @@ function editIrpf(id) {
   showReport(p);
 }
 
+// S.S. del trabajador: TODAS las líneas de cotización (contingencias comunes, MEI, formación, desempleo,
+// solidaridad…), escritas como vengan ("CONT.COMU", "CONTING. COMUNES"…). Antes de la v2.7.2 solo contaba
+// las que decían "contingencia", "formación" o "desempleo" y dejaba fuera CONT.COMU y el MEI.
 function calcSSTotal(p) {
-  return (p.deductions || [])
-    .filter(d => {
-      const c = d.concept?.toLowerCase() || '';
-      return c.includes('contingencia') || c.includes('desempleo') || c.includes('formación') || c.includes('formacion');
-    })
-    .reduce((s, d) => s + (d.amount || 0), 0);
+  const irpf = findIRPFLine(p);
+  return round2((p.deductions || [])
+    .filter(d => d !== irpf && isSSKind(deductionKind(d)))
+    .reduce((s, d) => s + amt(d.amount), 0));
 }
 
 function calcTotals(fp) {
   return {
-    bruto: fp.reduce((s, p) => s + (p.totals?.grossTotal || 0), 0),
-    neto: fp.reduce((s, p) => s + (p.totals?.netPay || 0), 0),
-    irpf: fp.reduce((s, p) => s + findIRPFDeduction(p), 0),
-    ss: fp.reduce((s, p) => s + calcSSTotal(p), 0),
-    baseIRPF: fp.reduce((s, p) => s + (p.bases?.baseIRPF || 0), 0),
+    bruto: round2(fp.reduce((s, p) => s + amt(p.totals?.grossTotal), 0)),
+    neto: round2(fp.reduce((s, p) => s + amt(p.totals?.netPay), 0)),
+    irpf: round2(fp.reduce((s, p) => s + findIRPFDeduction(p), 0)),
+    ss: round2(fp.reduce((s, p) => s + calcSSTotal(p), 0)),
+    baseIRPF: round2(fp.reduce((s, p) => s + amt(p.bases?.baseIRPF), 0)),
   };
+}
+
+// ═══════════ COMPROBACIONES (la nómina se comprueba sola) ═══════════
+// Gemini solo LEE. Estas cuentas las hace el código con los propios datos de la nómina, así que una lectura
+// mala casi nunca pasa sin aviso:
+//   1. devengos = total bruto          2. deducciones = total a deducir     3. bruto − deducciones = líquido
+//   4. IRPF = base IRPF × %            5. cada cotización = su base × su %  6. unidades × precio = importe
+//   7. remuneración + prorrata = base C.C. (solo mensual)
+//   8. "plantilla": cada código lleva el mismo concepto que en tus nóminas anteriores (detecta filas corridas)
+// Nivel 'err': las cuentas no salen (casi seguro hay un error de lectura). 'warn': conviene mirarlo con el papel.
+// Cada aviso lleva 'paths' con las celdas afectadas, para marcarlas en la revisión.
+const CHECK_TOL = 0.02;
+
+function pctOfLine(line) {
+  const u = parsePct(line?.units);
+  if (u !== null) return u;
+  const nums = [...String(line?.concept || '').matchAll(/(?<![\d.,])(\d{1,2}[.,]\d{1,3})(?![\d.,])/g)].map(m => parsePct(m[1])).filter(n => n !== null);
+  return nums.length ? nums[nums.length - 1] : null;
+}
+
+function conceptSimilarity(a, b) {
+  a = compactText(a).replace(/\d+/g, ''); b = compactText(b).replace(/\d+/g, '');
+  if (!a || !b) return 1;
+  if (a.startsWith(b) || b.startsWith(a)) return 1;
+  const m = a.length, n = b.length;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return 1 - prev[n] / Math.max(m, n);
+}
+
+// Plantilla de tus nóminas: código → concepto, sacado de las nóminas guardadas de la misma empresa
+// (o de todas, si no hay CIF) que no tienen descuadres. Excluye la propia nómina.
+function codeTemplate(p) {
+  const cif = compactText(p.company?.cif);
+  const tpl = { earnings: {}, deductions: {} };
+  for (const q of payrolls) {
+    if (q === p || (p.id && q.id === p.id) || (editingId && q.id === editingId)) continue;
+    if (cif && compactText(q.company?.cif) && compactText(q.company?.cif) !== cif) continue;
+    if (checkSums(q).length) continue;
+    for (const side of ['earnings', 'deductions']) {
+      for (const l of q[side] || []) {
+        const code = String(l.code ?? '').trim();
+        if (code && code !== '-') tpl[side][code] = String(l.concept || '');   // la más reciente manda
+      }
+    }
+  }
+  return tpl;
+}
+
+// Solo las tres cuentas de totales (rápidas; también se usan para elegir la plantilla)
+function checkSums(p) {
+  const out = [];
+  const gross = num(p.totals?.grossTotal), totDed = num(p.totals?.totalDeductions), net = num(p.totals?.netPay);
+  const earn = p.earnings || [], ded = p.deductions || [];
+  const sumE = round2(earn.reduce((s, e) => s + amt(e.amount), 0));
+  const sumD = round2(ded.reduce((s, d) => s + amt(d.amount), 0));
+  if (Number.isFinite(gross) && earn.length && Math.abs(sumE - gross) > CHECK_TOL)
+    out.push({ level: 'err', key: 'sumE', paths: ['totals.grossTotal', ...earn.map((_, i) => `earnings.${i}.amount`)],
+      text: `Los devengos suman ${fmt(sumE)} € pero el total bruto es ${fmt(gross)} € (diferencia: ${fmt(Math.abs(sumE - gross))} €). Falta una línea o hay un importe mal leído.` });
+  if (Number.isFinite(totDed) && ded.length && Math.abs(sumD - totDed) > CHECK_TOL)
+    out.push({ level: 'err', key: 'sumD', paths: ['totals.totalDeductions', ...ded.map((_, i) => `deductions.${i}.amount`)],
+      text: `Las deducciones suman ${fmt(sumD)} € pero el total a deducir es ${fmt(totDed)} € (diferencia: ${fmt(Math.abs(sumD - totDed))} €). Falta una línea o hay un importe mal leído.` });
+  if (Number.isFinite(gross) && Number.isFinite(totDed) && Number.isFinite(net) && Math.abs(round2(gross - totDed) - net) > CHECK_TOL)
+    out.push({ level: 'err', key: 'net', paths: ['totals.grossTotal', 'totals.totalDeductions', 'totals.netPay'],
+      text: `Bruto − deducciones = ${fmt(round2(gross - totDed))} € pero el líquido leído es ${fmt(net)} €.` });
+  return out;
+}
+
+function checkPayroll(p, opts = {}) {
+  const out = checkSums(p);
+  const ded = p.deductions || [], earn = p.earnings || [];
+  const bases = p.bases || {};
+
+  // 4. IRPF = base × %
+  const irpfLine = findIRPFLine(p);
+  const r = irpfRateOf(p);
+  const baseIRPF = amt(bases.baseIRPF);
+  if (r.rate !== null && baseIRPF > 0 && !['calculado', 'aprox'].includes(r.source)) {
+    const expected = round2(baseIRPF * r.rate / 100);
+    if (!irpfLine) {
+      if (expected >= 1) out.push({ level: 'err', key: 'irpfMissing', paths: ['bases.irpfPercentage'],
+        text: `No encuentro la línea de IRPF: con base ${fmt(baseIRPF)} € al ${fmtPct(r.rate)} debería haber una retención de ${fmt(expected)} €.` });
+    } else if (Math.abs(amt(irpfLine.amount) - expected) > CHECK_TOL) {
+      out.push({ level: 'warn', key: 'irpf', paths: [`deductions.${ded.indexOf(irpfLine)}.amount`, 'bases.baseIRPF', 'bases.irpfPercentage'],
+        text: `IRPF leído: ${fmt(irpfLine.amount)} €, pero base IRPF ${fmt(baseIRPF)} € × ${fmtPct(r.rate)} = ${fmt(expected)} €.` });
+    }
+  }
+
+  // 5. Cada cotización con su % impreso = su base × %. La base depende de la línea: C.C. (contingencias
+  //    comunes, MEI), A.T. (formación, desempleo) o el importe de las horas extra ("COTIZACION HORAS EXT").
+  //    Vale si cuadra con cualquiera de ellas: así no hay falsas alarmas con nóminas que reparten distinto.
+  const baseCC = amt(bases.baseCC), baseAT = amt(bases.baseAT) || baseCC;
+  const overtime = round2(earn.filter(e => /hor\w*\s*ext/i.test(String(e.concept || ''))).reduce((s, e) => s + amt(e.amount), 0));
+  ded.forEach((d, i) => {
+    const k = deductionKind(d);
+    if (!isSSKind(k) || d === irpfLine) return;
+    const pct = pctOfLine(d);
+    if (pct === null || pct > 10) return;
+    const main = /hor\w*\s*ext/i.test(String(d.concept || '')) ? overtime : (k === 'fp' || k === 'desempleo') ? baseAT : baseCC;
+    const candidates = [main, baseCC, baseAT, overtime].filter((b, j, a) => b > 0 && a.indexOf(b) === j);
+    if (!candidates.length) return;
+    if (candidates.some(b => Math.abs(amt(d.amount) - round2(b * pct / 100)) <= CHECK_TOL)) return;
+    const base = candidates[0], expected = round2(base * pct / 100);
+    out.push({ level: 'warn', key: 'ss' + i, paths: [`deductions.${i}.amount`],
+      text: `«${d.concept}»: leído ${fmt(d.amount)} €, pero ${fmt(base)} € × ${fmtPct(pct)} = ${fmt(expected)} €.` });
+  });
+
+  // 6. Unidades × precio = importe en los devengos (cuando Gemini ha leído el precio aparte).
+  //    En las deducciones no: ahí "unidades" suele ser un porcentaje y ya se comprueba en el punto 5.
+  for (const side of ['earnings']) {
+    (p[side] || []).forEach((l, i) => {
+      const u = num(l.units), pr = num(l.price), a = num(l.amount);
+      if (!Number.isFinite(u) || !Number.isFinite(pr) || !Number.isFinite(a) || u <= 0 || pr <= 0) return;
+      const expected = round2(u * pr);
+      if (Math.abs(expected - a) > Math.max(0.05, Math.abs(a) * 0.002))
+        out.push({ level: 'warn', key: `up-${side}${i}`, paths: [`${side}.${i}.amount`],
+          text: `«${l.concept}»: ${String(l.units)} × ${fmt(pr)} = ${fmt(expected)} €, pero el importe leído es ${fmt(a)} €.` });
+    });
+  }
+
+  // 7. Remuneración + prorrata = base C.C. (solo mensual ordinaria)
+  if (payTypeOf(p) === 'ordinaria' && baseCC > 0) {
+    const rem = amt(bases.totalRemuneration), pro = amt(bases.extraPayProrata);
+    if (rem > 0 && Math.abs(rem + pro - baseCC) > CHECK_TOL)
+      out.push({ level: 'warn', key: 'bcc', paths: ['bases.totalRemuneration', 'bases.extraPayProrata', 'bases.baseCC'],
+        text: `Remuneración (${fmt(rem)}) + prorrata (${fmt(pro)}) = ${fmt(round2(rem + pro))} €, distinto de la base C.C. (${fmt(baseCC)} €).` });
+  }
+
+  // 8. Plantilla: el mismo código con un concepto muy distinto al de tus otras nóminas = filas corridas
+  if (opts.template !== false) {
+    const tpl = codeTemplate(p);
+    for (const side of ['earnings', 'deductions']) {
+      (p[side] || []).forEach((l, i) => {
+        const code = String(l.code ?? '').trim();
+        const before = tpl[side][code];
+        if (code && before !== undefined && conceptSimilarity(before, l.concept) < 0.6)
+          out.push({ level: 'warn', key: `tpl-${side}${i}`, paths: [`${side}.${i}.code`, `${side}.${i}.concept`],
+            text: `El código ${code} en tus otras nóminas es «${before}» y aquí pone «${l.concept}»: puede que las filas estén corridas.` });
+      });
+    }
+  }
+  return out;
+}
+
+function checkErrors(p) { return checkPayroll(p).filter(c => c.level === 'err'); }
+
+// Puntuación de una lectura: cuanto menor, mejor (los errores pesan mucho más que los avisos)
+function readScore(d) {
+  const c = checkPayroll(d);
+  return c.filter(x => x.level === 'err').length * 100 + c.filter(x => x.level === 'warn').length;
 }
 
 // ═══════════ BACKUP & RESTORE ═══════════
@@ -2149,7 +2719,7 @@ function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.7.1',
+      version: '2.7.2',
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },

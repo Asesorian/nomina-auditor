@@ -2,7 +2,7 @@
 
 Para quien quiera entender, mantener o adaptar Nómina Auditor. Para **usarla**, basta con el [README](../README.md).
 
-Refleja la **v2.7** (octubre de 2026). Los nombres de funciones y constantes son los de `index.html`, para poder buscarlos directamente.
+Refleja la **v2.7.2** (octubre de 2026). Los nombres de funciones y constantes son los de `index.html`, para poder buscarlos directamente.
 
 ## Índice
 
@@ -25,13 +25,14 @@ Refleja la **v2.7** (octubre de 2026). Los nombres de funciones y constantes son
 17. [Publicar una versión](#17-publicar-una-versión)
 18. [Actualizar PDF.js y otras librerías](#18-actualizar-pdfjs-y-otras-librerías)
 19. [Pruebas automáticas](#19-pruebas-automáticas)
+20. [Comprobación de las cuentas y corrección](#20-comprobación-de-las-cuentas-y-corrección) (v2.7.2)
 
 ---
 
 ## 1. Principios
 
 - **Un archivo, sin build y sin backend.** Toda la app es `index.html` (HTML + CSS + JS vanilla). `sw.js` solo añade el modo sin conexión. GitHub Pages sirve archivos estáticos: no hay ningún servidor propio que reciba datos.
-- **"Código científico, IA divulgadora".** Gemini solo **transcribe** la nómina a JSON. La clasificación del tipo, el % de IRPF, los totales y las comprobaciones del informe anual los hace código determinista. Ninguna cifra sale de la IA sin pasar por la verificación humana.
+- **"Código científico, IA divulgadora".** Gemini solo **transcribe** la nómina a JSON. La clasificación del tipo, el % de IRPF, los totales y las comprobaciones del informe anual los hace código determinista. Desde la v2.7.2, además, **el código comprueba las cuentas de cada lectura** (ver [§20](#20-comprobación-de-las-cuentas-y-corrección)) y, si no cuadran, pide otra lectura; nunca cambia una cifra por su cuenta. Ninguna cifra sale de la IA sin pasar por la verificación humana.
 - **Verificación humana obligatoria.** Nada se guarda hasta que el usuario revisa los datos extraídos y pulsa *Confirmar y Guardar*.
 - **Los datos no salen del dispositivo.** Nóminas, API key y documentos originales viven en el navegador. La única salida es la imagen o el PDF que se envía a Gemini en el momento de procesarlo.
 - **Compatibilidad hacia atrás.** Ningún cambio obliga a migrar: los registros y backups antiguos siguen valiendo tal cual (ver [ids](#6-identificadores-y-tipos-de-nómina)).
@@ -42,7 +43,7 @@ Refleja la **v2.7** (octubre de 2026). Los nombres de funciones y constantes son
 
 | Archivo | Qué es |
 |---|---|
-| `index.html` | La app completa (~120 KB). El *manifest* de la PWA y el icono van incrustados como `data:` URI |
+| `index.html` | La app completa (~165 KB). El *manifest* de la PWA y el icono van incrustados como `data:` URI |
 | `sw.js` | Service worker del modo sin conexión (~5 KB) |
 | `docs/TECNICO.md` | Este documento |
 | `tests/` | Pruebas automáticas con navegador real ([tests/README.md](../tests/README.md)) |
@@ -64,10 +65,17 @@ Refleja la **v2.7** (octubre de 2026). Los nombres de funciones y constantes son
 ```
 handleFile(file)          readNominaFile(): PDF tal cual (detectado por su contenido, "%PDF")
                           o imagen → JPEG calidad 0,92, máx. 2500 px por lado
-processImage()            callGemini(base64, tipo) con la cadena de modelos (exige conexión)
-prepareExtracted(d)       normalizeMonth() · classifyPayroll() · irpfRateOf() si faltaba el %
-renderVerification()      el usuario corrige campos (editField) y confirma el tipo (setPayType)
-confirmAndSave()          valida mes y año → payrollId() → si el hueco existe: openDupModal()
+processImage()            readWithChecks(base64, tipo) (exige conexión):
+                            callGemini() con la cadena de modelos → prepareExtracted() → checkErrors()
+                            si hay errores: callGemini(…, feedbackFor(lectura)) → prepareExtracted()
+                            y se queda con la de menor readScore() (nunca toca cifras)
+prepareExtracted(d)       normalizeMonth() · importes de texto → número (num) · classifyPayroll()
+                          · irpfRateOf() si faltaba el %
+renderVerification()      renderChecks() con las celdas sospechosas marcadas · el usuario corrige
+                          (editField, addLine, removeLine), ve el documento (viewCurrentDocument),
+                          relee (rereadCurrent) y confirma el tipo (setPayType)
+confirmAndSave()          valida mes y año → si checkErrors(): confirm() → en modo corrección
+                          saveEdited() (ver §20) → payrollId() → si el hueco existe: openDupModal()
                             ├─ saveAsType(tipo)    guardar aparte (freePayrollId)
                             └─ confirmOverwrite()  sustituir
 doSave(payroll)           storeOriginal() si la casilla está marcada · gestiona el original
@@ -120,7 +128,7 @@ Ejemplo (datos inventados):
   "company": { "name": "EMPRESA EJEMPLO SL", "cif": "B00000000", "ccc": "N/L" },
   "worker": { "name": "NOMBRE APELLIDO", "naf": "N/L", "dni": "00000000T" },
   "employment": { "category": "OFICIAL 1ª", "seniority": "01/01/2015", "contractCode": "100", "cotizationGroup": "8" },
-  "earnings": [{ "code": "010", "concept": "PAGA EXTRA VERANO", "units": "", "amount": 1800.00 }],
+  "earnings": [{ "code": "010", "concept": "PAGA EXTRA VERANO", "units": "30,00", "price": 60.00, "amount": 1800.00 }],
   "deductions": [
     { "code": "", "concept": "TRIBUTACIÓN IRPF", "units": "", "amount": 288.00 },
     { "code": "", "concept": "Contingencias comunes", "units": "", "amount": 0 }
@@ -134,7 +142,9 @@ Ejemplo (datos inventados):
 ```
 
 - La estructura de `period` a `bases` es la que se pide a Gemini (`EXTRACTION_PROMPT`). Lo que no se puede leer llega como `"N/L"`.
-- Los añade la app: `id`, `payType`, `savedAt`, `bases.irpfSource` y `original`.
+- `price` (precio por unidad) existe desde la v2.7.2 y es opcional: las lecturas anteriores no lo tienen.
+- Los añade la app: `id`, `payType`, `savedAt`, `editedAt` (si se corrigió después de guardarla, v2.7.2), `bases.irpfSource` y `original`.
+- Los importes son números. Si Gemini los manda como texto, `prepareExtracted()` los convierte con `num()`; lo ilegible se queda como `"N/L"` y en las sumas cuenta 0 (`amt()`).
 - Registros anteriores a la v2.3: sin `payType` → se tratan como mensuales (`payTypeOf()`).
 
 ---
@@ -196,7 +206,7 @@ Las horas extraordinarias no cumplen `EXTRA_RE` a propósito. El motivo de la de
 | — | `null` | No hay forma: se muestra `N/L` |
 
 - `parsePct()` acepta `20,42`, `20.42` o `20,42 %`, solo valores **entre 0 y 60** (exclusivo), redondeados a 2 decimales.
-- La línea de IRPF es la primera deducción cuyo concepto, sin puntos, contiene `irpf` (`findIRPFLine()`).
+- La línea de IRPF (`findIRPFLine()`, v2.7.2): la primera deducción que `deductionKind()` clasifica como `irpf` (contiene `irpf`/`irpp`, `tributa…`, `hacienda` o `retenc…` sin ser judicial/embargo/pensión/alimentos). Si ninguna, la deducción sin clasificar cuyo importe es exactamente base IRPF × % (cuando el % viene de la nómina o es manual). Hasta la v2.7.1 tenía que contener `irpf` y una lectura como «I.R.P.P.» contaba 0.
 - En `prepareExtracted()`, si Gemini no trajo el %, se rellena con el deducido y su origen, para que el usuario lo vea y lo compruebe en la verificación (aviso naranja).
 - Corregir a mano: en la verificación (`editField`) o desde *Ver* (`editIrpf`). Dejarlo vacío borra el valor manual y vuelve al cálculo automático.
 - `irpfCell()` añade `*` a los valores `calculado` y `aprox`.
@@ -332,7 +342,9 @@ PDFJS_FILES = [['pdf.min.js', 'sha384-…'], ['pdf.worker.min.js', 'sha384-…']
 
 ## 14. Gemini
 
-- **Petición:** `POST https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key=…` con la imagen o el PDF en `inlineData` y `EXTRACTION_PROMPT`. `temperature: 0.1`, `maxOutputTokens: 4096`.
+- **Petición:** `POST https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key=…` con la imagen o el PDF en `inlineData` y `EXTRACTION_PROMPT` (más, en la segunda lectura, el texto de `feedbackFor()`: `callGemini(base64, tipo, extra)`). `temperature: 0`, `maxOutputTokens: 8192` (en los modelos 2.5 el razonamiento interno cuenta dentro de ese límite) y `responseMimeType: "application/json"` (desde la v2.7.2).
+- **Prompt (v2.7.2):** pide `price` aparte de `amount` (en una nómina real se tomó el precio por día como importe), que cada importe vaya en la fila de su concepto, que el porcentaje de las cotizaciones e IRPF vaya en `units`, copiar los conceptos tal cual y comprobar las sumas antes de responder sin inventar cifras.
+- **Segunda lectura** (`readWithChecks`, `feedbackFor`): solo si la primera tiene errores de cuadre. Le dice qué cuentas fallan (sin dar cifras "buenas") y, como referencia de formato, los códigos y conceptos de tus otras nóminas de esa empresa. Detalle en [§20](#20-comprobación-de-las-cuentas-y-corrección).
 - **Cadena de modelos** (`GEMINI_MODELS`): `gemini-2.5-flash` → `gemini-2.5-flash-lite` → `gemini-2.5-pro`. Cualquier error pasa al siguiente; si fallan todos, el mensaje lista el motivo de cada uno. Google retira modelos cada cierto tiempo: se cambian en ese array.
 - **Lectura de la respuesta** (`parseGeminiJSON`): quita bloques de código y recorta a la primera `{` y la última `}`. Primero prueba `JSON.parse` tal cual; si falla, repara lo típico (comentarios fuera de las cadenas con `stripJsonComments`, comas finales, comas que falten entre líneas, `NaN`/`undefined` → 0) y vuelve a probar. Si tampoco, **error** y se pasa al modelo siguiente. Debe ser un objeto (una lista no vale). **Nunca se evalúa como JavaScript** (hasta la v2.7 había un `new Function` como último recurso).
 - La key va en la URL codificada (`encodeURIComponent`).
@@ -375,12 +387,24 @@ Revisión de octubre de 2026. Los puntos 1–5 se encontraron al documentar y es
 | 4 | JSZip y QRCode.js sin SRI | ✅ v2.7.1: `integrity` + `crossorigin`, `CACHE_VERSION` → `sw3` |
 | 5 | Documentos huérfanos en IndexedDB | ✅ v2.7.1: *Datos* los muestra con su tamaño y los borra con confirmación. **No** se borran solos: si las nóminas no se pudieran leer, parecerían huérfanos todos (sin ninguna nómina, el aviso aconseja importar el backup y no ofrece borrar) |
 
+Encontrados al revisar un backup con nóminas reales (15-10-2026), **resueltos en la v2.7.2** (`tests/test_lecturas.py`):
+
+| # | Qué era | Estado |
+|---|---|---|
+| 8 | `calcSSTotal()` solo sumaba conceptos con «contingencia», «formación» o «desempleo»: con `CONT.COMU` y el MEI la S.S. salía en torno al 20 % de la real | ✅ `deductionKind()`: todas las cotizaciones, escritas como vengan |
+| 9 | La línea de IRPF dependía de leer «irpf»: con «I.R.P.P.» el IRPF del mes contaba 0 | ✅ `findIRPFLine()` por texto ampliado y, si no, por la cuenta base × % |
+| 10 | Nada comprobaba que las líneas sumaran los totales: dos nóminas con filas corridas se guardaron sin aviso | ✅ `checkPayroll()`, segunda lectura, marcas ⚠ y corrección de guardadas ([§20](#20-comprobación-de-las-cuentas-y-corrección)) |
+| 11 | `fmt()` usaba `toLocaleString('es-ES')`, que no pone punto en las cifras de 4 dígitos (2100,10 pero 21.000,00); y `editField` leía «2.100,10» como 2,1 | ✅ `fmt()` agrupa siempre a mano; `num()` lee los formatos españoles |
+
 Pendiente:
 
 | # | Qué | Efecto | Solución prevista |
 |---|---|---|---|
 | 6 | Las pruebas solo usan Chromium | El menú de compartir, el almacenamiento de iPhone/Safari y pegar el enlace en la app instalada de iPhone no están cubiertos | Añadir WebKit a las pruebas y probar en un iPhone real |
 | 7 | La key va en la URL de la petición a Gemini (`?key=`) | Es HTTPS y va a Google, pero las URLs acaban más a menudo en registros que las cabeceras | Enviarla en la cabecera `x-goog-api-key` (comprobar antes con una lectura real) |
+| 12 | La segunda lectura y el prompt nuevo solo están probados con respuestas simuladas | No se sabe aún cuántas veces la segunda lectura arregla de verdad una nómina mal leída | Probarlo con las nóminas reales que no cuadraban (releerlas desde *Ver*) |
+| 13 | Las comprobaciones no ven un error que siga cuadrando (conceptos cambiados con sus importes bien) | Raro, pero posible | La revisión humana sigue siendo obligatoria. La plantilla de códigos (§20) cubre parte |
+| 14 | En el móvil, las tablas de la revisión necesitan desplazarse a los lados para ver la columna de importe | Las celdas marcadas de importe pueden quedar fuera de la vista | Diseño de tabla para pantallas estrechas |
 
 ---
 
@@ -416,9 +440,78 @@ $r=Invoke-WebRequest -UseBasicParsing URL; $m=New-Object IO.MemoryStream; $r.Raw
 
 ## 19. Pruebas automáticas
 
-Diez baterías (más de 200 comprobaciones) con Chromium en tamaño móvil, sin internet y sin gastar lecturas de Gemini. Cómo prepararlas, qué cubre cada una y cómo funcionan por dentro: [tests/README.md](../tests/README.md).
+Once baterías (más de 300 comprobaciones) con Chromium en tamaño móvil, sin internet y sin gastar lecturas de Gemini. Cómo prepararlas, qué cubre cada una y cómo funcionan por dentro: [tests/README.md](../tests/README.md).
 
 ```bash
-python tests/ejecutar_todo.py              # todas (~1 minuto)
+python tests/ejecutar_todo.py              # todas (~2 minutos)
 python tests/ejecutar_todo.py visor irpf   # solo algunas
 ```
+
+---
+
+## 20. Comprobación de las cuentas y corrección
+
+Desde la v2.7.2. Gemini se equivoca de formas concretas (en nóminas reales: filas de deducciones corridas con una línea perdida, y el precio por día tomado como importe). Una nómina tiene cuentas que se pueden comprobar con sus propias cifras, así que el código las comprueba siempre.
+
+### Qué es cada línea (`deductionKind`)
+
+Por el texto del concepto normalizado (`compactText`/`spacedText`: sin acentos ni signos), nunca por la IA:
+
+| Tipo | Ejemplos que reconoce |
+|---|---|
+| `irpf` | `TRIBUTACION I.R.P.F.20,42`, `I.R.P.P.`, `RETENCION IRPF` (no `Retención judicial`, embargos, pensiones o alimentos) |
+| `cc` | `CONT.COMU`, `Contingencias comunes`, `CONTING. COMUNES`, `Cotiz. CC` |
+| `mei` | `MEI`, `M.E.I.`, `equidad intergeneracional` |
+| `fp` | `FORMACION`, `Formación Prof.`, `FP` |
+| `desempleo` | `DESEMPLEO`, `Desemp.` |
+| `solidaridad` | `Cotización adicional de solidaridad` |
+| `ss` | cualquier otra con `cotiz…` o `seg. social` (p. ej. `COTIZACION HORAS EXT`) |
+| `especie` | `Dcto. conceptos en especie` |
+| `otra` | el resto (embargos, anticipos…) |
+
+S.S. del trabajador (`calcSSTotal`) = suma de `cc`, `mei`, `fp`, `desempleo`, `solidaridad` y `ss`.
+
+### Comprobaciones (`checkPayroll`, `checkSums`)
+
+Devuelven `{ level, key, text, paths }`. `paths` son las celdas afectadas (`deductions.3.amount`, `totals.grossTotal`…) para marcarlas en la revisión (`flagMap` → clases `flag-err` / `flag-warn`). Tolerancia `CHECK_TOL` = 0,02 €.
+
+| Clave | Comprobación | Nivel |
+|---|---|---|
+| `sumE` | suma de devengos = `grossTotal` | `err` |
+| `sumD` | suma de deducciones = `totalDeductions` | `err` |
+| `net` | `grossTotal` − `totalDeductions` = `netPay` | `err` |
+| `irpfMissing` / `irpf` | hay línea de IRPF y vale base IRPF × % (si el % no es calculado ni aproximado) | `err` / `warn` |
+| `ss<i>` | cotización con su % (en `units` o en el concepto) = base × %. Vale con cualquiera de las bases posibles: C.C., A.T. o el importe de horas extra. Sin falsas alarmas en las nóminas reales probadas | `warn` |
+| `up-earnings<i>` | devengos: unidades × precio = importe (si hay `price`) | `warn` |
+| `bcc` | remuneración + prorrata = base C.C. (solo mensual) | `warn` |
+| `tpl-<lado><i>` | **plantilla:** el código lleva un concepto parecido (`conceptSimilarity` ≥ 0,6, sin dígitos) al de tus otras nóminas de la misma empresa (mismo CIF) que cuadran; la más reciente manda (`codeTemplate`). Detecta filas corridas | `warn` |
+
+`checkErrors(p)` = solo los `err`. `readScore(d)` = errores × 100 + avisos (menor es mejor).
+
+### Lectura con comprobación (`readWithChecks`)
+
+1. `callGemini()` → `prepareExtracted()` → `checkErrors()`. Si no hay errores, se usa.
+2. Si hay errores: `callGemini(…, feedbackFor(primera))` con la lista de fallos y la plantilla de códigos como referencia, y se queda con la lectura de menor `readScore`. Si la segunda falla (error de red o de Gemini), se queda la primera.
+3. `readInfo` guarda cómo fue (`reads`, `chosen`, `okNow`, `retryFailed`; `manual`/`worse` en las relecturas a mano) y `readInfoHtml()` lo explica en la revisión.
+
+Coste: una segunda lectura (~0,9 céntimos) solo cuando hay errores.
+
+### En pantalla
+
+- **Revisión:** `renderChecks()` arriba, con *👁 Ver documento* (`viewCurrentDocument`) y, si hay avisos, *🔁 Releer con Gemini* (`rereadCurrent`: nueva lectura con `feedbackFor`; se queda solo si `readScore` es igual o mejor). `addLine` / `removeLine` para filas que falten o sobren.
+- **Guardar:** con errores, `confirm()` que los lista.
+- **Ver:** tarjeta *Comprobación de las cuentas* con *✏ Corregir datos* y *🔁 Releer con Gemini* (`editAndReread`, con el original guardado). El texto para el abogado lleva `⚠ AVISO…` arriba si hay errores y la sección *5. AVISOS DE LA COMPROBACIÓN AUTOMÁTICA* al final si hay cualquier aviso.
+- **Panel y Anual:** `checkFlag()` pone ⚠ junto al mes; el Panel muestra un aviso con las nóminas que no cuadran y el Anual lo pone como primera observación (y en el texto exportable).
+
+### Corregir una nómina guardada (`editPayroll`, `saveEdited`)
+
+- `editingId` = id de la nómina que se corrige. `editPayroll(id)` copia sus datos (sin `id`, `savedAt`, `editedAt`, `original`) a `extractedData` y abre la revisión con el aviso azul y los botones *Guardar cambios* / *Cancelar*. El tipo se muestra como guardado (`typeDetection.saved`).
+- `saveEdited(draft)`: mismo mes y tipo → mismo `id`. Si cambian, `freePayrollId(draft, id)`: si el hueco está ocupado, avisa y no cambia nada (nunca pisa otra nómina). Conserva `savedAt` y `original`, añade `editedAt`.
+- `currentDocument()` en modo corrección lee el original de IndexedDB (`getDoc` → `arrayBufferToB64`) para releer sin volver a subirlo.
+- Salir de la revisión (`showView` a otra pestaña), *Cancelar* (`cancelEdit`) o elegir un archivo nuevo (`handleFile`) anula el modo corrección sin cambiar nada.
+
+### Números (`num`, `fmt`, `amt`, `round2`)
+
+- `num(v)`: lee `2.100,10`, `2100,10`, `2100.10`, `2.100` (miles), `1,234.56`, con `€` o espacios. Lo que no es número → `NaN`.
+- `fmt(n)`: siempre 2 decimales y punto de miles, agrupado a mano (el navegador en español no agrupa las cifras de 4 dígitos). `"N/L"` o no numérico → `N/L`.
+- `amt(v)`: para sumar (no numérico → 0). `round2()`: redondeo a céntimos.
