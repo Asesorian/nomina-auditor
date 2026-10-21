@@ -354,7 +354,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.8.8</span>
+    <span class="logo-badge">Forense v2.8.9</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -1107,6 +1107,8 @@ async function callGemini(base64, mediaType, extra, onStatus = updateProcessStat
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         const msg = err.error?.message || `Error ${res.status}`;
+        // v2.8.9: sin saldo de prepago (402) no lee ningún modelo (la cuenta es la misma): no se prueban los demás
+        if (res.status === 402 || /prepayment credits/i.test(msg)) throw creditError(msg);
         lastError = new Error(`${model}: ${msg}`);
         allErrors.push(`❌ ${model}: ${msg}`);
         onStatus(`${model} falló (${res.status}), probando siguiente...`);
@@ -1120,6 +1122,7 @@ async function callGemini(base64, mediaType, extra, onStatus = updateProcessStat
       onStatus(`✓ Extraído con ${model}`);
       return parsed;
     } catch (e) {
+      if (e?.kind === 'credit') throw e;
       lastError = e;
       allErrors.push(`❌ ${model}: ${e.message?.split("\n")[0]}`);
       onStatus(`${model} error, probando siguiente...`);
@@ -1128,6 +1131,18 @@ async function callGemini(base64, mediaType, extra, onStatus = updateProcessStat
   }
 
   throw new Error(`Todos los modelos fallaron:\n${allErrors.join("\n")}\n\n🔧 Si la clave te la dio otra persona, mándale este mensaje: el problema suele estar en la clave o en su límite de gasto.\n🔧 Si la clave es tuya y ves "API key not valid", "limit: 0" o "quota", aquí tienes qué hacer: ${KEY_GUIDE_URL}`);
+}
+
+// v2.8.9: se ha acabado el saldo de prepago de la cuenta de Google de la clave. Google responde 402 desde que la
+// API es de prepago (antes, 429). Con saldo 0 se paran todas las claves de esa cuenta hasta que se recargue.
+// kind = 'credit': la bandeja se para (batchErrorKind) y no se prueba otro modelo.
+function creditError(googleMsg) {
+  const e = new Error('Se ha acabado el saldo de Gemini de esta clave (error 402): no se puede leer ninguna nómina hasta que se recargue.\n\n' +
+    '🔧 Si la clave te la dio otra persona, avísale: tiene que añadir crédito en su cuenta de Google AI Studio.\n' +
+    '🔧 Si la clave es tuya: en Google AI Studio (ai.studio/projects), en la facturación, añade crédito y vuelve a probar.\n\n' +
+    `Google: ${googleMsg}`);
+  e.kind = 'credit';
+  return e;
 }
 
 function updateProcessStatus(msg) {
@@ -2545,8 +2560,11 @@ async function batchWorker() {
 
 // Errores que no son de esa nómina sino de la conexión o de la clave: se para todo (si no, fallarían todas)
 function batchErrorKind(e) {
-  const m = String(e?.message || e || '');
+  // v2.8.9: solo los motivos. Las líneas 🔧 son consejos y nombran los errores típicos («API key not valid», «quota»):
+  // antes, con ellas, cualquier «Todos los modelos fallaron» salía como error de la clave.
+  const m = String(e?.message || e || '').split('\n').filter(l => !l.trim().startsWith('🔧')).join('\n');
   if (!navigator.onLine) return 'offline';
+  if (e?.kind === 'credit' || /prepayment credits|saldo de Gemini/i.test(m)) return 'credit';   // v2.8.9: sin saldo (402)
   if (/Falta la clave|caracteres raros|API key not valid|API_KEY|PERMISSION_DENIED|referer|\b40[13]\b/i.test(m)) return 'key';
   if (/quota|RESOURCE_EXHAUSTED|\b429\b|spend|exhausted|rate.?limit|limit: 0/i.test(m)) return 'limit';
   if (/Failed to fetch|NetworkError|network|Load failed/i.test(m)) return 'network';
@@ -2566,6 +2584,7 @@ const BATCH_PAUSE_TEXT = {
   network: 'Se ha cortado la conexión con Gemini.',
   key: 'Gemini no acepta la clave: falta, está mal copiada o no vale para esta web. Revísala en la barra de arriba (está desplegada) y pulsa «Reanudar».',
   limit: 'Gemini ha dejado de leer: la clave ha llegado a su límite de uso o de gasto. Prueba más tarde o revisa el límite.',
+  credit: 'Se ha acabado el saldo de Gemini de esta clave. Cuando se recargue (si la clave te la dio otra persona, avísale), pulsa «Reanudar». No se ha perdido nada.',
   errors: 'Dos lecturas seguidas han fallado. Mira el error y prueba otra vez.',
   reopened: 'La app se cerró antes de terminar de leer.'
 };
@@ -4016,7 +4035,7 @@ function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.8.8',
+      version: '2.8.9',
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },

@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.8.8-blue)
+![Version](https://img.shields.io/badge/version-2.8.9-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.8.8)
+## 🆕 Novedades (v2.3 – v2.8.9)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 💳 **Saldo de Gemini agotado (v2.8.9)** | Google cobra ahora Gemini por **prepago**: compras crédito y cada lectura lo va gastando. Si se acaba, la app lo dice tal cual («Se ha acabado el saldo de Gemini de esta clave») y explica qué hacer, en vez de un error genérico. En la bandeja, la lectura se para sin marcar nada como error y sigue con *Reanudar* cuando hay saldo | Subir · Bandeja |
 | ⇄ **Línea en el lado equivocado (v2.8.8)** | A veces Gemini pone una línea de deducciones en los devengos (o al revés), y además igual en las dos lecturas. Si a un lado le sobra justo lo que le falta al otro, la app te dice qué línea pasar para que cuadren las dos sumas, con un botón **⇄ Pasar a deducciones**. Es una sugerencia: mira el papel antes. Y debajo de cada tabla, **⇄ Pasar una línea…** para hacerlo a mano. Además, una cifra que ya has corregido o mirado deja de marcarse con **≠**, y la lista de diferencias avisa de que la otra lectura **cuadraba peor**: úsala solo si lo confirma el papel | Subir · Bandeja |
 | ≠ **Las dos lecturas no coinciden (v2.8.7)** | Si Gemini ha leído la nómina dos veces, la app marca con **≠** las cifras en las que las dos lecturas no dicen lo mismo y enseña las dos (*ahora 58,40 € · la segunda lectura: 58,46 €*). Miras el papel y, si la buena es la otra, la usas con un toque; si a la lectura que ves le falta una línea que la otra sí tiene, la añades con otro. La app no elige por ti. Y el aviso de *unidades × precio* muestra el precio con todos sus decimales (7,125, no 7,13) | Subir · Bandeja |
 | 🧮 **Totales mal leídos (v2.8.6)** | Si una suma no cuadra, la ventana al guardar pide comparar también el **total bruto**, el **total a deducir** y el **líquido** con el papel: a veces Gemini lee bien todas las líneas y mal un total. Antes solo hablaba de líneas y empujaba a guardar la nómina «con aviso» como si el error fuera de la empresa | Subir · Bandeja |
@@ -146,7 +147,7 @@ En la bandeja, cada nómina lleva una etiqueta:
 
 **Si algo se interrumpe no se pierde nada:**
 - **Sin conexión:** la lectura se para y sigue sola cuando vuelve internet.
-- **La clave falla o llega a su límite de gasto:** se para y lo explica. Cuando lo arregles, pulsa *Reanudar*.
+- **La clave falla, llega a su límite de gasto o se le acaba el saldo:** se para y lo explica. Cuando lo arregles, pulsa *Reanudar*.
 - **Cierras la app:** la bandeja y las correcciones que hayas hecho siguen ahí. Al volver no gasta lecturas por su cuenta: pulsa *Reanudar*.
 - **Mientras lee,** el móvil no apaga la pantalla (en Android y en iPhone recientes).
 
@@ -323,9 +324,11 @@ Una nómina lleva tu DNI, tu sueldo y los datos de tu empresa, así que importa 
 - **Fuera del EEE, Suiza y Reino Unido:** activa la facturación para tus nóminas.
 - **En España:** las dos tratan tus datos igual. La de pago evita los límites de la gratuita (incluido el `limit: 0`) por unos céntimos al año.
 - En ambos casos, si activas la facturación, pon un **límite de gasto mensual** bajo (por ejemplo, 1 €): un año de nóminas, con algún reintento, se queda en unos 15–20 céntimos.
+- **Prepago:** las cuentas nuevas de Google pagan Gemini **por adelantado** (a las que ya existían, Google les asigna un plan o les pide pasarse): compras crédito (el mínimo ronda los 5 €; AI Studio lo indica) y cada lectura lo va gastando. El crédito caduca a los 12 meses. Si se acaba, **se paran todas las claves de esa cuenta de facturación** hasta que añadas más (la app lo avisa: *Se ha acabado el saldo de Gemini*). La recarga automática es opcional. Si tienes varios proyectos en la misma cuenta, comparten ese crédito: el límite de gasto de cada uno sigue sirviendo para que uno no se lo gaste todo.
 
 **Dónde se mira y se cambia** (en [AI Studio](https://aistudio.google.com)):
-- *Claves de API*: junto a cada key aparece el nivel de su proyecto. Si pone algo como *Nivel 1 · Pospago*, la facturación está activada.
+- *Claves de API*: junto a cada key aparece el nivel de su proyecto. Si pone algo como *Nivel 1 · Prepago* o *Nivel 1 · Pospago*, la facturación está activada.
+- *Facturación*: el crédito que te queda (prepago) y dónde añadir más.
 - *Gasto*: lo gastado en el mes y el límite de gasto mensual. Si se alcanza el límite, Gemini deja de leer nóminas (la app mostrará *Todos los modelos fallaron*) hasta que lo subas o empiece el mes siguiente.
 
 ### 📱 Pasar la key al móvil (sin teclear)
@@ -395,6 +398,11 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige, 
 
 **No me deja procesar una nómina**
 - Si aparece "Sin conexión": hace falta internet para que Gemini la lea
+
+**"Se ha acabado el saldo de Gemini de esta clave (error 402)"**
+- La cuenta de Google de esa clave es de prepago y no le queda crédito. Ningún modelo leerá hasta que se recargue: la app ya no lo intenta con los demás
+- Si la clave es tuya: en [AI Studio](https://aistudio.google.com), en la facturación, añade crédito. Si te la dio otra persona, avísale
+- Lo que tienes guardado en la app no se pierde; en la bandeja, pulsa *Reanudar* cuando haya saldo
 
 **"Todos los modelos fallaron"**
 - Debajo aparece el motivo de cada modelo. Los más habituales:
@@ -625,6 +633,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.8.9 (Octubre 2026)
+- **Saldo de Gemini agotado:** desde que la API de Gemini es de prepago, Google responde con el error 402 cuando se acaba el crédito de la cuenta. La app lo reconoce: dice «Se ha acabado el saldo de Gemini de esta clave» y qué hacer (avisar a quien te dio la clave o añadir crédito), sin probar los otros dos modelos (comparten la cuenta y tampoco leerían). En la bandeja, la lectura se para (no marca las nóminas como error ni sigue gastando intentos) y sigue con *Reanudar*
+- **Corregido:** en la bandeja, cualquier lectura en la que fallaban los tres modelos se tomaba por un error de la clave (el consejo del final del mensaje nombra «API key not valid»). Un límite de gasto salía como «Gemini no acepta la clave», y una nómina que Gemini no sabía leer paraba toda la bandeja en vez de marcarse como *Error*
 
 ### v2.8.8 (Octubre 2026)
 - **Línea en el lado equivocado:** si las dos sumas fallan y a los devengos les sobra justo lo que les falta a las deducciones (o al revés), y en el lado que sobra hay una línea de ese importe, aviso «Si pasas … a deducciones, cuadran las dos sumas» con botón **⇄**. Con varias líneas posibles se desempata por el lado en que va ese código en tus otras nóminas, por el tipo de deducción y por los conceptos que empiezan por *Dcto*, *Dto* o *Descuento*; si sigue el empate, un botón por línea. Nunca sugiere pasar el IRPF o una cotización a devengos. No mueve nada sola, no cuenta para elegir lectura y no se le dice a Gemini
