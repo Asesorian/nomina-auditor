@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.8.9-blue)
+![Version](https://img.shields.io/badge/version-2.8.10-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.8.9)
+## 🆕 Novedades (v2.3 – v2.8.10)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 🗂️ **Guardar el backup en Drive (v2.8.10)** | En Chrome (Android y ordenador), **🗂️ Guardar backup completo…** abre el «Guardar como» del móvil o del ordenador: eliges Drive (o una carpeta) y la app comprueba que el archivo ha quedado entero. Sin iniciar sesión en Google ni dar permisos a la app. En iPhone y en otros navegadores se descarga, como antes, y el aviso explica cómo llevarlo a Drive desde Descargas | Panel · Datos |
 | 💳 **Saldo de Gemini agotado (v2.8.9)** | Google cobra ahora Gemini por **prepago**: compras crédito y cada lectura lo va gastando. Si se acaba, la app lo dice tal cual («Se ha acabado el saldo de Gemini de esta clave») y explica qué hacer, en vez de un error genérico. En la bandeja, la lectura se para sin marcar nada como error y sigue con *Reanudar* cuando hay saldo | Subir · Bandeja |
 | ⇄ **Línea en el lado equivocado (v2.8.8)** | A veces Gemini pone una línea de deducciones en los devengos (o al revés), y además igual en las dos lecturas. Si a un lado le sobra justo lo que le falta al otro, la app te dice qué línea pasar para que cuadren las dos sumas, con un botón **⇄ Pasar a deducciones**. Es una sugerencia: mira el papel antes. Y debajo de cada tabla, **⇄ Pasar una línea…** para hacerlo a mano. Además, una cifra que ya has corregido o mirado deja de marcarse con **≠**, y la lista de diferencias avisa de que la otra lectura **cuadraba peor**: úsala solo si lo confirma el papel | Subir · Bandeja |
 | ≠ **Las dos lecturas no coinciden (v2.8.7)** | Si Gemini ha leído la nómina dos veces, la app marca con **≠** las cifras en las que las dos lecturas no dicen lo mismo y enseña las dos (*ahora 58,40 € · la segunda lectura: 58,46 €*). Miras el papel y, si la buena es la otra, la usas con un toque; si a la lectura que ves le falta una línea que la otra sí tiene, la añades con otro. La app no elige por ti. Y el aviso de *unidades × precio* muestra el precio con todos sus decimales (7,125, no 7,13) | Subir · Bandeja |
@@ -118,7 +119,7 @@ Tus nóminas y backups de versiones anteriores siguen funcionando tal cual: no h
 - Para eliminar una nómina: botón 🗑 en el Panel (borra también su documento original)
 
 ### 7️⃣ Haz copias de seguridad
-- Cuando tengas cambios sin copia, el **Panel te avisa**. Pulsa **🗂️ Descargar backup completo** y guarda el ZIP en Drive (o fuera del móvil). **Ahora no** oculta el aviso hasta el siguiente cambio
+- Cuando tengas cambios sin copia, el **Panel te avisa**. Pulsa **🗂️ Guardar backup completo…** y elige Drive (o una carpeta fuera del móvil). En iPhone y en algunos navegadores el botón dice **Descargar backup completo**: el ZIP va a Descargas y desde ahí lo llevas a Drive (el aviso te dice cómo). **Ahora no** oculta el aviso hasta el siguiente cambio
 - También desde la pestaña **Datos**. Ver [Copias de seguridad y varios dispositivos](#-copias-de-seguridad-y-varios-dispositivos)
 
 ---
@@ -260,12 +261,15 @@ Gemini **solo lee** la nómina, y a veces se equivoca: se salta una fila, pone u
 |---|---|---|
 | **Backup automático** (`nominas-backup-FECHA.json`) | Solo los datos. **Viene desactivado** (desde la v2.7.4); si lo activas en *Datos*, se descarga cada vez que guardas o corriges una nómina | Para quien prefiera una copia ligera en cada cambio |
 | **Exportar datos** (*Datos → Exportar datos*) | Lo mismo, cuando tú quieras | Pasar los datos a otro dispositivo |
-| **Backup completo** (*Datos → Descargar backup completo*) | ZIP con la carpeta `nominas/AÑO/` (tus nóminas: las fotos y PDF originales) y `datos-app.json` (los datos leídos) | Guardarlo en Drive y **restaurarlo todo** (datos y documentos) en otro dispositivo |
+| **Backup completo** (*Datos → Guardar backup completo…* o *Descargar backup completo*) | ZIP con la carpeta `nominas/AÑO/` (tus nóminas: las fotos y PDF originales) y `datos-app.json` (los datos leídos) | Guardarlo en Drive y **restaurarlo todo** (datos y documentos) en otro dispositivo |
 
 - **Restaurar:** *Datos → Importar backup*. Acepta el `.json` o el `.zip` directamente, sin descomprimir. Con el backup completo se restauran también los documentos originales. Los backups completos de antes de la v2.7.3 (con `nominas.json` y la carpeta `documentos/`) se siguen importando igual.
 - **Importar nunca borra un original que ya tengas en el dispositivo:** si el backup no trae el documento de una nómina, se conserva el que ya había.
+- **Guardarlo en Drive** (v2.8.10):
+  - **Chrome en Android o en el ordenador:** *Guardar backup completo…* abre el «Guardar como» del sistema. Elige **Drive** (o una carpeta) y pulsa *Guardar*. La app comprueba que el archivo tiene el tamaño correcto; si no, lo quita y lo descarga. Si cancelas, no se hace nada y el aviso sigue. No hace falta iniciar sesión en Google en la app: el archivo lo guarda el propio móvil u ordenador.
+  - **iPhone y otros navegadores:** se descarga en *Descargas*. Para llevarlo a Drive: app de archivos (*Archivos*, *Files* o *Mis archivos*) → *Descargas* → mantén pulsado el archivo → *Compartir* → *Drive*. En iPhone también puedes *Mover* a iCloud Drive.
 
-**Aviso de copia pendiente:** cada vez que cambias algo (guardar, corregir, adjuntar un original…), la app lo apunta. Si no has descargado un backup completo después, el **Panel te avisa** con un botón para hacerlo. Solo cuenta el backup completo: el de solo datos no lleva tus nóminas. En *Datos* ves la fecha del último backup completo.
+**Aviso de copia pendiente:** cada vez que cambias algo (guardar, corregir, adjuntar un original…), la app lo apunta. Si no has hecho un backup completo después, el **Panel te avisa** con un botón para hacerlo. Solo cuenta el backup completo: el de solo datos no lleva tus nóminas. En *Datos* ves la fecha del último backup completo.
 
 **Móvil y ordenador no se sincronizan solos.** Cada dispositivo guarda sus propias nóminas y documentos. Para tener lo mismo en los dos: backup completo en uno e importarlo en el otro.
 
@@ -357,7 +361,7 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige, 
 2. Vuelve a subir la nómina mensual, o importa un backup anterior al error, que la recupera sin tocar la extra
 
 **El Panel dice «Tienes cambios sin copia de seguridad»**
-- Has guardado o cambiado algo desde tu último backup completo. Pulsa **🗂️ Descargar backup completo** y guarda el ZIP en Drive. El aviso desaparece
+- Has guardado o cambiado algo desde tu último backup completo. Pulsa **🗂️ Guardar backup completo…** (o *Descargar*) y guarda el ZIP en Drive. El aviso desaparece
 - Si ahora no puedes, **Ahora no** lo oculta hasta el próximo cambio
 
 **Ya no se descarga un archivo cada vez que guardo una nómina**
@@ -379,7 +383,7 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige, 
 - Para cada nómina ya guardada: **Ver → 📎 Adjuntar original** y elige la foto en Drive. No se vuelve a procesar y queda con su nombre ordenado
 
 **En el otro dispositivo no veo el documento original**
-- Los originales se guardan en el dispositivo donde los guardaste. Haz **Datos → Descargar backup completo** en ese dispositivo e impórtalo en el otro
+- Los originales se guardan en el dispositivo donde los guardaste. Haz el **backup completo** (*Datos*) en ese dispositivo e impórtalo en el otro
 
 **Un PDF no se abre o pide contraseña**
 - Si pide contraseña: es la que te dio la empresa (a menudo tu DNI). Si la cancelas, puedes abrirlo con el visor del móvil o descargarlo
@@ -633,6 +637,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.8.10 (Octubre 2026)
+- **Guardar el backup completo en Drive:** donde el navegador lo permite (Chrome en Android desde la versión 132 y en el ordenador), el botón pasa a ser **🗂️ Guardar backup completo…** y abre el «Guardar como» del sistema, donde se puede elegir Drive o una carpeta. Se abre al pulsar, antes de preparar el ZIP; si cancelas, no se hace nada ni cuenta como copia. Después de guardar, la app comprueba que el archivo tiene el tamaño correcto; si no, lo quita y lo descarga en su lugar. Sin iniciar sesión en Google ni servidor
+- Donde no se puede elegir (iPhone, Firefox…), se descarga como antes y el aviso explica los pasos para llevarlo a Drive desde Descargas. Chrome no deja usar «Compartir» con un `.zip`, por eso no hay botón de compartir para el backup completo
 
 ### v2.8.9 (Octubre 2026)
 - **Saldo de Gemini agotado:** desde que la API de Gemini es de prepago, Google responde con el error 402 cuando se acaba el crédito de la cuenta. La app lo reconoce: dice «Se ha acabado el saldo de Gemini de esta clave» y qué hacer (avisar a quien te dio la clave o añadir crédito), sin probar los otros dos modelos (comparten la cuenta y tampoco leerían). En la bandeja, la lectura se para (no marca las nóminas como error ni sigue gastando intentos) y sigue con *Reanudar*

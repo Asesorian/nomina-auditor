@@ -354,7 +354,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.8.9</span>
+    <span class="logo-badge">Forense v2.8.10</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -526,10 +526,11 @@ code { font-family:'JetBrains Mono',monospace; }
     <div class="card" style="text-align:center;padding:30px 20px">
       <div style="font-size:28px;margin-bottom:8px">🗂️</div>
       <h3 style="font-size:14px;color:var(--accent);margin-bottom:6px">Backup completo</h3>
-      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">Datos <strong>y documentos originales</strong> en un ZIP ordenado por año. Guárdalo en Drive o donde quieras: sirve para restaurarlo todo en otro dispositivo.</p>
+      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">Datos <strong>y documentos originales</strong> en un ZIP ordenado por año. Guárdalo en Drive o donde quieras: sirve para restaurarlo todo en otro dispositivo. En Chrome (Android y ordenador) eliges dónde guardarlo, Drive incluido; en los demás navegadores se descarga.</p>
       <button class="btn btn-primary" onclick="exportFullBackup()" id="fullBackupBtn">
         🗂️ Descargar backup completo
       </button>
+      <p id="fullBackupNote" class="hidden" style="color:var(--text-dim);font-size:12px;line-height:1.55;margin-top:12px;text-align:left"></p>
     </div>
     <div class="card" style="text-align:center;padding:30px 20px">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="2" style="margin-bottom:12px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -890,6 +891,36 @@ function downloadBlob(blob, filename) {
   a.click();
   document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+// v2.8.10: «Guardar como» del sistema (File System Access). En Chrome de Android (desde la 132) y del ordenador deja
+// elegir dónde guardar, Drive incluido, sin iniciar sesión ni dar permisos a la app. Safari y Firefox no lo tienen:
+// allí se descarga como siempre.
+function canPickSaveLocation() {
+  try { return typeof window.showSaveFilePicker === 'function' && window.isSecureContext && window.top === window.self; }
+  catch { return false; }
+}
+
+// Se pide nada más pulsar, antes de preparar el ZIP: el navegador solo abre el selector justo después de un toque.
+// Devuelve el archivo elegido, null si se cancela y undefined si no se puede (entonces se descarga).
+async function pickSaveLocation(suggestedName) {
+  if (!canPickSaveLocation()) return undefined;
+  try {
+    return await window.showSaveFilePicker({ suggestedName, types: [{ description: 'Backup ZIP', accept: { 'application/zip': ['.zip'] } }] });
+  } catch (e) {
+    return e?.name === 'AbortError' ? null : undefined;
+  }
+}
+
+// Escribe el archivo y comprueba que ha quedado entero (mismo tamaño). Devuelve si se ha podido comprobar.
+async function writeToPicked(handle, blob) {
+  const w = await handle.createWritable();
+  try { await w.write(blob); await w.close(); }
+  catch (e) { try { await w.abort(); } catch {} throw e; }
+  let size = null;
+  try { size = (await handle.getFile()).size; } catch {}
+  if (size !== null && size !== blob.size) throw new Error(`no ha quedado entero (${size} de ${blob.size} bytes)`);
+  return size !== null;
 }
 
 // ═══════════ FORMATTING ═══════════
@@ -3988,14 +4019,26 @@ function needsBackup() {
   return !full || change > full;
 }
 
-let backupJustDone = false;   // para decir "✓ descargado" en el Panel justo después
+let backupJustDone = null;   // { how, name, verified }: para decirlo en el Panel justo después
+
+// v2.8.10: guardado donde se eligió (con su nombre) o descargado (y cómo llevarlo a Drive)
+function fullBackupLabel() { return canPickSaveLocation() ? '🗂️ Guardar backup completo…' : '🗂️ Descargar backup completo'; }
+function backupDoneHtml(r) {
+  if (r.how === 'saved') return `<strong>Backup completo guardado</strong> como «${esc(r.name)}».` +
+    (r.verified ? '' : ' No se ha podido comprobar que haya quedado entero: mira que el archivo no esté vacío.') +
+    ' Si lo has guardado en el móvil y no en Drive, llévalo también fuera del móvil.';
+  return `<strong>Backup completo descargado</strong> en Descargas. Guárdalo en Drive (o fuera del móvil): abre la app de archivos del móvil ` +
+    `(<em>Archivos</em>, <em>Files</em> o <em>Mis archivos</em>) → <strong>Descargas</strong>, mantén pulsado el archivo y elige <strong>Compartir → Drive</strong>. ` +
+    `En iPhone: <em>Archivos</em> → <em>Descargas</em> → mantén pulsado → <strong>Mover</strong> a iCloud Drive (o Compartir → Drive).`;
+}
 
 function renderBackupReminder() {
   const el = document.getElementById('backupReminder');
   if (!el) return;
   if (backupJustDone) {
-    backupJustDone = false;
-    el.innerHTML = `<div class="backup-reminder done">✓ <span><strong>Backup completo descargado.</strong> Guárdalo en Drive (o donde quieras, fuera del móvil): desde Descargas o con «Compartir».</span></div>`;
+    const r = backupJustDone;
+    backupJustDone = null;
+    el.innerHTML = `<div class="backup-reminder done">✓ <span>${backupDoneHtml(r)}</span></div>`;
     return;
   }
   const dismissed = lsTime('nomina-auditor-backupnag-dismissed');
@@ -4005,9 +4048,9 @@ function renderBackupReminder() {
     <div class="backup-reminder-text">💾 <span><strong>Tienes cambios sin copia de seguridad.</strong>
       ${full ? `Último backup completo: ${esc(new Date(full).toLocaleDateString('es-ES'))}.` : 'Todavía no has hecho ningún backup completo.'}
       Tus nóminas solo están en este dispositivo: si se borran los datos del navegador o pierdes el móvil, se pierden.
-      Descarga el backup completo y guárdalo en Drive.</span></div>
+      ${canPickSaveLocation() ? 'Guarda el backup completo en Drive.' : 'Descarga el backup completo y guárdalo en Drive.'}</span></div>
     <div class="doc-actions">
-      <button class="btn btn-primary btn-sm" onclick="exportFullBackup(this)">🗂️ Descargar backup completo</button>
+      <button class="btn btn-primary btn-sm" onclick="exportFullBackup(this)">${fullBackupLabel()}</button>
       <button class="btn btn-secondary btn-sm" onclick="dismissBackupReminder()">Ahora no</button>
     </div>
   </div>`;
@@ -4035,7 +4078,7 @@ function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.8.9',
+      version: '2.8.10',
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },
@@ -4091,6 +4134,10 @@ async function exportFullBackup(srcBtn) {
   if (typeof JSZip === 'undefined') { alert('No se ha podido cargar el compresor ZIP. Comprueba la conexión y vuelve a intentarlo.'); return; }
   const fromPanel = srcBtn instanceof HTMLElement;
   const btn = fromPanel ? srcBtn : document.getElementById('fullBackupBtn');
+  const fileName = generateBackupFilename().replace('nominas-backup-', 'nominas-backup-completo-').replace(/\.json$/, '.zip');
+  // v2.8.10: dónde guardarlo, antes de preparar nada. Si cancela, no se hace nada ni cuenta como copia.
+  const handle = await pickSaveLocation(fileName);
+  if (handle === null) return;
   const orig = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Preparando…'; }
   try {
@@ -4121,13 +4168,24 @@ async function exportFullBackup(srcBtn) {
       'Para restaurarlo todo: en la app, Datos → Importar backup y elige este ZIP.\n' +
       'Contiene datos personales (DNI, salario…): guárdalo en un sitio privado.\n');
     const blob = await zip.generateAsync({ type: 'blob' });
-    downloadBlob(blob, generateBackupFilename().replace('nominas-backup-', 'nominas-backup-completo-').replace(/\.json$/, '.zip'));
+    const done = { how: 'downloaded', name: fileName, verified: true };
+    if (handle) {
+      try { done.verified = await writeToPicked(handle, blob); done.how = 'saved'; done.name = handle.name || fileName; }
+      catch (e) {
+        try { await handle.remove?.(); } catch {}
+        alert(`No se ha podido guardar el backup en el sitio elegido (${e.message || e}). Se descarga en su lugar: lo tendrás en Descargas.`);
+      }
+    }
+    if (done.how !== 'saved') downloadBlob(blob, fileName);
     localStorage.setItem('nomina-auditor-lastbackup', new Date().toISOString());
     lsSetNow('nomina-auditor-lastfullbackup');
-    if (fromPanel) { backupJustDone = true; renderBackupReminder(); }
-    else if (btn) { btn.innerHTML = `✓ Descargado (${payrolls.length} nóminas, ${nDocs} documentos)`; setTimeout(() => { btn.innerHTML = orig; }, 3000); }
+    const note = document.getElementById('fullBackupNote');
+    if (note) { note.innerHTML = '✓ ' + backupDoneHtml(done); note.classList.remove('hidden'); }
+    if (fromPanel) { backupJustDone = done; renderBackupReminder(); }
+    else if (btn) { btn.innerHTML = `✓ ${done.how === 'saved' ? 'Guardado' : 'Descargado'} (${payrolls.length} nóminas, ${nDocs} documentos)`; setTimeout(() => { btn.innerHTML = orig; }, 3000); }
     renderBackupView();
   } catch (e) {
+    if (handle) { try { await handle.remove?.(); } catch {} }   // que no quede un archivo vacío donde se eligió
     alert(`No se pudo crear el backup completo: ${e.message || e}`);
     if (btn) btn.innerHTML = orig;
   } finally {
@@ -4304,6 +4362,9 @@ function renderBackupView() {
   // Update export count
   const countEl = document.getElementById('exportCount');
   if (countEl) countEl.textContent = payrolls.length;
+  // v2.8.10: «Guardar…» si el navegador deja elegir dónde; si no, «Descargar» (no mientras prepara ni con el ✓ de recién hecho)
+  const fbBtn = document.getElementById('fullBackupBtn');
+  if (fbBtn && !fbBtn.disabled && !fbBtn.textContent.trim().startsWith('✓')) fbBtn.innerHTML = fullBackupLabel();
 
   // Update auto-backup toggle
   const toggle = document.getElementById('autoBackupToggle');
