@@ -354,7 +354,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.8.10</span>
+    <span class="logo-badge">Forense v2.8.11</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -896,6 +896,9 @@ function downloadBlob(blob, filename) {
 // v2.8.10: «Guardar como» del sistema (File System Access). En Chrome de Android (desde la 132) y del ordenador deja
 // elegir dónde guardar, Drive incluido, sin iniciar sesión ni dar permisos a la app. Safari y Firefox no lo tienen:
 // allí se descarga como siempre.
+// v2.8.11: en Android, guardado en Drive, el móvil tiene el archivo entero (la comprobación de tamaño pasa) pero Drive lo
+// sube después y puede fallar: en una prueba real quedó en Drive con 0 bytes. Por eso el aviso da el tamaño que debe
+// tener y pide comprobarlo en Drive (backupDoneHtml).
 function canPickSaveLocation() {
   try { return typeof window.showSaveFilePicker === 'function' && window.isSecureContext && window.top === window.self; }
   catch { return false; }
@@ -4024,9 +4027,12 @@ let backupJustDone = null;   // { how, name, verified }: para decirlo en el Pane
 // v2.8.10: guardado donde se eligió (con su nombre) o descargado (y cómo llevarlo a Drive)
 function fullBackupLabel() { return canPickSaveLocation() ? '🗂️ Guardar backup completo…' : '🗂️ Descargar backup completo'; }
 function backupDoneHtml(r) {
-  if (r.how === 'saved') return `<strong>Backup completo guardado</strong> como «${esc(r.name)}».` +
+  const peso = r.size ? fmtBytes(r.size) : '';
+  if (r.how === 'saved') return `<strong>Backup completo guardado</strong> como «${esc(r.name)}»${peso ? ` (${peso})` : ''}.` +
     (r.verified ? '' : ' No se ha podido comprobar que haya quedado entero: mira que el archivo no esté vacío.') +
-    ' Si lo has guardado en el móvil y no en Drive, llévalo también fuera del móvil.';
+    // v2.8.11: Drive lo sube después; si falla, el archivo queda vacío en Drive y la app no se entera
+    ` Si lo has guardado en Drive, se sube en segundo plano: <strong>comprueba en Drive que pesa ${peso || 'lo mismo'}</strong>. ` +
+    'Si pesa 0 o Drive avisa de que no ha podido subirlo, vuelve a guardarlo. Si lo has guardado en el móvil y no en Drive, llévalo también fuera del móvil.';
   return `<strong>Backup completo descargado</strong> en Descargas. Guárdalo en Drive (o fuera del móvil): abre la app de archivos del móvil ` +
     `(<em>Archivos</em>, <em>Files</em> o <em>Mis archivos</em>) → <strong>Descargas</strong>, mantén pulsado el archivo y elige <strong>Compartir → Drive</strong>. ` +
     `En iPhone: <em>Archivos</em> → <em>Descargas</em> → mantén pulsado → <strong>Mover</strong> a iCloud Drive (o Compartir → Drive).`;
@@ -4078,7 +4084,7 @@ function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.8.10',
+      version: '2.8.11',
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },
@@ -4168,7 +4174,7 @@ async function exportFullBackup(srcBtn) {
       'Para restaurarlo todo: en la app, Datos → Importar backup y elige este ZIP.\n' +
       'Contiene datos personales (DNI, salario…): guárdalo en un sitio privado.\n');
     const blob = await zip.generateAsync({ type: 'blob' });
-    const done = { how: 'downloaded', name: fileName, verified: true };
+    const done = { how: 'downloaded', name: fileName, verified: true, size: blob.size };
     if (handle) {
       try { done.verified = await writeToPicked(handle, blob); done.how = 'saved'; done.name = handle.name || fileName; }
       catch (e) {
