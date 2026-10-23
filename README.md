@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.8.11-blue)
+![Version](https://img.shields.io/badge/version-2.8.12-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.8.11)
+## 🆕 Novedades (v2.3 – v2.8.12)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -267,7 +267,7 @@ Gemini **solo lee** la nómina, y a veces se equivoca: se salta una fila, pone u
 - **Importar nunca borra un original que ya tengas en el dispositivo:** si el backup no trae el documento de una nómina, se conserva el que ya había.
 - **Guardarlo en Drive** (v2.8.10):
   - **Chrome en Android o en el ordenador:** *Guardar backup completo…* abre el «Guardar como» del sistema. Elige **Drive** (o una carpeta) y pulsa *Guardar*. La app comprueba que el archivo tiene el tamaño correcto; si no, lo quita y lo descarga. Si cancelas, no se hace nada y el aviso sigue.
-    - **Comprueba en Drive que el archivo pesa lo que dice la app** (por ejemplo, 24,3 MB). Drive lo sube en segundo plano y la subida puede fallar: en una prueba quedó en Drive con **0 bytes** mientras la app decía *guardado*. Si pesa 0 o Drive avisa de que no ha podido subirlo, vuelve a guardarlo (y borra el vacío). No hace falta iniciar sesión en Google en la app: el archivo lo guarda el propio móvil u ordenador.
+    - **Comprueba en Drive que el archivo pesa lo que dice la app** (por ejemplo, 12,5 MB). Drive lo sube en segundo plano y la subida puede fallar: en una prueba quedó en Drive con **0 bytes** mientras la app decía *guardado*. Si pesa 0 o Drive avisa de que no ha podido subirlo, vuelve a guardarlo (y borra el vacío). No hace falta iniciar sesión en Google en la app: el archivo lo guarda el propio móvil u ordenador.
   - **iPhone y otros navegadores:** se descarga en *Descargas*. Para llevarlo a Drive: app de archivos (*Archivos*, *Files* o *Mis archivos*) → *Descargas* → mantén pulsado el archivo → *Compartir* → *Drive*. En iPhone también puedes *Mover* a iCloud Drive.
 
 **Aviso de copia pendiente:** cada vez que cambias algo (guardar, corregir, adjuntar un original…), la app lo apunta. Si no has hecho un backup completo después, el **Panel te avisa** con un botón para hacerlo. Solo cuenta el backup completo: el de solo datos no lleva tus nóminas. En *Datos* ves la fecha del último backup completo.
@@ -312,6 +312,8 @@ La app usa **tu propia** API key de Gemini (Google). No hay intermediarios: la k
 2. Crea una API Key. **Importante: selecciona un proyecto nuevo de Google Cloud**, no el proyecto por defecto (en cuentas europeas el proyecto por defecto suele tener `limit: 0` en la capa gratuita)
 3. Si no tienes proyecto nuevo: crea uno en [Google Cloud Console](https://console.cloud.google.com) → habilita "Generative Language API" → genera la key con ese proyecto
 4. Pega la key en la barra superior de la app → aparece `✓ Configurada` en verde
+
+Las claves que da Google desde 2026 empiezan por `AQ.`; las de antes, por `AIza`. La app acepta las dos.
 
 La key se guarda en el almacenamiento local del navegador. Solo se usa para llamar directamente a Gemini.
 
@@ -638,6 +640,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.8.12 (Octubre 2026)
+- **Errores de Gemini clasificados por su código:** en la bandeja, la app decide si un fallo es de la clave (401 o 403), del límite de uso (429) o solo de esa nómina por el código que devuelve Google, no por los números que aparezcan en el texto del error. Antes, un fallo de lectura cuyo texto llevaba un «403» paraba la bandeja como si la clave estuviera mal, y un 401 o 403 de verdad sin las palabras de siempre no se reconocía como problema de la clave
+- **Claves nuevas de Google:** el aviso de una clave con espacios o caracteres raros ya no dice que empieza por «AIza…» (las nuevas empiezan por `AQ.`). Probado que las claves nuevas, con sus puntos, se guardan enteras al pegarlas o al abrir el enlace
 
 ### v2.8.11 (Octubre 2026)
 - **Guardar en Drive desde Android:** tras guardar, el aviso dice cuánto pesa el backup y pide comprobar en Drive que el archivo pesa eso. En una prueba real, el primer intento quedó en Drive con 0 bytes («no se puede subir») y la app dijo *guardado*: el móvil tenía el archivo entero y lo que falló fue la subida de Drive, que la app no puede ver. El segundo intento salió bien

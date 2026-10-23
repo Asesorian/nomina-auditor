@@ -354,7 +354,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.8.11</span>
+    <span class="logo-badge">Forense v2.8.12</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -739,7 +739,7 @@ function saveData() {
   try { localStorage.setItem('nomina-auditor-lastchange', new Date().toISOString()); } catch {}
 }
 
-// Acepta la clave sola o el enlace entero que se pasa por WhatsApp (…/#apikey=AIza…):
+// Acepta la clave sola o el enlace entero que se pasa por WhatsApp (…/#apikey=…):
 // en iPhone la app instalada no ve lo que se abrió en Safari, así que se pega el enlace en la casilla.
 function extractApiKey(text) {
   const t = String(text ?? '').trim();
@@ -1113,10 +1113,12 @@ async function callGemini(base64, mediaType, extra, onStatus = updateProcessStat
   const prompt = extra ? `${EXTRACTION_PROMPT}\n\n${extra}` : EXTRACTION_PROMPT;
   if (!key) throw new Error('Falta la clave de Gemini (barra superior).\n\n→ Si alguien te ha pasado la app, pídele la clave o el enlace con la clave.\n→ Si quieres usar la tuya, aquí se explica cómo crearla: ' + KEY_GUIDE_URL);
   // Va en una cabecera: un espacio o una letra con acento en medio haría fallar la llamada con un error incomprensible
-  if (!/^[\x21-\x7e]+$/.test(key)) { showApiBar(); throw new Error('La clave de Gemini tiene espacios o caracteres raros. Vuelve a pegarla en la barra superior (solo la clave, que empieza por «AIza…», o el enlace entero).'); }
+  // v2.8.12: sin decir cómo empieza (las claves de Google empezaban por «AIza…»; las nuevas, desde 2026, por «AQ.»)
+  if (!/^[\x21-\x7e]+$/.test(key)) { showApiBar(); throw new Error('La clave de Gemini tiene espacios o caracteres raros. Vuelve a pegarla en la barra superior: solo la clave, o el enlace entero que te pasaron.'); }
 
   let lastError = null;
   const allErrors = [];
+  const httpStatuses = [];   // v2.8.12: el código HTTP de cada modelo que respondió con error (batchErrorKind)
 
   for (const model of GEMINI_MODELS) {
     try {
@@ -1143,6 +1145,7 @@ async function callGemini(base64, mediaType, extra, onStatus = updateProcessStat
         const msg = err.error?.message || `Error ${res.status}`;
         // v2.8.9: sin saldo de prepago (402) no lee ningún modelo (la cuenta es la misma): no se prueban los demás
         if (res.status === 402 || /prepayment credits/i.test(msg)) throw creditError(msg);
+        httpStatuses.push(res.status);
         lastError = new Error(`${model}: ${msg}`);
         allErrors.push(`❌ ${model}: ${msg}`);
         onStatus(`${model} falló (${res.status}), probando siguiente...`);
@@ -1164,7 +1167,9 @@ async function callGemini(base64, mediaType, extra, onStatus = updateProcessStat
     }
   }
 
-  throw new Error(`Todos los modelos fallaron:\n${allErrors.join("\n")}\n\n🔧 Si la clave te la dio otra persona, mándale este mensaje: el problema suele estar en la clave o en su límite de gasto.\n🔧 Si la clave es tuya y ves "API key not valid", "limit: 0" o "quota", aquí tienes qué hacer: ${KEY_GUIDE_URL}`);
+  const failed = new Error(`Todos los modelos fallaron:\n${allErrors.join("\n")}\n\n🔧 Si la clave te la dio otra persona, mándale este mensaje: el problema suele estar en la clave o en su límite de gasto.\n🔧 Si la clave es tuya y ves "API key not valid", "limit: 0" o "quota", aquí tienes qué hacer: ${KEY_GUIDE_URL}`);
+  failed.httpStatuses = httpStatuses;
+  throw failed;
 }
 
 // v2.8.9: se ha acabado el saldo de prepago de la cuenta de Google de la clave. Google responde 402 desde que la
@@ -2599,8 +2604,13 @@ function batchErrorKind(e) {
   const m = String(e?.message || e || '').split('\n').filter(l => !l.trim().startsWith('🔧')).join('\n');
   if (!navigator.onLine) return 'offline';
   if (e?.kind === 'credit' || /prepayment credits|saldo de Gemini/i.test(m)) return 'credit';   // v2.8.9: sin saldo (402)
-  if (/Falta la clave|caracteres raros|API key not valid|API_KEY|PERMISSION_DENIED|referer|\b40[13]\b/i.test(m)) return 'key';
-  if (/quota|RESOURCE_EXHAUSTED|\b429\b|spend|exhausted|rate.?limit|limit: 0/i.test(m)) return 'limit';
+  // v2.8.12: por el código HTTP de cada modelo (callGemini lo guarda en e.httpStatuses), no por números sueltos en el
+  // texto: un JSON roto «at position 403» salía como error de la clave, y un 403 sin las palabras de siempre, no salía.
+  const st = Array.isArray(e?.httpStatuses) ? e.httpStatuses : [];
+  if (st.includes(401) || st.includes(403)) return 'key';
+  if (st.includes(429)) return 'limit';
+  if (/Falta la clave|caracteres raros|API key not valid|API_KEY|PERMISSION_DENIED|referer/i.test(m)) return 'key';
+  if (/quota|RESOURCE_EXHAUSTED|spend|exhausted|rate.?limit|limit: 0/i.test(m)) return 'limit';
   if (/Failed to fetch|NetworkError|network|Load failed/i.test(m)) return 'network';
   return null;
 }
@@ -4084,7 +4094,7 @@ function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.8.11',
+      version: '2.8.12',
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },
