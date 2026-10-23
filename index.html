@@ -249,7 +249,7 @@ code { font-family:'JetBrains Mono',monospace; }
 .chk-title { font-size:13px;font-weight:800;margin-bottom:6px; }
 .chk-title.bad { color:var(--danger); } .chk-title.meh { color:var(--warning); } .chk-title.good { color:var(--success); }
 .chk { display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:12px;line-height:1.45; }
-.chk.err { color:var(--danger); } .chk.warn { color:var(--warning); } .chk.ok { color:var(--text-dim); }
+.chk.err { color:var(--danger); } .chk.warn { color:var(--warning); } .chk.ok, .chk.round { color:var(--text-dim); }
 .chk-hint { font-size:11px;color:var(--text-dim);margin-top:8px;line-height:1.5; }
 .read-info { font-size:12px;color:var(--text);background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:10px;line-height:1.5; }
 .editable.flag-err { color:var(--danger);border-bottom:2px solid var(--danger);background:var(--danger-bg);border-radius:2px; }
@@ -354,7 +354,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.8.12</span>
+    <span class="logo-badge">Forense v2.8.13</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -1504,7 +1504,8 @@ async function readWithChecks(base64, mediaType, onStatus = updateProcessStatus,
 // Instrucciones para la segunda lectura: qué cuentas fallaron (sin dar cifras "buenas": Gemini debe volver a leerlas)
 function feedbackFor(d) {
   // v2.8.8: la sugerencia de pasar una línea al otro lado no se le dice: la pasaría para que cuadre, sin mirar el papel
-  const issues = checkPayroll(d).filter(c => c.key !== 'side').slice(0, 10).map(c => '- ' + c.text);
+  // v2.8.13: los redondeos de la empresa tampoco (la cifra está bien leída)
+  const issues = realChecks(checkPayroll(d)).filter(c => c.key !== 'side').slice(0, 10).map(c => '- ' + c.text);
   const tpl = codeTemplate(d);
   const ref = ['earnings', 'deductions'].map(side => Object.entries(tpl[side]).map(([c, t]) => `${c} ${t}`).join(' · ')).filter(Boolean);
   return `ATENCIÓN: es la SEGUNDA lectura de esta misma nómina. El programa ha comprobado la primera lectura y estas cuentas NO cuadran:
@@ -1569,7 +1570,7 @@ function typeClashHtml(d) {
 // Celdas sospechosas según las comprobaciones: ruta → 'err' | 'warn'
 function flagMap(checks) {
   const m = {};
-  for (const c of checks) for (const path of c.paths || []) if (m[path] !== 'err') m[path] = c.level;
+  for (const c of realChecks(checks)) for (const path of c.paths || []) if (m[path] !== 'err') m[path] = c.level;   // un redondeo no marca
   return m;
 }
 
@@ -1841,7 +1842,8 @@ function shortText(s, n) {
 }
 
 function renderChecks(d, checks, diffs = []) {
-  const errs = checks.filter(c => c.level === 'err'), warns = checks.filter(c => c.level === 'warn');
+  const real = realChecks(checks), rounds = checks.filter(c => c.level === 'round');   // v2.8.13
+  const errs = real.filter(c => c.level === 'err'), warns = real.filter(c => c.level === 'warn');
   const state = errs.length ? 'bad' : warns.length ? 'meh' : 'good';
   const title = errs.length ? `✗ Las cuentas no cuadran (${errs.length} error${errs.length > 1 ? 'es' : ''}${warns.length ? ` y ${warns.length} aviso${warns.length > 1 ? 's' : ''}` : ''})`
     : warns.length ? `⚠ Las sumas cuadran, pero hay ${warns.length} cosa${warns.length > 1 ? 's' : ''} que mirar`
@@ -1852,13 +1854,14 @@ function renderChecks(d, checks, diffs = []) {
       <h3 style="margin:0 0 10px;font-size:13px;color:var(--accent)">COMPROBACIÓN DE LAS CUENTAS</h3>
       ${readInfoHtml()}
       <div class="chk-title ${state}">${esc(title)}</div>
-      ${checks.length ? checks.map(c => `<div class="chk ${c.level}">${c.level === 'err' ? '✗' : '⚠'} <span>${esc(c.text)}${sideMoveButtons(c)}</span></div>`).join('')
+      ${real.length ? real.map(c => `<div class="chk ${c.level}">${chkIcon(c.level)} <span>${esc(c.text)}${sideMoveButtons(c)}</span></div>`).join('')
         : `<div class="chk ok">Devengos = bruto · deducciones = total a deducir · bruto − deducciones = líquido · IRPF y cotizaciones = base × %.</div>`}
-      ${checks.length ? `<div class="chk-hint">Los valores marcados ${errs.length ? 'en rojo' : 'en ámbar'} son los sospechosos. Compáralos con el documento y toca el valor para corregirlo. La app no cambia ninguna cifra por su cuenta.</div>` : ''}
-      ${readDiffHtml(diffs, checks.length > 0)}
+      ${rounds.map(c => `<div class="chk round">${chkIcon(c.level)} <span>${esc(c.text)}</span></div>`).join('')}
+      ${real.length ? `<div class="chk-hint">Los valores marcados ${errs.length ? 'en rojo' : 'en ámbar'} son los sospechosos. Compáralos con el documento y toca el valor para corregirlo. La app no cambia ninguna cifra por su cuenta.</div>` : ''}
+      ${readDiffHtml(diffs, real.length > 0)}
       ${doc ? `<div class="doc-actions">
         <button class="btn btn-secondary btn-sm" onclick="viewCurrentDocument()">👁 Ver documento</button>
-        ${checks.length ? `<button class="btn btn-secondary btn-sm" id="rereadBtn" onclick="rereadCurrent(this)">🔁 Releer con Gemini</button>` : ''}
+        ${real.length ? `<button class="btn btn-secondary btn-sm" id="rereadBtn" onclick="rereadCurrent(this)">🔁 Releer con Gemini</button>` : ''}
       </div>` : ''}
     </div>`;
 }
@@ -2011,9 +2014,11 @@ function renderValidation(d) {
   const bcc = amt(d.bases?.baseCC);
   const diff = Math.abs((rem + pro) - bcc);
   const ok = diff < 0.02;
-  return `<div class="validation ${ok ? 'ok' : 'err'}">
-    ${ok ? '✓' : '⚠'} Validación: Remuneración (${fmt(rem)}) + Prorrata (${fmt(pro)}) = ${fmt(rem+pro)}
-    ${ok ? '✓ Coincide con Base C.C.' : `≠ Base C.C. (${fmt(bcc)}) — Diferencia: ${fmt(diff)} €`}
+  // v2.8.13: unos céntimos con las sumas cuadradas son un redondeo de la empresa (checkPayroll lo decide)
+  const rounding = !ok && checkPayroll(d).some(c => c.key === 'bcc' && c.level === 'round');
+  return `<div class="validation ${ok || rounding ? 'ok' : 'err'}">
+    ${ok ? '✓' : rounding ? '≈' : '⚠'} Validación: Remuneración (${fmt(rem)}) + Prorrata (${fmt(pro)}) = ${fmt(rem+pro)}
+    ${ok ? '✓ Coincide con Base C.C.' : rounding ? `≈ Base C.C. (${fmt(bcc)}): ${Math.round(diff * 100)} céntimos, redondeo de la empresa` : `≠ Base C.C. (${fmt(bcc)}) — Diferencia: ${fmt(diff)} €`}
   </div>`;
 }
 
@@ -2129,7 +2134,7 @@ async function rereadCurrent(btn) {
   const keepType = !!(editingId || prevDet?.manual);
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner light"></span> Releyendo… <span id="processStatus" style="font-weight:400;opacity:0.7"></span>'; }
   try {
-    const issues = checkPayroll(before);
+    const issues = realChecks(checkPayroll(before));
     const fresh = await callGemini(doc.base64, doc.type, issues.length ? feedbackFor(before) : '');
     const docName = editingId ? (payrolls.find(p => p.id === editingId)?.original?.name || '') : pendingFileName;
     const det = prepareExtracted(fresh, docName);       // el tipo nuevo solo se usa si se queda esta lectura (abajo)
@@ -2733,7 +2738,7 @@ function batchChips(it) {
   else if (saved.length && payTypeOf(d) === 'ordinaria') chips.push(['warn', 'Mes ocupado']);
   const checks = checkPayroll(d);
   if (checks.some(c => c.level === 'err')) chips.push(['err', 'No cuadra']);
-  else if (checks.length) chips.push(['warn', 'Con avisos']);
+  else if (realChecks(checks).length) chips.push(['warn', 'Con avisos']);
   else chips.push(['ok', 'Cuadra']);
   return chips;
 }
@@ -3005,6 +3010,7 @@ function showReport(p) {
   const lbl = payLabelOf(p);
   const irpf = irpfRateOf(p);
   const checks = checkPayroll(p);
+  const real = realChecks(checks);                   // v2.8.13: sin los redondeos de la empresa
   const errs = checks.filter(c => c.level === 'err');
   // Si las cuentas no cuadran, el texto para el abogado lo dice arriba y al final (nunca sale "limpio" con datos dudosos)
   const warnHead = errs.length ? `⚠ AVISO: LAS CUENTAS DE ESTA NÓMINA NO CUADRAN (detalle al final).
@@ -3013,9 +3019,9 @@ Revisar con el documento original antes de usar estos datos.
 ` : '';
   const warnTail = checks.length ? `
 
-5. AVISOS DE LA COMPROBACIÓN AUTOMÁTICA
+5. ${real.length ? 'AVISOS DE LA COMPROBACIÓN AUTOMÁTICA' : 'REDONDEOS DE LA EMPRESA (LAS SUMAS CUADRAN)'}
 ------------------------------------------------------------
-${checks.map(c => (c.level === 'err' ? '✗ ' : '⚠ ') + c.text).join('\n')}
+${[...real, ...checks.filter(c => c.level === 'round')].map(c => chkIcon(c.level) + ' ' + c.text).join('\n')}
 ------------------------------------------------------------` : '';
   const reportText = `${warnHead}RESUMEN DE DATOS DE NÓMINA - PERIODO: ${p.period?.month || '?'} ${p.period?.year || '?'}${lbl ? ' — ' + lbl.toUpperCase() : ''}
 ------------------------------------------------------------
@@ -3047,7 +3053,7 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
 % RETENCIÓN IRPF: ${irpf.rate === null ? 'N/L' : fmtPct(irpf.rate)}${irpf.source && irpf.source !== 'nomina' ? ' (' + IRPF_SOURCE_TEXT[irpf.source] + ')' : ''}
 ------------------------------------------------------------${warnTail}`;
 
-  const state = errs.length ? 'bad' : checks.length ? 'meh' : 'good';
+  const state = errs.length ? 'bad' : real.length ? 'meh' : 'good';
   document.getElementById('reportContent').innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
       <span class="phase-badge phase-2">FASE 2</span>
@@ -3055,11 +3061,11 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
     </div>
     <div class="card checks-card ${state}" style="padding:14px 16px">
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Comprobación de las cuentas</div>
-      <div class="chk-title ${state}">${errs.length ? '✗ Las cuentas no cuadran: Gemini leyó mal alguna línea' : checks.length ? '⚠ Las sumas cuadran, pero hay algo que mirar' : '✓ Las cuentas cuadran'}</div>
-      ${checks.map(c => `<div class="chk ${c.level}">${c.level === 'err' ? '✗' : '⚠'} <span>${esc(c.text)}</span></div>`).join('')}
+      <div class="chk-title ${state}">${errs.length ? '✗ Las cuentas no cuadran: Gemini leyó mal alguna línea' : real.length ? '⚠ Las sumas cuadran, pero hay algo que mirar' : '✓ Las cuentas cuadran'}</div>
+      ${[...real, ...checks.filter(c => c.level === 'round')].map(c => `<div class="chk ${c.level}">${chkIcon(c.level)} <span>${esc(c.text)}</span></div>`).join('')}
       <div class="doc-actions">
         <button class="btn ${errs.length ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="editPayroll(${jsArg(p.id)})">✏ Corregir datos</button>
-        ${checks.length && hasOriginal(p) ? `<button class="btn btn-secondary btn-sm" onclick="editAndReread(${jsArg(p.id)})">🔁 Releer con Gemini</button>` : ''}
+        ${real.length && hasOriginal(p) ? `<button class="btn btn-secondary btn-sm" onclick="editAndReread(${jsArg(p.id)})">🔁 Releer con Gemini</button>` : ''}
       </div>
       ${p.editedAt ? `<div style="font-size:11px;color:var(--text-muted);margin-top:8px">Datos corregidos después de guardarla, el ${esc(new Date(p.editedAt).toLocaleDateString('es-ES'))}</div>` : ''}
     </div>
@@ -3795,6 +3801,8 @@ function calcTotals(fp) {
 // Nivel 'err': las cuentas no salen (casi seguro hay un error de lectura). 'warn': conviene mirarlo con el papel.
 // Cada aviso lleva 'paths' con las celdas afectadas, para marcarlas en la revisión.
 const CHECK_TOL = 0.02;
+const ROUND_TOL = 0.10;                       // v2.8.13: hasta aquí, una diferencia con base × % es un redondeo
+const SUM_KEYS = ['sumE', 'sumD', 'net'];
 
 function pctOfLine(line) {
   const u = parsePct(line?.units);
@@ -3871,6 +3879,8 @@ function checkPayroll(p, opts = {}) {
         text: `No encuentro la línea de IRPF: con base ${fmt(baseIRPF)} € al ${fmtPct(r.rate)} debería haber una retención de ${fmt(expected)} €.` });
     } else if (Math.abs(amt(irpfLine.amount) - expected) > CHECK_TOL) {
       out.push({ level: 'warn', key: 'irpf', paths: [`deductions.${ded.indexOf(irpfLine)}.amount`, 'bases.baseIRPF', 'bases.irpfPercentage'],
+        diff: round2(Math.abs(amt(irpfLine.amount) - expected)),
+        rtext: `IRPF: ${fmt(irpfLine.amount)} € en la nómina y base IRPF ${fmt(baseIRPF)} € × ${fmtPct(r.rate)} = ${fmt(expected)} €`,
         text: `IRPF leído: ${fmt(irpfLine.amount)} €, pero base IRPF ${fmt(baseIRPF)} € × ${fmtPct(r.rate)} = ${fmt(expected)} €.` });
     }
   }
@@ -3890,7 +3900,11 @@ function checkPayroll(p, opts = {}) {
     if (!candidates.length) return;
     if (candidates.some(b => Math.abs(amt(d.amount) - round2(b * pct / 100)) <= CHECK_TOL)) return;
     const base = candidates[0], expected = round2(base * pct / 100);
+    // v2.8.13: para el redondeo, la base con la que más se acerca
+    const near = candidates.map(b => ({ b, e: round2(b * pct / 100) })).sort((x, y) => Math.abs(amt(d.amount) - x.e) - Math.abs(amt(d.amount) - y.e))[0];
     out.push({ level: 'warn', key: 'ss' + i, paths: [`deductions.${i}.amount`],
+      diff: round2(Math.abs(amt(d.amount) - near.e)),
+      rtext: `«${d.concept}»: ${fmt(d.amount)} € en la nómina y ${fmt(near.b)} € × ${fmtPct(pct)} = ${fmt(near.e)} €`,
       text: `«${d.concept}»: leído ${fmt(d.amount)} €, pero ${fmt(base)} € × ${fmtPct(pct)} = ${fmt(expected)} €.` });
   });
 
@@ -3920,6 +3934,8 @@ function checkPayroll(p, opts = {}) {
     const rem = amt(bases.totalRemuneration), pro = amt(bases.extraPayProrata);
     if (rem > 0 && Math.abs(rem + pro - baseCC) > CHECK_TOL)
       out.push({ level: 'warn', key: 'bcc', paths: ['bases.totalRemuneration', 'bases.extraPayProrata', 'bases.baseCC'],
+        diff: round2(Math.abs(rem + pro - baseCC)),
+        rtext: `Remuneración (${fmt(rem)}) + prorrata (${fmt(pro)}) = ${fmt(round2(rem + pro))} € y base C.C. ${fmt(baseCC)} €`,
         text: `Remuneración (${fmt(rem)}) + prorrata (${fmt(pro)}) = ${fmt(round2(rem + pro))} €, distinto de la base C.C. (${fmt(baseCC)} €).` });
   }
 
@@ -3949,8 +3965,27 @@ function checkPayroll(p, opts = {}) {
         ? `Si pasas ${name(lines[0])} a ${SIDE_NAME[mv.to]}, cuadran las dos sumas. Mira en el papel en qué columna está.`
         : `Si pasas a ${SIDE_NAME[mv.to]} una de estas líneas, cuadran las dos sumas: ${joinOr(lines.map(name))}. Mira en el papel cuál de ellas está en ${SIDE_NAME[mv.to]}.` });
   }
+
+  // 10. (v2.8.13) Redondeos de la empresa: el IRPF, una cotización o la base C.C. a 10 céntimos o menos de base × %
+  //     (o de remuneración + prorrata) no son un aviso sino un redondeo, PERO solo si se han podido comprobar las tres
+  //     sumas y cuadran: entonces la cifra está bien leída y la diferencia es del cálculo de la empresa. Si alguna
+  //     suma falla o falta un total, siguen como aviso (puede ser un error de lectura de Gemini).
+  const gross = num(p.totals?.grossTotal), totDed = num(p.totals?.totalDeductions), net = num(p.totals?.netPay);
+  const sumsOk = earn.length && ded.length && [gross, totDed, net].every(Number.isFinite) && !out.some(c => SUM_KEYS.includes(c.key));
+  for (const c of out) {
+    if (c.rtext && sumsOk && c.diff <= ROUND_TOL + 1e-9) {
+      const cts = Math.round(c.diff * 100);
+      c.level = 'round';
+      c.text = `${c.rtext}: ${cts} céntimo${cts === 1 ? '' : 's'} de diferencia. Redondeo de la empresa: las sumas cuadran, así que la cifra está bien leída.`;
+    }
+    delete c.rtext;
+  }
   return out;
 }
+// Icono de cada nivel: ✗ error, ⚠ aviso, ≈ redondeo de la empresa (v2.8.13)
+function chkIcon(level) { return level === 'err' ? '✗' : level === 'round' ? '≈' : '⚠'; }
+// Lo que hay que mirar: todo menos los redondeos (v2.8.13)
+function realChecks(checks) { return checks.filter(c => c.level !== 'round'); }
 
 // ── Línea en el lado equivocado (v2.8.8) ──
 // Pasó con una nómina escaneada: las dos lecturas de Gemini pusieron en devengos una línea de deducciones. A los
@@ -4094,7 +4129,7 @@ function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.8.12',
+      version: '2.8.13',
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },

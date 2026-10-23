@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.8.12-blue)
+![Version](https://img.shields.io/badge/version-2.8.13-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.8.12)
+## 🆕 Novedades (v2.3 – v2.8.13)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| ≈ **Redondeos de la empresa (v2.8.13)** | Si el IRPF, una cotización o la base de cotización difieren de la cuenta (base × %) en **10 céntimos o menos** y las sumas de la nómina cuadran, la app lo muestra en gris como *redondeo de la empresa*, no como aviso: la cifra está bien leída y la diferencia es del cálculo de la empresa. Si alguna suma no cuadra, sigue siendo un aviso | Revisión, Ver nómina, bandeja y texto para el abogado |
 | 🗂️ **Guardar el backup en Drive (v2.8.10)** | En Chrome (Android y ordenador), **🗂️ Guardar backup completo…** abre el «Guardar como» del móvil o del ordenador: eliges Drive (o una carpeta) y la app comprueba que el archivo ha quedado entero. Drive lo sube después: la app te dice cuánto debe pesar para que lo compruebes en Drive (v2.8.11). Sin iniciar sesión en Google ni dar permisos a la app. En iPhone y en otros navegadores se descarga, como antes, y el aviso explica cómo llevarlo a Drive desde Descargas | Panel · Datos |
 | 💳 **Saldo de Gemini agotado (v2.8.9)** | Google cobra ahora Gemini por **prepago**: compras crédito y cada lectura lo va gastando. Si se acaba, la app lo dice tal cual («Se ha acabado el saldo de Gemini de esta clave») y explica qué hacer, en vez de un error genérico. En la bandeja, la lectura se para sin marcar nada como error y sigue con *Reanudar* cuando hay saldo | Subir · Bandeja |
 | ⇄ **Línea en el lado equivocado (v2.8.8)** | A veces Gemini pone una línea de deducciones en los devengos (o al revés), y además igual en las dos lecturas. Si a un lado le sobra justo lo que le falta al otro, la app te dice qué línea pasar para que cuadren las dos sumas, con un botón **⇄ Pasar a deducciones**. Es una sugerencia: mira el papel antes. Y debajo de cada tabla, **⇄ Pasar una línea…** para hacerlo a mano. Además, una cifra que ya has corregido o mirado deja de marcarse con **≠**, y la lista de diferencias avisa de que la otra lectura **cuadraba peor**: úsala solo si lo confirma el papel | Subir · Bandeja |
@@ -222,10 +223,10 @@ Gemini **solo lee** la nómina, y a veces se equivoca: se salta una fila, pone u
 | Suma de devengos = total bruto | ✗ error |
 | Suma de deducciones = total a deducir | ✗ error |
 | Bruto − deducciones = líquido | ✗ error |
-| IRPF = base IRPF × % | ⚠ aviso |
-| Cada cotización = su base × su % (contingencias comunes y MEI sobre la base C.C.; formación y desempleo sobre la A.T.; horas extra sobre su importe) | ⚠ aviso |
+| IRPF = base IRPF × % | ⚠ aviso (≈ redondeo si son 10 céntimos o menos y las sumas cuadran) |
+| Cada cotización = su base × su % (contingencias comunes y MEI sobre la base C.C.; formación y desempleo sobre la A.T.; horas extra sobre su importe) | ⚠ aviso (≈ redondeo si son 10 céntimos o menos y las sumas cuadran) |
 | Unidades × precio = importe, en los devengos | ✗ error (⚠ aviso si el resultado es el importe de otra línea: precios corridos de fila) |
-| Remuneración + prorrata = base C.C. (solo mensual) | ⚠ aviso |
+| Remuneración + prorrata = base C.C. (solo mensual) | ⚠ aviso (≈ redondeo si son 10 céntimos o menos y las sumas cuadran) |
 | Cada código lleva el mismo concepto que en tus otras nóminas de esa empresa (si no, probablemente las filas están corridas) | ⚠ aviso |
 | Si las dos sumas fallan y a un lado le sobra lo que le falta al otro, qué línea pasar de lado para que cuadren | ⚠ aviso con botón ⇄ (sugerencia) |
 
@@ -234,6 +235,8 @@ Gemini **solo lee** la nómina, y a veces se equivoca: se salta una fila, pone u
 - **En la revisión:** lista lo que falla y marca los valores sospechosos. **La app nunca cambia una cifra por su cuenta**: eliges tú entre releer o corregir a mano mirando el documento
 - **Al guardar:** si hay errores, pregunta antes
 - **Después:** las nóminas que no cuadran salen con ⚠ en el Panel y en el Informe anual (con un aviso de que sus totales pueden estar mal), y la copia para el abogado lo advierte arriba y lo detalla al final. Se arreglan con **Ver → ✏ Corregir datos** o **🔁 Releer con Gemini**
+
+**Redondeos de la empresa (v2.8.13):** muchas empresas calculan el IRPF o las cotizaciones de forma que el resultado se queda a unos céntimos de base × %. Si la diferencia es de **10 céntimos o menos** y las tres sumas de la nómina cuadran, la cifra está bien leída: la app lo muestra en gris con **≈** («redondeo de la empresa») y no lo cuenta como aviso. Si alguna suma no cuadra, o falta un total para comprobarlo, sigue saliendo como ⚠ aviso, porque podría ser un error de lectura.
 
 **Lo que no puede detectar:** un error de lectura que siga cuadrando (por ejemplo, dos conceptos con el nombre cambiado pero con sus importes bien). Por eso la revisión humana sigue siendo obligatoria.
 
@@ -640,6 +643,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.8.13 (Octubre 2026)
+- **Redondeos de la empresa:** una diferencia de 10 céntimos o menos entre el IRPF o una cotización y su base × %, o entre remuneración + prorrata y la base C.C., sale en gris con **≈** como redondeo de la empresa, no como aviso. Solo cuando las tres sumas de la nómina se pueden comprobar y cuadran (así la cifra está bien leída); si alguna falla, sigue siendo un aviso. No cuenta para *Con avisos*, no marca celdas, no ofrece *Releer* ni se le dice a Gemini en la segunda lectura. El informe y el texto para el abogado lo siguen mostrando
 
 ### v2.8.12 (Octubre 2026)
 - **Errores de Gemini clasificados por su código:** en la bandeja, la app decide si un fallo es de la clave (401 o 403), del límite de uso (429) o solo de esa nómina por el código que devuelve Google, no por los números que aparezcan en el texto del error. Antes, un fallo de lectura cuyo texto llevaba un «403» paraba la bandeja como si la clave estuviera mal, y un 401 o 403 de verdad sin las palabras de siempre no se reconocía como problema de la clave
