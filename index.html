@@ -367,7 +367,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.9.0</span>
+    <span class="logo-badge">Forense v2.9.1</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -1518,7 +1518,8 @@ async function readWithChecks(base64, mediaType, onStatus = updateProcessStatus,
 function feedbackFor(d) {
   // v2.8.8: la sugerencia de pasar una línea al otro lado no se le dice: la pasaría para que cuadre, sin mirar el papel
   // v2.8.13: los redondeos de la empresa tampoco (la cifra está bien leída)
-  const issues = realChecks(checkPayroll(d)).filter(c => c.key !== 'side').slice(0, 10).map(c => '- ' + c.text);
+  // v2.9.1: ni el CIF no válido (podría inventarse uno que lo parezca)
+  const issues = realChecks(checkPayroll(d)).filter(c => c.key !== 'side' && c.key !== 'cif').slice(0, 10).map(c => '- ' + c.text);
   const tpl = codeTemplate(d);
   const ref = ['earnings', 'deductions'].map(side => Object.entries(tpl[side]).map(([c, t]) => `${c} ${t}`).join(' · ')).filter(Boolean);
   return `ATENCIÓN: es la SEGUNDA lectura de esta misma nómina. El programa ha comprobado la primera lectura y estas cuentas NO cuadran:
@@ -3649,6 +3650,9 @@ function buildAnnualObservations(fp, year = fp[0]?.period?.year, prices = annual
     obs.push({ level: 'info', text: 'ℹ * % de IRPF calculado (no venía en la nómina). Corrígelo desde "Ver" si no coincide con el papel' });
   if (others.length) obs.push({ level: 'info', text: 'ℹ Pagas extra / atrasos incluidos en los totales: ' + others.map(p => `${p.period?.month} (${payLabelOf(p)})`).join(', ') });
 
+  // v2.9.1: nóminas de la misma empresa con otro CIF (casi siempre mal leído)
+  for (const b of prices) if (b.oddCif.length) obs.push({ level: 'warn', text: '⚠ ' + oddCifText(b) });
+
   // v2.9.0: cambios del precio por unidad en el año (comparando también la primera del año con la anterior)
   const changes = prices.flatMap(b => b.changes);
   for (const c of changes) obs.push({ level: c.kind === 'up' ? 'info' : 'warn', text: (c.kind === 'up' ? 'ℹ ' : '⚠ ') + priceChangeText(c) });
@@ -3674,13 +3678,33 @@ function buildAnnualObservations(fp, year = fp[0]?.period?.year, prices = annual
 //   · Cambio: desde PRICE_MIN_PCT y por encima de lo que pueden mover los redondeos de los dos precios.
 //     Más de PRICE_BIG_PCT: «cambio grande» (error de lectura, cambio de jornada o de contrato…: lo mira la persona).
 //   · Solo informa: no entra en checkPayroll, así que ninguna nómina guardada cambia de estado ni sale con ⚠.
+//   · (v2.9.1) La empresa: mismo CIF o mismo CCC (companyIndex). Un CIF mal leído en una nómina ya no la separa como si
+//     fuera otra empresa; el Anual lo señala (oddCif) para que se corrija.
+//   · (v2.9.1) El precio calculado (importe ÷ unidades) solo vale si coincide con algún precio impreso en la misma
+//     nómina: con las filas corridas, las unidades también pueden ser de otra línea y la división da un precio que no
+//     está en el papel. Si la nómina no trae ningún precio leído, vale como antes.
 const PRICE_MIN_PCT = 0.5;
 const PRICE_BIG_PCT = 25;
 const PRICE_ICON = { up: '▲', down: '▼', big: '⚠' };
 const PRICE_CALC_NOTE = '* Precio calculado como importe ÷ unidades: el precio leído no cuadraba con el importe (o no venía).';
 
 function cifKey(p) { const k = compactText(p?.company?.cif); return k && k !== 'nl' ? k : ''; }
-function sameCompany(a, b) { const x = cifKey(a), y = cifKey(b); return !x || !y || x === y; }
+function cccKey(p) { const k = String(p?.company?.ccc ?? '').replace(/\D/g, ''); return k.length >= 9 ? k : ''; }
+// (v2.9.1) Empresa de cada nómina: las que comparten CIF o CCC son la misma (uniones encadenadas).
+// Devuelve un Map nómina → clave de su empresa ('' si no tiene ni CIF ni CCC).
+function companyIndex(list = payrolls) {
+  const parent = new Map();
+  const find = k => { while (parent.get(k) !== k) k = parent.get(k); return k; };
+  const keysOf = p => [cifKey(p) && 'cif:' + cifKey(p), cccKey(p) && 'ccc:' + cccKey(p)].filter(Boolean);
+  for (const p of list) {
+    const ks = keysOf(p);
+    for (const k of ks) if (!parent.has(k)) parent.set(k, k);
+    if (ks.length === 2) { const a = find(ks[0]), b = find(ks[1]); if (a !== b) parent.set(b, a); }
+  }
+  const of = new Map();
+  for (const p of list) { const ks = keysOf(p); of.set(p, ks.length ? find(ks[0]) : ''); }
+  return of;
+}
 function monthIndex(p) { const m = String(p?.id || '').match(/^(\d{4})-(\d{2})/); return m ? +m[1] * 12 + +m[2] - 1 : NaN; }
 function cleanCode(c) { const s = String(c ?? '').trim(); return /^[-–—]?$/.test(s) ? '' : s; }
 function conceptLabel(c) { return String(c ?? '').replace(/^[\s*·.\-]+/, '').trim() || '(sin nombre)'; }
@@ -3689,20 +3713,25 @@ function priceText(pr) { return fmtPrice(pr.price) + ' €' + (pr.src === 'calcu
 
 // Precio por unidad de una línea de devengo: { price, src: 'leido' | 'calculado', err } o null si no tiene.
 // err = lo que puede moverse el precio por redondeo: 4 decimales en el leído; el céntimo del importe en el calculado.
-function linePrice(l) {
+// reads (v2.9.1): los precios leídos en toda la nómina. Si hay alguno, el calculado tiene que coincidir con uno de ellos.
+function linePrice(l, reads = []) {
   const u = num(l?.units), pr = num(l?.price), a = num(l?.amount);
   if (!Number.isFinite(u) || u <= 0 || !Number.isFinite(a) || a <= 0) return null;
-  if (Number.isFinite(pr) && pr > 0 && Math.abs(round2(u * pr) - a) <= upTol(a)) return { price: pr, src: 'leido', err: 0.00005 };
+  const fits = q => Math.abs(round2(u * q) - a) <= upTol(a);
+  if (Number.isFinite(pr) && pr > 0 && fits(pr)) return { price: pr, src: 'leido', err: 0.00005 };
+  if (reads.length && !reads.some(fits)) return null;          // el precio no está en el papel: sin precio ese mes
   return { price: a / u, src: 'calculado', err: 0.005 / u };
 }
+function readPrices(p) { return (p?.earnings || []).map(l => num(l?.price)).filter(x => Number.isFinite(x) && x > 0); }
 
 // Historial de los devengos de las mensuales de la empresa de `ref`, en orden de fecha.
 // groups: [{ code, concept (el último nombre), rows: [{ p, lines, amount, price }] }] en el orden en que aparecen.
 // Si un concepto sale dos veces en la misma nómina (p. ej. una subida a mitad de mes), cuenta el precio de la última línea.
-function priceHistory(ref) {
+function priceHistory(ref, idx = companyIndex()) {
   const used = [], skipped = [], months = new Set();
+  const rk = idx.get(ref) || '';
   for (const p of payrolls) {
-    if (payTypeOf(p) !== 'ordinaria' || !sameCompany(p, ref)) continue;
+    if (payTypeOf(p) !== 'ordinaria' || (rk && idx.get(p) && idx.get(p) !== rk)) continue;
     months.add(monthIndex(p));
     (checkErrors(p).length ? skipped : used).push(p);
   }
@@ -3734,7 +3763,8 @@ function priceHistory(ref) {
   }
   for (const g of groups) for (const r of g.rows) {
     r.amount = round2(r.lines.reduce((s, l) => s + amt(l.amount), 0));
-    r.price = r.lines.map(linePrice).filter(Boolean).pop() || null;
+    const reads = readPrices(r.p);
+    r.price = r.lines.map(l => linePrice(l, reads)).filter(Boolean).pop() || null;
   }
   return { groups, used, skipped, months };
 }
@@ -3774,18 +3804,26 @@ function priceChangeText(c) {
 }
 
 // Lo del año para el Informe Anual: un bloque por empresa (casi siempre uno).
+// (v2.9.1) La empresa sale con el CIF que más se repite en el año; oddCif = las nóminas del año con otro CIF
+// (mismo CCC): casi siempre un CIF mal leído.
 function annualPrices(year) {
+  const idx = companyIndex();
   const fp = payrolls.filter(p => p.period?.year === year && payTypeOf(p) === 'ordinaria');
-  const keys = [...new Set(fp.map(cifKey).filter(Boolean))];
-  const refs = keys.length ? keys.map(k => fp.find(p => cifKey(p) === k)) : fp.slice(0, 1);
-  return refs.map(ref => {
-    const hist = priceHistory(ref);
+  const keys = [...new Set(fp.map(p => idx.get(p)).filter(Boolean))];
+  const blocks = keys.length ? keys.map(k => fp.filter(p => idx.get(p) === k)) : (fp.length ? [fp] : []);
+  return blocks.map(list => {
+    const count = new Map();
+    for (const p of list) { const c = cifKey(p); if (c) count.set(c, (count.get(c) || 0) + 1); }
+    const main = [...count.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+    const ref = list.find(p => cifKey(p) === main) || list[0];
+    const oddCif = main ? list.filter(p => cifKey(p) && cifKey(p) !== main).sort((a, b) => a.id.localeCompare(b.id)) : [];
+    const hist = priceHistory(ref, idx);
     const inYear = r => r.p.period?.year === year;
     const items = hist.groups.filter(g => g.rows.some(inYear)).map(g => {
       const rows = g.rows.filter(inYear), priced = rows.filter(r => r.price);
       return { g, rows, last: priced[priced.length - 1] || null, changes: priceChanges(g, hist).filter(c => inYear(c.to)) };
     });
-    return { ref, many: refs.length > 1, withPrice: items.filter(i => i.last), noPrice: items.filter(i => !i.last),
+    return { ref, oddCif, many: blocks.length > 1, withPrice: items.filter(i => i.last), noPrice: items.filter(i => !i.last),
       changes: items.flatMap(i => i.changes).sort((a, b) => a.to.p.id.localeCompare(b.to.p.id)),
       skipped: hist.skipped.filter(p => p.period?.year === year) };
   });
@@ -3800,6 +3838,7 @@ function priceCardHtml(prices, year) {
     <div class="price-intro">Precio por unidad de cada devengo en las nóminas mensuales (sin pagas extra ni atrasos), comparado con la nómina anterior. Cuenta como cambio desde el ${fmtPct(PRICE_MIN_PCT)}.</div>
     ${prices.map(b => `
       ${b.many ? `<div class="price-sub">${esc(b.ref.company?.name || 'Empresa')}</div>` : ''}
+      ${b.oddCif.length ? `<div class="price-change big">⚠ ${esc(oddCifText(b))}</div>` : ''}
       ${b.withPrice.map(i => `<div class="price-item">
         <div class="price-head"><span class="price-name">${esc(conceptLabel(i.g.concept))}${i.g.code ? ` <span class="price-code">${esc(i.g.code)}</span>` : ''}</span><span class="price-now">${esc(priceText(i.last.price))}</span></div>
         ${i.changes.length ? i.changes.map(c => `<div class="price-change ${c.kind}">${PRICE_ICON[c.kind]} ${esc(fmtSignedPct(c.pct))} en ${esc(c.to.p.period?.month)} <span style="color:var(--text-muted)">(desde ${esc(payName(c.from.p))}${c.missing ? `; ${c.missing === 1 ? 'falta 1 nómina' : `faltan ${c.missing} nóminas`} entre medias` : ''})</span>${c.kind === 'big' ? ' · cambio grande: compruébalo con el papel' : ''}</div>`).join('')
@@ -3813,6 +3852,12 @@ function priceCardHtml(prices, year) {
       ${b.skipped.length ? `<div class="price-note">No cuentan, porque sus cuentas no cuadran: ${esc(b.skipped.map(payName).join(', '))}.</div>` : ''}`).join('')}
     ${calc ? `<div class="price-note">${esc(PRICE_CALC_NOTE)}</div>` : ''}
   </div>`;
+}
+
+// (v2.9.1) Nóminas de la misma empresa (mismo CCC) con otro CIF
+function oddCifText(b) {
+  const n = b.oddCif.length;
+  return `${n === 1 ? 'La nómina de ' : 'Las nóminas de '}${b.oddCif.map(payName).join(', ')} ${n === 1 ? 'tiene' : 'tienen'} otro CIF que las demás de esta empresa (mismo CCC): seguramente está mal leído. Revísalo con el papel en Ver → ✏ Corregir datos.`;
 }
 
 // Sección «Precios por unidad» de Ver: { html, text }. text solo lleva algo si hay cambios (para el abogado).
@@ -4182,6 +4227,12 @@ function checkPayroll(p, opts = {}) {
         : `Si pasas a ${SIDE_NAME[mv.to]} una de estas líneas, cuadran las dos sumas: ${joinOr(lines.map(name))}. Mira en el papel cuál de ellas está en ${SIDE_NAME[mv.to]}.` });
   }
 
+  // 11. (v2.9.1) El CIF / NIF de la empresa: formato y dígito o letra de control. Solo aviso (no cuenta para el ⚠
+  //     del Panel ni se le dice a Gemini en la segunda lectura: podría inventarse uno válido).
+  if (taxIdValid(p.company?.cif) === false)
+    out.push({ level: 'warn', key: 'cif', paths: ['company.cif'],
+      text: `El CIF de la empresa («${p.company.cif}») no es válido (formato o dígito de control): seguramente está mal leído. Corrígelo con el del papel; es el mismo en todas las nóminas de esa empresa.` });
+
   // 10. (v2.8.13) Redondeos de la empresa: el IRPF, una cotización o la base C.C. a 10 céntimos o menos de base × %
   //     (o de remuneración + prorrata) no son un aviso sino un redondeo, PERO solo si se han podido comprobar las tres
   //     sumas y cuadran: entonces la cifra está bien leída y la diferencia es del cálculo de la empresa. Si alguna
@@ -4198,6 +4249,30 @@ function checkPayroll(p, opts = {}) {
   }
   return out;
 }
+// (v2.9.1) CIF, NIF o NIE válido: true / false; null si no hay (vacío o N/L). Admite el prefijo ES, puntos y guiones.
+//   NIF: 8 cifras + letra (resto de dividir entre 23). NIE: X, Y o Z (0, 1, 2) + 7 cifras + letra.
+//   K, L, M: 7 cifras + letra. CIF: letra de entidad + 7 cifras + control (cifra o letra JABCDEFGHI, según la entidad).
+const NIF_LETTERS = 'TRWAGMYFPDXBNJZSQVHLCKE';
+function taxIdValid(raw) {
+  let s = String(raw ?? '').toUpperCase().replace(/[\s.\-\/]/g, '');
+  if (!s || s === 'NL') return null;
+  if (/^ES[A-Z0-9]{9}$/.test(s)) s = s.slice(2);
+  let m;
+  if ((m = s.match(/^(\d{8})([A-Z])$/))) return NIF_LETTERS[+m[1] % 23] === m[2];
+  if ((m = s.match(/^([XYZ])(\d{7})([A-Z])$/))) return NIF_LETTERS[+('XYZ'.indexOf(m[1]) + m[2]) % 23] === m[3];
+  if ((m = s.match(/^([ABCDEFGHJKLMNPQRSUVW])(\d{7})([0-9A-J])$/))) {
+    let sum = 0;
+    for (let i = 0; i < 7; i++) { let d = +m[2][i]; if (i % 2 === 0) { d *= 2; d = Math.floor(d / 10) + d % 10; } sum += d; }
+    const c = (10 - sum % 10) % 10, letter = 'JABCDEFGHI'[c];
+    if ('KLM'.includes(m[1])) return m[3] === letter || m[3] === NIF_LETTERS[+m[2] % 23];
+    if ('PQRSNW'.includes(m[1])) return m[3] === letter;
+    if ('ABEH'.includes(m[1])) return m[3] === String(c);
+    return m[3] === String(c) || m[3] === letter;
+  }
+  if ((m = s.match(/^([KLM])(\d{7})([A-Z])$/))) return NIF_LETTERS[+m[2] % 23] === m[3];
+  return false;
+}
+
 // Icono de cada nivel: ✗ error, ⚠ aviso, ≈ redondeo de la empresa (v2.8.13)
 function chkIcon(level) { return level === 'err' ? '✗' : level === 'round' ? '≈' : '⚠'; }
 // Lo que hay que mirar: todo menos los redondeos (v2.8.13)
@@ -4345,7 +4420,7 @@ function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.9.0',
+      version: '2.9.1',
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },

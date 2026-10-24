@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.9.0-blue)
+![Version](https://img.shields.io/badge/version-2.9.1-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,11 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.9.0)
+## 🆕 Novedades (v2.3 – v2.9.1)
 
 | | Qué hace | Dónde |
 |---|---|---|
-| 📊 **Precios por concepto (v2.9.0)** | La app compara el **precio por unidad** de cada concepto (salario base por día, plus por hora…) con el de tu nómina mensual anterior y te dice si **sube, baja o cambia mucho**, en qué mes y desde cuándo. Los conceptos sin precio (incentivos, comisiones…) muestran su importe mes a mes. Sin IA: lo calcula la app con tus nóminas guardadas | Anual y Ver |
+| 📊 **Precios por concepto (v2.9.0–v2.9.1)** | La app compara el **precio por unidad** de cada concepto (salario base por día, plus por hora…) con el de tu nómina mensual anterior y te dice si **sube, baja o cambia mucho**, en qué mes y desde cuándo. Los conceptos sin precio (incentivos, comisiones…) muestran su importe mes a mes. Sin IA: lo calcula la app con tus nóminas guardadas | Anual y Ver |
 | ≈ **Redondeos de la empresa (v2.8.13)** | Si el IRPF, una cotización o la base de cotización difieren de la cuenta (base × %) en **10 céntimos o menos** y las sumas de la nómina cuadran, la app lo muestra en gris como *redondeo de la empresa*, no como aviso: la cifra está bien leída y la diferencia es del cálculo de la empresa. Si alguna suma no cuadra, sigue siendo un aviso | Revisión, Ver nómina, bandeja y texto para el abogado |
 | 🗂️ **Guardar el backup en Drive (v2.8.10)** | En Chrome (Android y ordenador), **🗂️ Guardar backup completo…** abre el «Guardar como» del móvil o del ordenador: eliges Drive (o una carpeta) y la app comprueba que el archivo ha quedado entero. Drive lo sube después: la app te dice cuánto debe pesar para que lo compruebes en Drive (v2.8.11). Sin iniciar sesión en Google ni dar permisos a la app. En iPhone y en otros navegadores se descarga, como antes, y el aviso explica cómo llevarlo a Drive desde Descargas | Panel · Datos |
 | 💳 **Saldo de Gemini agotado (v2.8.9)** | Google cobra ahora Gemini por **prepago**: compras crédito y cada lectura lo va gastando. Si se acaba, la app lo dice tal cual («Se ha acabado el saldo de Gemini de esta clave») y explica qué hacer, en vez de un error genérico. En la bandeja, la lectura se para sin marcar nada como error y sigue con *Reanudar* cuando hay saldo | Subir · Bandeja |
@@ -230,6 +230,7 @@ Gemini **solo lee** la nómina, y a veces se equivoca: se salta una fila, pone u
 | Remuneración + prorrata = base C.C. (solo mensual) | ⚠ aviso (≈ redondeo si son 10 céntimos o menos y las sumas cuadran) |
 | Cada código lleva el mismo concepto que en tus otras nóminas de esa empresa (si no, probablemente las filas están corridas) | ⚠ aviso |
 | Si las dos sumas fallan y a un lado le sobra lo que le falta al otro, qué línea pasar de lado para que cuadren | ⚠ aviso con botón ⇄ (sugerencia) |
+| El CIF o NIF de la empresa tiene un formato válido y su dígito o letra de control cuadra (v2.9.1) | ⚠ aviso (no es error: no marca ⚠ en el Panel) |
 
 **Qué hace con eso:**
 - **Al subir:** si la primera lectura tiene errores, la app la manda **una vez más** a Gemini diciéndole exactamente qué no cuadra, y se queda con la lectura que cuadre mejor. Solo pasa cuando hay errores, y cuesta lo mismo que una lectura (~1 céntimo)
@@ -254,7 +255,8 @@ Casi todos los conceptos de una nómina son **unidades × precio**: 30 días × 
 Cómo lo hace:
 - Compara solo nóminas **mensuales** de la **misma empresa**: las pagas extra y los atrasos no cuentan (los atrasos llevan diferencias, no precios), ni las nóminas con ⚠ (sus cifras no son fiables hasta que las corrijas)
 - Reconoce cada concepto por su **código**, aunque el nombre venga escrito de otra forma en cada nómina; si una nómina no tiene códigos, por el nombre
-- Usa el precio de la nómina si **unidades × precio = importe**; si no cuadra (por ejemplo, con los precios corridos de fila) o no viene, lo calcula como **importe ÷ unidades** y lo marca con *
+- Usa el precio de la nómina si **unidades × precio = importe**; si no cuadra (por ejemplo, con los precios corridos de fila) o no viene, lo calcula como **importe ÷ unidades** y lo marca con *. Ese precio calculado solo vale si **está impreso en algún sitio de esa nómina** (con las filas corridas, en otra línea); si no, ese mes el concepto queda sin precio (v2.9.1): con las filas corridas, las unidades también pueden ser de otra línea
+- La **misma empresa** es la del mismo CIF **o el mismo CCC** (v2.9.1): una nómina con el CIF mal leído no se separa como si fuera de otra empresa, y el Anual te dice cuál es para que lo corrijas
 - Cuenta como cambio una diferencia del **0,5 % o más**: los redondeos de la empresa no llegan
 - **Solo informa:** no cambia ninguna nómina ni el ⚠ del Panel
 
@@ -663,6 +665,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.9.1 (Octubre 2026)
+- **CIF mal leído:** la app comprueba el formato y el dígito o la letra de control del CIF o NIF de la empresa (también NIE y con prefijo ES). Si no es válido, *Ver* y la revisión lo avisan en su casilla, como aviso (no como error: el Panel no cambia). No se le dice a Gemini en la segunda lectura, para que no se invente uno que lo parezca
+- **Precios por concepto, misma empresa:** dos nóminas con el mismo CCC son de la misma empresa aunque el CIF no coincida. Antes, una nómina con el CIF mal leído salía en el Anual como otra empresa, con sus precios aparte. Ahora cuenta con las demás y el Anual dice qué nómina tiene otro CIF (también en las observaciones)
+- **Precios por concepto, filas corridas:** el precio calculado (importe ÷ unidades) solo vale si coincide con algún precio impreso en esa nómina. Con las filas corridas, un concepto sin unidades ni precio en el papel podía quedarse con los de otra línea, y la división daba un precio que no existía y un «cambio grande» falso. Ahora ese mes queda sin precio. Si la nómina no trae ningún precio leído, se calcula como antes
 
 ### v2.9.0 (Octubre 2026)
 - **Precios por concepto:** la app compara el precio por unidad de cada devengo con el de la nómina mensual anterior de la misma empresa y avisa si sube, baja o cambia más del 25 % (desde el 0,5 %). Se ve en el Informe Anual (tarjeta *Precios por concepto*, observaciones y texto exportable) y en *Ver* de cada nómina mensual (y en la copia para el abogado si hay cambios). Reconoce cada concepto por su código aunque cambie el nombre, y por el nombre si a una nómina le faltan los códigos. Con precios corridos de fila o sin precio leído, calcula importe ÷ unidades. Fuera: pagas extra, atrasos, deducciones y nóminas con ⚠. Los conceptos sin precio muestran su importe de cada mes, sin avisos. Sin IA y sin cambiar ninguna nómina guardada
