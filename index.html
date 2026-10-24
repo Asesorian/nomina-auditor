@@ -367,7 +367,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.9.1</span>
+    <span class="logo-badge">Forense v2.9.2</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -4368,7 +4368,11 @@ function backupDoneHtml(r) {
     (r.verified ? '' : ' No se ha podido comprobar que haya quedado entero: mira que el archivo no esté vacío.') +
     // v2.8.11: Drive lo sube después; si falla, el archivo queda vacío en Drive y la app no se entera
     ` Si lo has guardado en Drive, se sube en segundo plano: <strong>comprueba en Drive que pesa ${peso || 'lo mismo'}</strong>. ` +
-    'Si pesa 0 o Drive avisa de que no ha podido subirlo, vuelve a guardarlo. Si lo has guardado en el móvil y no en Drive, llévalo también fuera del móvil.';
+    // v2.9.2: en Android, Drive a veces se queda en «Subiendo…» con el archivo a 0 bytes; guardar otra vez (con el primero
+    // todavía subiendo) suele subir el segundo bien. El primero se queda vacío en Drive: hay que borrarlo a mano.
+    'Si pesa 0, se queda en «Subiendo…» o Drive avisa de que no ha podido subirlo, <strong>vuelve a guardarlo en Drive</strong> ' +
+    '(aunque el primero siga subiendo): el segundo suele subir bien. <strong>Después borra en Drive el que pesa 0.</strong> ' +
+    'Si lo has guardado en el móvil y no en Drive, llévalo también fuera del móvil.';
   return `<strong>Backup completo descargado</strong> en Descargas. Guárdalo en Drive (o fuera del móvil): abre la app de archivos del móvil ` +
     `(<em>Archivos</em>, <em>Files</em> o <em>Mis archivos</em>) → <strong>Descargas</strong>, mantén pulsado el archivo y elige <strong>Compartir → Drive</strong>. ` +
     `En iPhone: <em>Archivos</em> → <em>Descargas</em> → mantén pulsado → <strong>Mover</strong> a iCloud Drive (o Compartir → Drive).`;

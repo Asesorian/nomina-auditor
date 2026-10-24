@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.9.1-blue)
+![Version](https://img.shields.io/badge/version-2.9.2-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.9.1)
+## 🆕 Novedades (v2.3 – v2.9.2)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -665,6 +665,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.9.2 (Octubre 2026)
+- **Backup completo en Drive (Android):** Drive a veces se queda en «Subiendo…» y deja el archivo con 0 bytes, aunque la app lo haya escrito entero. El aviso de después de guardar lo explica: si pesa 0 o se queda en «Subiendo…», volver a guardarlo en Drive (aunque el primero siga subiendo), porque el segundo suele subir bien, y después borrar en Drive el que pesa 0. La app no puede saber si Drive ha terminado de subirlo
 
 ### v2.9.1 (Octubre 2026)
 - **CIF mal leído:** la app comprueba el formato y el dígito o la letra de control del CIF o NIF de la empresa (también NIE y con prefijo ES). Si no es válido, *Ver* y la revisión lo avisan en su casilla, como aviso (no como error: el Panel no cambia). No se le dice a Gemini en la segunda lectura, para que no se invente uno que lo parezca
