@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.10.1-blue)
+![Version](https://img.shields.io/badge/version-2.10.2-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.10.1)
+## 🆕 Novedades (v2.3 – v2.10.2)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -227,11 +227,12 @@ Gemini **solo lee** la nómina, y a veces se equivoca: se salta una fila, pone u
 | Bruto − deducciones = líquido | ✗ error |
 | IRPF = base IRPF × % | ⚠ aviso (≈ redondeo si son 10 céntimos o menos y las sumas cuadran) |
 | Cada cotización = su base × su % (contingencias comunes y MEI sobre la base C.C.; formación y desempleo sobre la A.T.; horas extra sobre su importe) | ⚠ aviso (≈ redondeo si son 10 céntimos o menos y las sumas cuadran) |
-| Unidades × precio = importe, en los devengos | ✗ error (⚠ aviso si el resultado es el importe de otra línea: precios corridos de fila) |
+| Unidades × precio = importe, en los devengos. Desde la v2.10.2, con el margen que dan los decimales impresos (con 30 días y un precio de 3 decimales, unos céntimos): una cifra del precio mal leída ya no pasa | ✗ error (⚠ aviso si el resultado es el importe de otra línea: precios corridos de fila) |
 | Remuneración + prorrata = base C.C. (solo mensual) | ⚠ aviso (≈ redondeo si son 10 céntimos o menos y las sumas cuadran) |
 | Cada código lleva el mismo concepto que en tus otras nóminas de esa empresa (si no, probablemente las filas están corridas) | ⚠ aviso |
 | Si las dos sumas fallan y a un lado le sobra lo que le falta al otro, qué línea pasar de lado para que cuadren | ⚠ aviso con botón ⇄ (sugerencia) |
 | El CIF o NIF de la empresa tiene un formato válido y su dígito o letra de control cuadra (v2.9.1) | ⚠ aviso (no es error: no marca ⚠ en el Panel) |
+| Cada código va en el mismo lado (devengos o deducciones) que en tus otras nóminas de esa empresa (v2.10.2). Si dos líneas del mismo importe se leen cambiadas de lado, las sumas cuadran igual: esto es lo único que lo ve | ⚠ aviso (no marca ⚠ en el Panel) |
 
 **Qué hace con eso:**
 - **Al subir:** si la primera lectura tiene errores, la app la manda **una vez más** a Gemini diciéndole exactamente qué no cuadra, y se queda con la lectura que cuadre mejor. Solo pasa cuando hay errores, y cuesta lo mismo que una lectura (~1 céntimo)
@@ -688,6 +689,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.10.2 (Octubre 2026)
+- **Unidades × precio, más fino:** el margen ya no es el 0,2 % del importe, sino lo que pueden mover los redondeos según los decimales impresos del precio y de las unidades. En una prueba real, una cifra del precio mal leída (más de un euro de diferencia en el importe) pasaba sin aviso y la subida del precio salía mal en el historial y en las observaciones. Ahora es un error en la revisión, y el historial de precios usa importe ÷ unidades (con *). Con las nóminas guardadas de la prueba, solo esa pasa a salir con ⚠
+- **Un concepto en el lado contrario:** si un código va en deducciones y en tus otras nóminas de esa empresa va siempre en devengos (o al revés), la app avisa. Dos líneas del mismo importe cambiadas de lado no descuadran las sumas, así que antes no lo veía nada. Es un aviso: no pone ⚠ en el Panel. Las líneas a 0 € no cuentan
 
 ### v2.10.1 (Octubre 2026)
 - **Comparar con Hacienda mientras escribes:** el resultado se actualiza al dejar de teclear, sin tener que salir de la casilla (antes, si te quedabas en la última, salía sin la Seguridad Social ni el líquido). Intro cierra la casilla

@@ -383,7 +383,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.10.1</span>
+    <span class="logo-badge">Forense v2.10.2</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -1536,7 +1536,7 @@ function feedbackFor(d) {
   // v2.8.8: la sugerencia de pasar una línea al otro lado no se le dice: la pasaría para que cuadre, sin mirar el papel
   // v2.8.13: los redondeos de la empresa tampoco (la cifra está bien leída)
   // v2.9.1: ni el CIF no válido (podría inventarse uno que lo parezca)
-  const issues = realChecks(checkPayroll(d)).filter(c => c.key !== 'side' && c.key !== 'cif').slice(0, 10).map(c => '- ' + c.text);
+  const issues = realChecks(checkPayroll(d)).filter(c => c.key !== 'side' && c.key !== 'cif' && !String(c.key).startsWith('lado-')).slice(0, 10).map(c => '- ' + c.text);
   const tpl = codeTemplate(d);
   const ref = ['earnings', 'deductions'].map(side => Object.entries(tpl[side]).map(([c, t]) => `${c} ${t}`).join(' · ')).filter(Boolean);
   return `ATENCIÓN: es la SEGUNDA lectura de esta misma nómina. El programa ha comprobado la primera lectura y estas cuentas NO cuadran:
@@ -4093,7 +4093,8 @@ function linePrice(l, reads = []) {
   const u = num(l?.units), pr = num(l?.price), a = num(l?.amount);
   if (!Number.isFinite(u) || u <= 0 || !Number.isFinite(a) || a <= 0) return null;
   const fits = q => Math.abs(round2(u * q) - a) <= upTol(a);
-  if (Number.isFinite(pr) && pr > 0 && fits(pr)) return { price: pr, src: 'leido', err: 0.00005 };
+  // v2.10.2: el leído, con el margen de sus decimales (upTolLine); el calculado tiene que salir de algún precio impreso
+  if (Number.isFinite(pr) && pr > 0 && Math.abs(round2(u * pr) - a) <= upTolLine(l, u, pr, a)) return { price: pr, src: 'leido', err: 0.00005 };
   if (reads.length && !reads.some(fits)) return null;          // el precio no está en el papel: sin precio ese mes
   return { price: a / u, src: 'calculado', err: 0.005 / u };
 }
@@ -4439,6 +4440,21 @@ const ROUND_TOL = 0.10;                       // v2.8.13: hasta aquí, una difer
 const SUM_KEYS = ['sumE', 'sumD', 'net'];
 // Margen de «unidades × precio = importe» (comprobación 6). El historial de precios usa el mismo (v2.9.0).
 function upTol(x) { return Math.max(0.05, Math.abs(x) * 0.002); }
+// v2.10.2: el margen de una línea según los decimales impresos. Lo más que pueden mover los redondeos: medio
+// último decimal del precio (al menos 2) por las unidades, medio último decimal de las unidades (si los tienen) por
+// el precio y medio céntimo del importe. Ejemplo inventado: 30,00 días a 78,189 €, unos 41 céntimos (con upTol, 4,69 €:
+// una cifra del precio mal leída pasaba sin aviso). Nunca más ancho que upTol ni más estrecho que CHECK_TOL.
+function decimalsOf(v) {
+  const s = typeof v === 'number' ? (Number.isFinite(v) ? String(v) : '') : String(v ?? '').trim();
+  if (/e/i.test(s)) return 6;
+  const m = s.match(/[.,](\d+)$/);
+  return m ? m[1].length : 0;
+}
+function upTolLine(l, u, pr, a) {
+  const dp = Math.max(2, decimalsOf(l?.price)), du = decimalsOf(l?.units);
+  const t = u * 0.5 * 10 ** -dp + (du ? pr * 0.5 * 10 ** -du : 0) + 0.005;
+  return Math.min(upTol(a), Math.max(CHECK_TOL, t)) + 1e-9;
+}
 
 function pctOfLine(line) {
   const u = parsePct(line?.units);
@@ -4465,7 +4481,7 @@ function conceptSimilarity(a, b) {
 // (o de todas, si no hay CIF) que no tienen descuadres. Excluye la propia nómina.
 function codeTemplate(p) {
   const cif = compactText(p.company?.cif);
-  const tpl = { earnings: {}, deductions: {} };
+  const tpl = { earnings: {}, deductions: {}, n: { earnings: {}, deductions: {} } };   // n (v2.10.2): nóminas con el código en cada lado
   for (const q of payrolls) {
     if (q === p || (p.id && q.id === p.id) || (editingId && q.id === editingId)) continue;
     if (cif && compactText(q.company?.cif) && compactText(q.company?.cif) !== cif) continue;
@@ -4475,6 +4491,9 @@ function codeTemplate(p) {
         const code = String(l.code ?? '').trim();
         if (code && code !== '-') tpl[side][code] = String(l.concept || '');   // la más reciente manda
       }
+      // v2.10.2: en cuántas nóminas va cada código en este lado (las líneas a 0 € no cuentan: no mueven nada)
+      for (const code of new Set((q[side] || []).filter(l => amt(l.amount) !== 0).map(l => String(l.code ?? '').trim())))
+        if (code && code !== '-') tpl.n[side][code] = (tpl.n[side][code] || 0) + 1;
     }
   }
   return tpl;
@@ -4556,7 +4575,7 @@ function checkPayroll(p, opts = {}) {
       const u = num(l.units), pr = num(l.price), a = num(l.amount);
       if (!Number.isFinite(u) || !Number.isFinite(pr) || !Number.isFinite(a) || u <= 0 || pr <= 0) return;
       const expected = round2(u * pr);
-      if (Math.abs(expected - a) <= tol(a)) return;
+      if (Math.abs(expected - a) <= upTolLine(l, u, pr, a)) return;     // v2.10.2: margen por los decimales
       const shifted = lines.some((o, j) => { const x = num(o.amount); return j !== i && Number.isFinite(x) && x > 0 && Math.abs(x - expected) <= tol(x); });
       out.push({ level: shifted ? 'warn' : 'err', key: `up-${side}${i}`, paths: [shifted ? `${side}.${i}.price` : `${side}.${i}.amount`],
         // v2.8.7: el precio con todos sus decimales (con fmt() salía «× 7,13» y la cuenta parecía mal hecha)
@@ -4600,6 +4619,26 @@ function checkPayroll(p, opts = {}) {
       text: lines.length === 1
         ? `Si pasas ${name(lines[0])} a ${SIDE_NAME[mv.to]}, cuadran las dos sumas. Mira en el papel en qué columna está.`
         : `Si pasas a ${SIDE_NAME[mv.to]} una de estas líneas, cuadran las dos sumas: ${joinOr(lines.map(name))}. Mira en el papel cuál de ellas está en ${SIDE_NAME[mv.to]}.` });
+  }
+
+  // 12. (v2.10.2) Un código en el lado contrario al de tus otras nóminas (de la misma empresa): si dos líneas del
+  //     mismo importe se leen cambiadas de lado, las sumas cuadran igual y nada más lo ve. Aviso, no error (no pone ⚠
+  //     en el Panel). Solo si en las otras nóminas el código va al menos 2 veces en el otro lado y nunca en este; las
+  //     líneas a 0 € no cuentan. No cuenta para elegir lectura ni se le dice a Gemini en la segunda lectura (la
+  //     pasaría sin mirar el papel).
+  if (tpl) {
+    for (const side of ['earnings', 'deductions']) {
+      const other = otherSide(side);
+      (p[side] || []).forEach((l, i) => {
+        const code = String(l.code ?? '').trim();
+        if (!code || code === '-' || amt(l.amount) === 0) return;
+        const here = tpl.n[side][code] || 0, there = tpl.n[other][code] || 0;
+        if (here || there < 2) return;
+        out.push({ level: 'warn', key: `lado-${side}${i}`, paths: [`${side}.${i}.concept`],
+          text: `«${l.concept || code}» (${code}) está en ${SIDE_NAME[side]}, pero en tus otras nóminas (${there}) va en ${SIDE_NAME[other]}. ` +
+            `Si dos líneas del mismo importe están cambiadas de lado, las sumas cuadran igual: mira en el papel en qué columna está y, si hace falta, pásala con «⇄ Pasar una línea…».` });
+      });
+    }
   }
 
   // 11. (v2.9.1) El CIF / NIF de la empresa: formato y dígito o letra de control. Solo aviso (no cuenta para el ⚠
@@ -4707,7 +4746,7 @@ function checkErrors(p) { return checkPayroll(p).filter(c => c.level === 'err');
 // Puntuación de una lectura: cuanto menor, mejor (los errores pesan mucho más que los avisos).
 // v2.8.8: la sugerencia de pasar una línea de lado no cuenta: no es un fallo más, es una pista sobre las sumas.
 function readScore(d) {
-  const c = checkPayroll(d).filter(x => x.key !== 'side');
+  const c = checkPayroll(d).filter(x => x.key !== 'side' && !String(x.key).startsWith('lado-'));   // v2.10.2: tampoco el del lado
   return c.filter(x => x.level === 'err').length * 100 + c.filter(x => x.level === 'warn').length;
 }
 
