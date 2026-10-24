@@ -230,6 +230,22 @@ code { font-family:'JetBrains Mono',monospace; }
 .price-amounts { font-size:11px;color:var(--text-dim);margin-top:3px;line-height:1.6;font-family:'JetBrains Mono',monospace; }
 .price-sub { font-size:11px;font-weight:700;color:var(--accent);margin:14px 0 2px;text-transform:uppercase;letter-spacing:0.5px; }
 .price-note { font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5; }
+/* v2.10.0: ¿está completo el año? y comparar con Hacienda */
+.hac-payer { border-top:1px solid var(--border);padding-top:10px;margin-top:10px; }
+.hac-payer:first-of-type { border-top:none;margin-top:4px; }
+.hac-name { font-size:12px;font-weight:700;color:var(--text); }
+.hac-nif { font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace; }
+.hac-row { display:grid;grid-template-columns:1fr 112px;gap:4px 8px;align-items:center;margin-top:6px;font-size:11px;color:var(--text-dim); }
+.hac-input { width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:4px;font-size:13px;font-family:'JetBrains Mono',monospace;text-align:right; }
+.hac-input:focus { border-color:var(--accent);outline:none; }
+.hac-input.hac-text { text-align:left;font-family:inherit; }
+.hac-diff { font-size:11px;color:var(--text-muted);grid-column:1 / -1;margin-top:-2px; }
+.hac-res { font-size:12px;line-height:1.5;margin-top:8px;padding:8px 10px;border-radius:6px;background:var(--bg2);color:var(--text-dim); }
+.hac-res.ok { color:var(--success); }
+.hac-res.warn { color:var(--warning); }
+.hac-res table { width:100%;min-width:0;margin-top:6px;font-size:12px;border-collapse:collapse; }
+.hac-res td { padding:3px 0;border-bottom:1px solid var(--border);white-space:normal; }
+.hac-res td.r { text-align:right;white-space:nowrap;padding-left:8px; }
 .offline-banner { display:flex;gap:8px;align-items:flex-start;padding:10px 24px;background:var(--warning-bg);border-bottom:1px solid rgba(245,158,11,0.35);color:var(--warning);font-size:12px;line-height:1.5; }
 .offline-banner strong { color:var(--warning); }
 @media (max-width:700px) { .offline-banner { padding:10px 16px; } }
@@ -367,7 +383,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.9.2</span>
+    <span class="logo-badge">Forense v2.10.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -716,6 +732,7 @@ function classifyPayroll(d, fileName = '') {
 // ═══════════ STORAGE ═══════════
 function loadData() {
   try { payrolls = JSON.parse(localStorage.getItem('nomina-auditor-data') || '[]'); } catch { payrolls = []; }
+  loadHacienda();   // v2.10.0
   const key = localStorage.getItem('nomina-auditor-apikey') || '';
   document.getElementById('apiKeyInput').value = key;
   updateApiStatus(key);
@@ -3555,7 +3572,7 @@ function renderAnnual() {
     </div>
 
     <div class="year-pills">${years.map(y =>
-      `<button class="year-pill ${y === currentYear ? 'active' : ''}" onclick="currentYear=${jsArg(y)};renderAnnual()">${esc(y)}</button>`
+      `<button class="year-pill ${y === currentYear ? 'active' : ''}" onclick="currentYear=${jsArg(y)};hacOpen=false;renderAnnual()">${esc(y)}</button>`
     ).join('')}</div>
 
     ${fp.length === 0 ? `<div class="card empty"><p style="color:var(--text-dim)">No hay nóminas procesadas para ${esc(currentYear)}</p></div>` : `
@@ -3587,6 +3604,10 @@ function renderAnnual() {
       </table>
     </div>
 
+    ${completenessCardHtml(yearCompleteness(currentYear))}
+
+    ${haciendaCardHtml(currentYear)}
+
     ${priceCardHtml(prices, currentYear)}
 
     <div class="card">
@@ -3609,6 +3630,299 @@ function renderAnnual() {
   if (copyBtn) {
     copyBtn.onclick = () => copyToClipboard(annualText, copyBtn);
   }
+}
+
+// ═══════════ v2.10.0: ¿ESTÁ COMPLETO EL AÑO? Y COMPARAR CON HACIENDA (docs/TECNICO.md §23) ═══════════
+// Sin IA y sin conectarse a la AEAT. La app no puede saber que existe una nómina que nunca ha visto: o lo pregunta
+// (¿está completo el año?) o lo deduce de lo que la persona lee en Hacienda o en el certificado de la empresa.
+
+function appToday() { return new Date(); }   // aparte, para que las pruebas puedan fijar la fecha
+
+// Nóminas de un año agrupadas por empresa (companyIndex). Cada grupo: { key, name, nif, list }.
+// key es estable para guardar las cifras de Hacienda: el CIF que más se repite; sin CIF, el CCC; sin nada, 'sin'.
+// Las nóminas sin CIF ni CCC van con la única empresa del año o, si hay varias, en su propio grupo.
+function yearPayers(year, idx = companyIndex()) {
+  const fp = payrolls.filter(p => p.period?.year === year);
+  const byKey = new Map();
+  for (const p of fp) { const k = idx.get(p) || ''; if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(p); }
+  const keyed = [...byKey.keys()].filter(Boolean);
+  if (keyed.length === 1 && byKey.has('')) { byKey.get(keyed[0]).push(...byKey.get('')); byKey.delete(''); }
+  return [...byKey.entries()].map(([k, list]) => {
+    list.sort((a, b) => a.id.localeCompare(b.id));
+    const count = new Map();
+    for (const p of list) { const c = cifKey(p); if (c) count.set(c, (count.get(c) || 0) + 1); }
+    const main = [...count.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+    const ref = list.find(p => cifKey(p) === main) || list[0];
+    const ccc = list.map(cccKey).find(Boolean) || '';
+    return { key: main ? 'cif:' + main : ccc ? 'ccc:' + ccc : 'sin', idxKey: k, ref, list,
+      name: String(ref.company?.name || '').trim() || 'Empresa sin nombre',
+      nif: main ? String(ref.company?.cif || '').trim() : '' };
+  });
+}
+
+// Una mensual que lleva la paga extra como devengo (no la prorrata): esa extra ya está cobrada
+function hasExtraLine(p) { return (p.earnings || []).some(e => amt(e.amount) > 0 && EXTRA_RE.test(String(e.concept || '')) && !PRORRATA_RE.test(String(e.concept || ''))); }
+function hasProrrataLine(p) { return (p.earnings || []).some(e => amt(e.amount) > 0 && PRORRATA_RE.test(String(e.concept || ''))); }
+
+// ¿Está completo el año?
+//   · año anterior al actual: de enero a diciembre; año en curso: hasta el mes anterior al de hoy; año futuro: nada
+//   · con varias empresas, cada una solo entre su primera y su última mensual del año
+//   · pagas extra: las del año anterior de la misma empresa (con un mes de margen: la de verano puede ir en junio o julio);
+//     si las mensuales llevan la prorrata como devengo, no se esperan. Sin año anterior, nada.
+//   · la pregunta de la nómina aparte, solo en años cerrados
+function yearCompleteness(year) {
+  const y = Number(year), today = appToday();
+  const cy = today.getFullYear();
+  if (!Number.isInteger(y) || y > cy) return null;
+  const last = y < cy ? 11 : today.getMonth() - 1;           // último mes que ya se tendría que haber cobrado
+  const idx = companyIndex();
+  const payers = yearPayers(year, idx);
+  if (!payers.length) return null;
+  const mi = p => MONTHS.indexOf(p.period?.month);
+  const ordOf = list => list.filter(p => payTypeOf(p) === 'ordinaria');
+  const months = new Set(ordOf(payers.flatMap(b => b.list)).map(mi));
+  const out = { year: String(year), closed: y < cy, last, missing: [], companyGaps: [], extras: [], many: payers.length > 1, ask: y < cy };
+  for (let m = 0; m <= last; m++) if (!months.has(m)) out.missing.push(MONTHS[m]);
+  for (const b of payers) {
+    const ord = ordOf(b.list), ms = new Set(ord.map(mi));
+    if (out.many && ord.length) {
+      const from = Math.min(...ms), to = Math.min(Math.max(...ms), last);
+      const gaps = [];
+      for (let m = from; m <= to; m++) if (!ms.has(m)) gaps.push(MONTHS[m]);
+      if (gaps.length) out.companyGaps.push({ name: b.name, months: gaps });
+    }
+    if (!ord.length || ord.some(hasProrrataLine)) continue;
+    // Las extras solo se esperan mientras se trabaja en esa empresa: si otra empieza después (o acaba antes), el tramo
+    // de esta termina (o empieza) en su última (o primera) mensual; si no, llega hasta el último mes ya cobrado.
+    const lo = Math.min(...ms), hi = Math.max(...ms);
+    const others = payers.filter(o => o !== b).flatMap(o => ordOf(o.list).map(mi));
+    const from = others.some(m => m < lo) ? lo : 0, to = others.some(m => m > hi) ? hi : last;
+    const prev = payrolls.filter(p => p.period?.year === String(y - 1) && payTypeOf(p) === 'extra' && (idx.get(p) || '') === b.idxKey);
+    const got = new Set([...b.list.filter(p => payTypeOf(p) === 'extra'), ...ord.filter(hasExtraLine)].map(mi));
+    for (const m of [...new Set(prev.map(mi))].filter(m => m >= 0).sort((a, b) => a - b)) {
+      if (m > last || m < from || m > to) continue;
+      if (got.has(m) || got.has(m - 1) || got.has(m + 1)) continue;
+      out.extras.push({ name: b.name, month: MONTHS[m] });
+    }
+  }
+  return out;
+}
+
+function completenessAskText(year) {
+  return `¿Te pagaron en ${year} algún bonus, atrasos o finiquito en una nómina aparte, además de las mensuales? Si es así, súbela: si no, el Anual se queda corto.`;
+}
+
+// Los avisos para las observaciones y el texto exportable (sustituyen a la línea de huecos de antes)
+function completenessObs(c) {
+  if (!c) return [];
+  const obs = [];
+  const upTo = c.last >= 0 ? MONTHS[c.last] : '';
+  if (c.missing.length) obs.push({ level: 'warn', text: '⚠ Sin nómina mensual registrada: ' + c.missing.join(', ') +
+    (c.closed ? '' : ` (se miran las de Enero a ${upTo}, ya cobradas)`) });
+  else if (c.last >= 0) obs.push({ level: 'ok', text: `✓ Nóminas mensuales completas de Enero a ${upTo}` });
+  for (const g of c.companyGaps) obs.push({ level: 'warn', text: `⚠ ${g.name}: sin nómina mensual de ${g.months.join(', ')}` });
+  for (const e of c.extras) obs.push({ level: 'warn', text: `⚠ Falta la paga extra de ${e.month}${c.many ? ` de ${e.name}` : ''}: el año anterior hubo una` });
+  if (c.ask) obs.push({ level: 'info', text: 'ℹ ' + completenessAskText(c.year) });
+  return obs;
+}
+
+function completenessCardHtml(c) {
+  if (!c) return '';
+  const obs = completenessObs(c);
+  const bad = obs.some(o => o.level === 'warn');
+  return `<div class="card" id="completeCard">
+    <h3 style="margin:0 0 8px;font-size:13px;color:var(--accent)">${bad ? '⚠' : '✓'} ¿Está completo el año?</h3>
+    ${obs.map(o => `<div class="obs-item ${o.level}">${esc(o.text)}</div>`).join('')}
+  </div>`;
+}
+
+// ── Cifras de Hacienda (guardadas en el dispositivo y en el backup) ──
+// hacienda[año][clave] = { name, nif, integro, retenciones, gastos } (importes en número o null).
+// Clave: la del pagador de la app (yearPayers) u 'otro:N' para un pagador que la app no tiene.
+const HACIENDA_KEY = 'nomina-auditor-hacienda';
+const HAC_FIELDS = [
+  ['integro', 'Retribuciones dinerarias (íntegro)', 'bruto'],
+  ['retenciones', 'Retenciones', 'IRPF'],
+  ['gastos', 'Gastos deducibles (Seguridad Social)', 'S.S.'],
+];
+let hacienda = {};
+const HAC_YEAR_RE = /^\d{4}$/, HAC_KEY_RE = /^(cif:[a-z0-9]{1,20}|ccc:\d{9,20}|sin|otro:\d{1,3})$/;
+
+function sanitizeHacienda(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const [y, rows] of Object.entries(raw)) {
+    if (!HAC_YEAR_RE.test(y) || !rows || typeof rows !== 'object' || Array.isArray(rows)) continue;
+    const clean = {};
+    for (const [k, r] of Object.entries(rows).slice(0, 30)) {
+      if (!HAC_KEY_RE.test(k) || !r || typeof r !== 'object' || Array.isArray(r)) continue;
+      const row = { name: String(r.name ?? '').slice(0, 80), nif: String(r.nif ?? '').slice(0, 20) };
+      for (const [f] of HAC_FIELDS) { const v = Number(r[f]); row[f] = r[f] !== null && r[f] !== '' && Number.isFinite(v) && Math.abs(v) < 1e8 ? round2(v) : null; }
+      clean[k] = row;
+    }
+    if (Object.keys(clean).length) out[y] = clean;
+  }
+  return out;
+}
+function loadHacienda() { try { hacienda = sanitizeHacienda(JSON.parse(localStorage.getItem(HACIENDA_KEY) || '{}')); } catch { hacienda = {}; } }
+function saveHacienda() {
+  for (const y of Object.keys(hacienda)) {
+    for (const k of Object.keys(hacienda[y])) if (hacRowEmpty(hacienda[y][k]) && !k.startsWith('otro:')) delete hacienda[y][k];
+    if (!Object.keys(hacienda[y]).length) delete hacienda[y];
+  }
+  localStorage.setItem(HACIENDA_KEY, JSON.stringify(hacienda));
+  try { localStorage.setItem('nomina-auditor-lastchange', new Date().toISOString()); } catch {}   // cuenta para el aviso de backup
+}
+function hacRowEmpty(r) { return !r || HAC_FIELDS.every(([f]) => r[f] === null || r[f] === undefined); }
+
+// Compara lo de un pagador. app = calcTotals de sus nóminas del año (o null si la app no tiene ninguna).
+// Diferencias = Hacienda − app. Siempre se enseñan exactas; ≈ hasta 1 € (redondeos o un céntimo mal leído).
+const HAC_TOL = 1;
+function compareHacienda(app, h, baseIRPF = null) {
+  const entered = HAC_FIELDS.filter(([f]) => h && h[f] !== null && h[f] !== undefined);
+  if (!entered.length) return null;
+  if (!app) return { kind: 'sinNominas' };
+  const appOf = { integro: app.bruto, retenciones: app.irpf, gastos: app.ss };
+  const d = {};
+  for (const [f] of entered) d[f] = round2(h[f] - appOf[f]);
+  const vals = Object.values(d);
+  const res = { d, app: appOf };
+  if (vals.every(v => v === 0)) res.kind = 'ok';
+  else if (vals.every(v => Math.abs(v) <= HAC_TOL)) res.kind = 'cents';
+  else if ((d.integro ?? 0) > HAC_TOL && vals.every(v => v >= -HAC_TOL)) {
+    res.kind = 'falta';
+    const bruto = d.integro, ss = Math.max(0, d.gastos ?? 0), irpf = Math.max(0, d.retenciones ?? 0);
+    res.draw = { bruto, ss, irpf, liquido: round2(bruto - ss - irpf), ssPct: ss / bruto * 100, irpfPct: irpf / bruto * 100,
+      ssKnown: d.gastos !== undefined, irpfKnown: d.retenciones !== undefined };
+    res.ssFits = res.draw.ssKnown && res.draw.ssPct >= 4 && res.draw.ssPct <= 8;
+  } else if (vals.every(v => v >= -HAC_TOL)) res.kind = 'haciendaMas';   // más en Hacienda, sin el íntegro para dibujarla
+  else if (vals.every(v => v <= HAC_TOL)) res.kind = 'appMas';
+  else res.kind = 'mezcla';
+  // Exentos (dietas, kilometraje) o especie: la suma de bases de IRPF puede estar más cerca que el bruto
+  if (d.integro !== undefined && Math.abs(d.integro) > HAC_TOL && baseIRPF > 0 &&
+      Math.abs(h.integro - baseIRPF) + HAC_TOL < Math.abs(d.integro)) res.baseCloser = round2(h.integro - baseIRPF);
+  return res;
+}
+
+// ── Tarjeta «Comparar con Hacienda» del Anual ──
+let hacOpen = false;   // el formulario, abierto a mano (con cifras guardadas del año sale abierto siempre)
+function fmtDiff(v) { return (v > 0 ? '+' : '') + fmt(v) + ' €'; }
+function hacVal(v) { return v === null || v === undefined ? '' : fmt(v); }
+
+function hacResultHtml(r, year) {
+  if (!r) return '';
+  const box = (cls, html) => `<div class="hac-res ${cls}">${html}</div>`;
+  const diffs = () => HAC_FIELDS.filter(([f]) => r.d[f] !== undefined).map(([f, , short]) => `${short} ${fmtDiff(r.d[f])}`).join(' · ');
+  let html;
+  if (r.kind === 'sinNominas') return box('warn', `⚠ No tienes nóminas de este pagador en ${esc(year)}: ¿un trabajo que no has subido?`);
+  if (r.kind === 'ok') html = box('ok', '✓ <strong>Coincide</strong> con lo que tu empresa declaró a Hacienda.');
+  else if (r.kind === 'cents') html = box('ok', `≈ <strong>Coincide salvo unos céntimos</strong> (${esc(diffs())}): probablemente redondeos de la empresa o un céntimo mal leído en alguna nómina.`);
+  else if (r.kind === 'falta') {
+    const w = r.draw;
+    html = box('warn', `⚠ <strong>Parece que falta una nómina.</strong> Hacienda tiene ${esc(fmt(w.bruto))} € más de bruto que tus nóminas. Sería algo así:
+      <table>
+        <tr><td>Bruto</td><td class="r">≈ ${esc(fmt(w.bruto))} €</td></tr>
+        ${w.ssKnown ? `<tr><td>Seguridad Social</td><td class="r">≈ ${esc(fmt(w.ss))} € (${esc(fmtPct(w.ssPct))})</td></tr>` : ''}
+        ${w.irpfKnown ? `<tr><td>IRPF</td><td class="r">≈ ${esc(fmt(w.irpf))} € (${esc(fmtPct(w.irpfPct))})</td></tr>` : ''}
+        ${w.ssKnown && w.irpfKnown ? `<tr><td><strong>Líquido</strong></td><td class="r"><strong>≈ ${esc(fmt(w.liquido))} €</strong></td></tr>` : ''}
+      </table>
+      ${r.ssFits ? '<div style="margin-top:6px">La Seguridad Social encaja con una nómina normal (el trabajador cotiza alrededor del 6,5 %).</div>' : ''}
+      <div style="margin-top:6px">${w.ssKnown && w.irpfKnown ? `Búscala en el banco por un ingreso de unos ${esc(fmt(w.liquido))} € y` : 'Búscala en el banco y'} pídesela a la empresa. Suele ser un bonus, unos atrasos o un finiquito en una nómina aparte: cuando la subas, esto debería coincidir.</div>`);
+  } else if (r.kind === 'haciendaMas') html = box('warn', `⚠ <strong>Hacienda tiene más</strong> que tus nóminas (${esc(diffs())}). Escribe también el íntegro para ver cómo sería la nómina que falta.`);
+  else if (r.kind === 'appMas') html = box('warn', `⚠ <strong>Tus nóminas suman más</strong> que lo que declaró la empresa (${esc(diffs())}). Causas posibles, sin saber cuál: la nómina de diciembre cobrada en enero (la empresa puede haberla declarado en el otro año), atrasos de otro año, una cifra mal leída (revisa las nóminas con ⚠) o una nómina repetida.`);
+  else html = box('warn', `⚠ <strong>No coincide</strong> (${esc(diffs())}): unas cifras son mayores en Hacienda y otras en tus nóminas. Revisa las nóminas con ⚠ y compáralas con el papel.`);
+  if (r.baseCloser !== undefined) html += box('', `ℹ La suma de las bases de IRPF de tus nóminas se acerca más a Hacienda (${esc(fmtDiff(r.baseCloser))}): puede que el bruto lleve dietas o kilometraje exentos, que Hacienda no suma, o que parte se pague en especie.`);
+  return html;
+}
+
+function haciendaCardHtml(year) {
+  const payers = yearPayers(year);
+  if (!payers.length) return '';
+  const saved = hacienda[year] || {};
+  const head = '<h3 style="margin:0 0 8px;font-size:13px;color:var(--accent)">🏛️ Comparar con Hacienda</h3>';
+  const intro = `Comprueba que lo que declaró tu empresa a Hacienda coincide con tus nóminas de ${esc(year)}. Si Hacienda tiene más, suele ser una nómina aparte que no has subido.`;
+  if (!hacOpen && !Object.keys(saved).length) return `<div class="card" id="hacCard">${head}
+    <div class="price-intro">${intro}</div>
+    <button class="btn btn-secondary" onclick="hacOpen=true;renderHaciendaCard()">🏛️ Comparar con Hacienda</button></div>`;
+  const yN = Number(year), cy = appToday().getFullYear();
+  const field = (k, f, label, v, extra = '') => `<label class="hac-row"><span>${esc(label)}</span>
+    <input class="hac-input" inputmode="decimal" autocomplete="off" data-y="${esc(year)}" data-k="${esc(k)}" data-f="${f}" value="${esc(hacVal(v))}" onchange="hacInput(this)" placeholder="0,00"></label>${extra}`;
+  const block = (k, title, nif, h, app, list, other) => {
+    const r = compareHacienda(app, h, list ? round2(list.reduce((s, p) => s + amt(p.bases?.baseIRPF), 0)) : null);
+    const appOf = app ? { integro: app.bruto, retenciones: app.irpf, gastos: app.ss } : null;
+    return `<div class="hac-payer" data-k="${esc(k)}">
+      ${other ? `<label class="hac-row"><span>Pagador</span><input class="hac-input hac-text" data-y="${esc(year)}" data-k="${esc(k)}" data-f="name" value="${esc(h?.name || '')}" onchange="hacInput(this)" placeholder="Nombre"></label>
+        <label class="hac-row"><span>NIF del pagador</span><input class="hac-input hac-text" data-y="${esc(year)}" data-k="${esc(k)}" data-f="nif" value="${esc(h?.nif || '')}" onchange="hacInput(this)" placeholder="NIF"></label>`
+      : `<div class="hac-name">${esc(title)}</div>${nif ? `<div class="hac-nif">${esc(nif)}</div>` : ''}`}
+      ${HAC_FIELDS.map(([f, label]) => field(k, f, label, h?.[f] ?? null,
+        appOf ? `<div class="hac-diff" data-f="${f}">Tus nóminas: ${esc(fmt(appOf[f]))} €${r?.d?.[f] !== undefined ? ` · diferencia ${esc(r.d[f] === 0 ? '0,00 €' : fmtDiff(r.d[f]))}` : ''}</div>` : '')).join('')}
+      <div class="hac-out">${hacResultHtml(r, year)}
+      ${other ? `<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="hacRemove(${jsArg(year)},${jsArg(k)})">Quitar este pagador</button>`
+        : !hacRowEmpty(h) ? `<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="hacRemove(${jsArg(year)},${jsArg(k)})">Borrar las cifras</button>` : ''}</div>
+    </div>`;
+  };
+  const bad = payers.flatMap(b => b.list).filter(p => checkErrors(p).length);
+  const others = Object.keys(saved).filter(k => k.startsWith('otro:')).sort((a, b) => +a.slice(5) - +b.slice(5));
+  return `<div class="card" id="hacCard">${head}
+    <div class="price-intro">${intro} Las cifras están en la app o la web de la Agencia Tributaria → <strong>Renta ${esc(year)} → Datos fiscales → Rendimientos del trabajo</strong>${yN >= cy ? ` (salen en primavera de ${esc(yN + 1)})` : ''}, o en el <strong>certificado de retenciones</strong> que da la empresa (suele llegar en enero o febrero). Escribe las de cada pagador: se guardan en este dispositivo y en el backup. La app no entra en Hacienda: solo compara lo que escribes.</div>
+    ${bad.length ? `<div class="price-change big">⚠ Algunas nóminas no cuadran (${esc(bad.map(payName).join(', '))}): corrígelas primero, las diferencias pueden venir de ahí.</div>` : ''}
+    ${payers.map(b => block(b.key, b.name, b.nif, saved[b.key], calcTotals(b.list), b.list, false)).join('')}
+    ${others.map(k => block(k, '', '', saved[k], null, null, true)).join('')}
+    <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="hacAddOther(${jsArg(year)})">+ Otro pagador</button>
+    <div class="price-note">Compara el bruto de tus nóminas con el íntegro, el IRPF con las retenciones y la Seguridad Social con los gastos deducibles. Diferencias de hasta 1 € salen con ≈. Todo es orientativo: la app documenta, no aconseja sobre la declaración.</div>
+  </div>`;
+}
+
+// soft (al escribir una cifra): sin rehacer las casillas, solo las diferencias y el resultado de cada pagador. Si se
+// rehiciera la tarjeta entera, la casilla que se acaba de tocar (el cambio salta al salir de la anterior) desaparecería.
+function renderHaciendaCard(soft = false) {
+  const el = document.getElementById('hacCard');
+  if (!el) return;
+  if (!soft) { el.outerHTML = haciendaCardHtml(currentYear); return; }
+  const tmp = document.createElement('div');
+  tmp.innerHTML = haciendaCardHtml(currentYear);
+  const fresh = tmp.querySelector('#hacCard');
+  for (const blk of el.querySelectorAll('.hac-payer')) {
+    const nb = [...(fresh?.querySelectorAll('.hac-payer') || [])].find(x => x.dataset.k === blk.dataset.k);
+    if (!nb) continue;
+    for (const sel of ['.hac-out', ...HAC_FIELDS.map(([f]) => `.hac-diff[data-f="${f}"]`)]) {
+      const a = blk.querySelector(sel), b = nb.querySelector(sel);
+      if (a && b) a.innerHTML = b.innerHTML;
+    }
+  }
+}
+
+function hacInput(el) {
+  const { y, k, f } = el.dataset;
+  if (!HAC_YEAR_RE.test(y) || !HAC_KEY_RE.test(k)) return;
+  const row = ((hacienda[y] ||= {})[k] ||= { name: '', nif: '', integro: null, retenciones: null, gastos: null });
+  if (f === 'name' || f === 'nif') row[f] = el.value.trim().slice(0, f === 'name' ? 80 : 20);
+  else if (HAC_FIELDS.some(([x]) => x === f)) {
+    const t = el.value.trim();
+    const v = t === '' ? null : num(t);
+    if (v !== null && !Number.isFinite(v)) { alert('No se entiende esa cifra. Escríbela como en Hacienda, por ejemplo 18.250,40.'); el.value = hacVal(row[f]); return; }
+    row[f] = v === null ? null : round2(v);
+    el.value = hacVal(row[f]);
+  } else return;
+  saveHacienda();
+  renderHaciendaCard(true);
+}
+
+function hacAddOther(year) {
+  const rows = (hacienda[year] ||= {});
+  let n = 1;
+  while (rows['otro:' + n]) n++;
+  rows['otro:' + n] = { name: '', nif: '', integro: null, retenciones: null, gastos: null };
+  hacOpen = true;
+  saveHacienda();
+  renderHaciendaCard();
+}
+
+function hacRemove(year, key) {
+  if (!hacienda[year]?.[key]) return;
+  delete hacienda[year][key];
+  saveHacienda();
+  renderHaciendaCard();
 }
 
 // Las comparaciones de estabilidad (IRPF, base, categoría) se hacen solo con las mensuales ordinarias:
@@ -3639,12 +3953,8 @@ function buildAnnualObservations(fp, year = fp[0]?.period?.year, prices = annual
     ? { level: 'warn', text: '⚠ Cambios de Categoría o tipo de Contrato' }
     : { level: 'ok', text: '✓ Sin cambios de Categoría ni tipo de Contrato' });
 
-  // Huecos: meses sin nómina mensual entre enero y el último mes con alguna nómina
-  const lastIdx = Math.max(-1, ...fp.map(p => MONTHS.indexOf(p.period?.month)));
-  const missing = MONTHS.slice(0, lastIdx + 1).filter(m => !ord.some(p => p.period?.month === m));
-  if (lastIdx >= 0) obs.push(missing.length
-    ? { level: 'warn', text: '⚠ Sin nómina mensual registrada: ' + missing.join(', ') }
-    : { level: 'ok', text: `✓ Nóminas mensuales completas de Enero a ${MONTHS[lastIdx]}` });
+  // v2.10.0: ¿está completo el año? (antes solo miraba de enero al último mes con nómina: no veía los huecos del final)
+  if (fp.length) obs.push(...completenessObs(yearCompleteness(year)));
 
   if (fp.some(p => ['calculado', 'aprox'].includes(irpfRateOf(p).source)))
     obs.push({ level: 'info', text: 'ℹ * % de IRPF calculado (no venía en la nómina). Corrígelo desde "Ver" si no coincide con el papel' });
@@ -4420,15 +4730,22 @@ function generateBackupFilename() {
   return `nominas-backup-${date}-${time}.json`;
 }
 
+// v2.10.0: la versión sale del logo, para no tener que cambiarla en dos sitios (en la v2.9.2 el backup siguió diciendo 2.9.1)
+function appVersion() {
+  return document.querySelector('.logo-badge')?.textContent.match(/v(\d+(?:\.\d+)+)/)?.[1] || '';
+}
+
 function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.9.1',
+      version: appVersion(),
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },
-    payrolls: payrolls
+    payrolls: payrolls,
+    // v2.10.0: las cifras de Hacienda que ha escrito la persona (solo si hay alguna)
+    ...(Object.keys(hacienda).length ? { hacienda } : {})
   };
 }
 
@@ -4608,6 +4925,10 @@ async function processImportedJSON(jsonText, resultDiv, restoredDocs = 0) {
     }
     sortPayrolls();
     saveData();
+    // v2.10.0: las cifras de Hacienda del backup (las del mismo año y pagador sustituyen a las de aquí)
+    const hacIn = sanitizeHacienda(data && !Array.isArray(data) ? data.hacienda : null);
+    for (const [y, rows] of Object.entries(hacIn)) hacienda[y] = { ...(hacienda[y] || {}), ...rows };
+    if (Object.keys(hacIn).length) saveHacienda();
     // Restaurar en un dispositivo vacío: lo que hay ahora es justo lo que ya está en ese backup
     if (wasEmpty) lsSetNow('nomina-auditor-lastfullbackup');
     const exportedAt = data._meta?.exportedAt ? new Date(data._meta.exportedAt) : null;
@@ -4694,6 +5015,8 @@ async function clearAllData() {
   if (!confirm('SEGUNDA CONFIRMACIÓN:\n\n¿Realmente quieres borrar todo?')) return;
   payrolls = [];
   saveData();
+  hacienda = {};          // v2.10.0
+  saveHacienda();
   batch = emptyBatch();
   batchPause = null;
   saveBatch();

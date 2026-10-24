@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.9.2-blue)
+![Version](https://img.shields.io/badge/version-2.10.0-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.9.2)
+## 🆕 Novedades (v2.3 – v2.10.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 🏛️ **¿Está completo el año? y Comparar con Hacienda (v2.10.0)** | El Anual te dice si **falta alguna nómina** (también las del final del año y las pagas extra que tuviste el año anterior) y, en los años cerrados, te pregunta si cobraste algún bonus, atrasos o finiquito en una **nómina aparte**. Y si escribes las tres cifras de tus **datos fiscales** (o del certificado de retenciones de tu empresa), las compara con tus nóminas: si coinciden, si difieren en céntimos o, si Hacienda tiene más, **cómo sería la nómina que te falta** para buscarla en el banco. Sin IA y sin entrar en Hacienda: tú escribes las cifras y se guardan solo en tu dispositivo (y en el backup) | Anual |
 | 📊 **Precios por concepto (v2.9.0–v2.9.1)** | La app compara el **precio por unidad** de cada concepto (salario base por día, plus por hora…) con el de tu nómina mensual anterior y te dice si **sube, baja o cambia mucho**, en qué mes y desde cuándo. Los conceptos sin precio (incentivos, comisiones…) muestran su importe mes a mes. Sin IA: lo calcula la app con tus nóminas guardadas | Anual y Ver |
 | ≈ **Redondeos de la empresa (v2.8.13)** | Si el IRPF, una cotización o la base de cotización difieren de la cuenta (base × %) en **10 céntimos o menos** y las sumas de la nómina cuadran, la app lo muestra en gris como *redondeo de la empresa*, no como aviso: la cifra está bien leída y la diferencia es del cálculo de la empresa. Si alguna suma no cuadra, sigue siendo un aviso | Revisión, Ver nómina, bandeja y texto para el abogado |
 | 🗂️ **Guardar el backup en Drive (v2.8.10)** | En Chrome (Android y ordenador), **🗂️ Guardar backup completo…** abre el «Guardar como» del móvil o del ordenador: eliges Drive (o una carpeta) y la app comprueba que el archivo ha quedado entero. Drive lo sube después: la app te dice cuánto debe pesar para que lo compruebes en Drive (v2.8.11). Sin iniciar sesión en Google ni dar permisos a la app. En iPhone y en otros navegadores se descarga, como antes, y el aviso explica cómo llevarlo a Drive desde Descargas | Panel · Datos |
@@ -261,6 +262,28 @@ Cómo lo hace:
 - **Solo informa:** no cambia ninguna nómina ni el ⚠ del Panel
 
 Ejemplo (datos inventados): *«Salario base» (010): el precio por unidad sube un 3,00 % (de 40,00 € a 41,20 €) en Marzo 2026, respecto a Diciembre 2025. Entre medias faltan 2 nóminas mensuales.*
+
+---
+
+## 🏛️ ¿Está completo el año? y Comparar con Hacienda
+
+**¿Está completo el año?** (Anual, v2.10.0). Un informe anual solo vale si están todas las nóminas. La tarjeta te avisa de:
+- **Meses sin nómina mensual:** de enero a diciembre en los años cerrados; en el año en curso, hasta el mes anterior al de hoy (no te pide la que todavía no has cobrado). Si cambiaste de empresa, también los huecos de cada una dentro de su tramo
+- **Pagas extra que faltan:** si el año anterior la misma empresa te pagó una extra (por ejemplo, la de diciembre) y este año no está, ni aparte ni como línea de la mensual (con un mes de margen). Si tus mensuales llevan la prorrata de pagas, no se espera ninguna aparte
+- **Nóminas aparte:** en los años cerrados te pregunta si cobraste algún bonus, atrasos o finiquito en una nómina aparte. La app no puede saber que existe una nómina que nunca ha visto, y esas suelen ser las que no se guardan
+
+Son avisos: no ponen ⚠ en el Panel ni cambian ninguna nómina.
+
+**Comparar con Hacienda** (Anual, v2.10.0). Tu empresa declara a Hacienda lo que te ha pagado. Para comprobar que coincide con tus nóminas:
+1. Busca las cifras en la app o la web de la Agencia Tributaria → **Renta (año) → Datos fiscales → Rendimientos del trabajo** (salen en primavera del año siguiente), o en el **certificado de retenciones** que da la empresa (suele llegar en enero o febrero)
+2. En el Anual, pulsa **🏛️ Comparar con Hacienda** y escribe, por pagador, el **íntegro** (retribuciones dinerarias), las **retenciones** y los **gastos deducibles** (Seguridad Social). Si Hacienda tiene un pagador que la app no tiene, añádelo con **+ Otro pagador**
+3. La app compara con el bruto, el IRPF y la Seguridad Social de tus nóminas de ese año, y enseña la diferencia exacta:
+   - ✓ **Coincide**, o ≈ **coincide salvo unos céntimos** (hasta 1 €: redondeos o un céntimo mal leído)
+   - **Parece que falta una nómina** (Hacienda tiene más): te dibuja cómo sería (bruto, Seguridad Social, IRPF y líquido aproximados) para que la busques en el banco y se la pidas a la empresa
+   - **Tus nóminas suman más:** las causas posibles (la nómina de diciembre cobrada en enero, atrasos de otro año, una cifra mal leída, una nómina repetida)
+   - **Un pagador sin nóminas en la app:** ¿un trabajo que no has subido?
+
+Las cifras se guardan en tu dispositivo y van en el backup. La app **no entra en Hacienda** (ni con Cl@ve ni con ningún servidor): solo compara lo que escribes. Es orientativo: documenta, no aconseja sobre tu declaración.
 
 ---
 
@@ -665,6 +688,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.10.0 (Octubre 2026)
+- **¿Está completo el año?** Tarjeta en el Anual (y en las observaciones y el texto exportable). Los años cerrados se miran de enero a diciembre y el año en curso hasta el mes anterior al de hoy: antes solo se miraba hasta el último mes con nómina, y con noviembre y diciembre sin subir decía «completas de enero a octubre». Con dos empresas, los huecos de cada una dentro de su tramo. Avisa de la **paga extra que falta** si el año anterior la misma empresa la pagó (un mes de margen; no si las mensuales llevan la prorrata como devengo). En los años cerrados, pregunta si hubo algún bonus, atrasos o finiquito en una nómina aparte. Son avisos: el Panel y las nóminas guardadas no cambian
+- **Comparar con Hacienda:** en el Anual, escribe por pagador el íntegro, las retenciones y los gastos deducibles de tus datos fiscales o del certificado de retenciones de la empresa. La app los compara con el bruto, el IRPF y la Seguridad Social de tus nóminas, con la diferencia exacta: ✓ coincide, ≈ coincide salvo céntimos (hasta 1 €), o no coincide. Si Hacienda tiene más, dibuja **la nómina que parece faltar** (bruto, S.S., IRPF y líquido aproximados); si la app tiene más, da las causas posibles; y avisa de un pagador sin nóminas en la app. Las cifras se guardan en el dispositivo y van en el backup. Sin IA y sin entrar en Hacienda
+- **Backup:** la versión que guarda dentro sale ahora del logo (en la v2.9.2 se quedó en 2.9.1)
 
 ### v2.9.2 (Octubre 2026)
 - **Backup completo en Drive (Android):** Drive a veces se queda en «Subiendo…» y deja el archivo con 0 bytes, aunque la app lo haya escrito entero. El aviso de después de guardar lo explica: si pesa 0 o se queda en «Subiendo…», volver a guardarlo en Drive (aunque el primero siga subiendo), porque el segundo suele subir bien, y después borrar en Drive el que pesa 0. La app no puede saber si Drive ha terminado de subirlo
