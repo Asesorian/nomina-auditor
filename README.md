@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.8.13-blue)
+![Version](https://img.shields.io/badge/version-2.9.0-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.8.13)
+## 🆕 Novedades (v2.3 – v2.9.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 📊 **Precios por concepto (v2.9.0)** | La app compara el **precio por unidad** de cada concepto (salario base por día, plus por hora…) con el de tu nómina mensual anterior y te dice si **sube, baja o cambia mucho**, en qué mes y desde cuándo. Los conceptos sin precio (incentivos, comisiones…) muestran su importe mes a mes. Sin IA: lo calcula la app con tus nóminas guardadas | Anual y Ver |
 | ≈ **Redondeos de la empresa (v2.8.13)** | Si el IRPF, una cotización o la base de cotización difieren de la cuenta (base × %) en **10 céntimos o menos** y las sumas de la nómina cuadran, la app lo muestra en gris como *redondeo de la empresa*, no como aviso: la cifra está bien leída y la diferencia es del cálculo de la empresa. Si alguna suma no cuadra, sigue siendo un aviso | Revisión, Ver nómina, bandeja y texto para el abogado |
 | 🗂️ **Guardar el backup en Drive (v2.8.10)** | En Chrome (Android y ordenador), **🗂️ Guardar backup completo…** abre el «Guardar como» del móvil o del ordenador: eliges Drive (o una carpeta) y la app comprueba que el archivo ha quedado entero. Drive lo sube después: la app te dice cuánto debe pesar para que lo compruebes en Drive (v2.8.11). Sin iniciar sesión en Google ni dar permisos a la app. En iPhone y en otros navegadores se descarga, como antes, y el aviso explica cómo llevarlo a Drive desde Descargas | Panel · Datos |
 | 💳 **Saldo de Gemini agotado (v2.8.9)** | Google cobra ahora Gemini por **prepago**: compras crédito y cada lectura lo va gastando. Si se acaba, la app lo dice tal cual («Se ha acabado el saldo de Gemini de esta clave») y explica qué hacer, en vez de un error genérico. En la bandeja, la lectura se para sin marcar nada como error y sigue con *Reanudar* cuando hay saldo | Subir · Bandeja |
@@ -108,8 +109,8 @@ Tus nóminas y backups de versiones anteriores siguen funcionando tal cual: no h
 
 ### 5️⃣ Consulta
 - **Panel:** totales del año (bruto, neto, IRPF, Seguridad Social) y lista de nóminas. Bajo el mes aparece en negrita **Paga extra** o **Atrasos** (y **Paga extra 2** si hay otra el mismo mes). El 📎 indica que tiene guardado el documento original y el ⚠ que sus cuentas no cuadran (encima de la lista se dice cuáles)
-- **Ver** (en cada nómina): informe completo, listo para copiar y enviar a tu abogado
-- **Anual:** tabla de todo el año, totales y observaciones automáticas
+- **Ver** (en cada nómina): informe completo, listo para copiar y enviar a tu abogado. En las mensuales, **Precios por unidad** dice si algún precio ha cambiado respecto a tus nóminas anteriores
+- **Anual:** tabla de todo el año, totales, **precios por concepto** y observaciones automáticas
 
 ### 6️⃣ Corrige algo ya guardado (desde Ver)
 - **✏ Corregir datos:** abre la revisión con los datos guardados. Cambia lo que haga falta y pulsa **✓ Guardar cambios** (se guarda en su sitio, con su documento original). **Cancelar** o salir de la pantalla no cambia nada
@@ -239,6 +240,25 @@ Gemini **solo lee** la nómina, y a veces se equivoca: se salta una fila, pone u
 **Redondeos de la empresa (v2.8.13):** muchas empresas calculan el IRPF o las cotizaciones de forma que el resultado se queda a unos céntimos de base × %. Si la diferencia es de **10 céntimos o menos** y las tres sumas de la nómina cuadran, la cifra está bien leída: la app lo muestra en gris con **≈** («redondeo de la empresa») y no lo cuenta como aviso. Si alguna suma no cuadra, o falta un total para comprobarlo, sigue saliendo como ⚠ aviso, porque podría ser un error de lectura.
 
 **Lo que no puede detectar:** un error de lectura que siga cuadrando (por ejemplo, dos conceptos con el nombre cambiado pero con sus importes bien). Por eso la revisión humana sigue siendo obligatoria.
+
+---
+
+## 📊 Precios por concepto
+
+Casi todos los conceptos de una nómina son **unidades × precio**: 30 días × el salario base por día, 20 horas × el plus por hora… El importe cambia cada mes con los días o las horas, pero el **precio por unidad** solo cambia cuando cambia lo que te pagan (una subida del convenio, un cambio de categoría o de jornada… o un error). La app lo vigila sola, sin IA, con tus nóminas guardadas:
+
+- **Anual → Precios por concepto:** el precio de cada concepto y sus cambios en el año: **▲** sube, **▼** baja (en ámbar) y **⚠ cambio grande** (más del 25 %: compruébalo con el papel; puede ser un error de lectura o un cambio de jornada o de contrato). Cada cambio dice en qué mes y desde qué nómina, y si entre medias te faltan nóminas por subir. Los cambios van también a las *Observaciones para Abogado* y al texto que se copia
+- **Ver → Precios por unidad** (en cada nómina mensual): si algún precio ha cambiado respecto a tus nóminas anteriores. Si hay cambios, la copia para el abogado los incluye
+- **Conceptos sin precio** (incentivos, comisiones, un seguro…): solo se ve su importe de cada mes, sin avisos, porque cambian por naturaleza
+
+Cómo lo hace:
+- Compara solo nóminas **mensuales** de la **misma empresa**: las pagas extra y los atrasos no cuentan (los atrasos llevan diferencias, no precios), ni las nóminas con ⚠ (sus cifras no son fiables hasta que las corrijas)
+- Reconoce cada concepto por su **código**, aunque el nombre venga escrito de otra forma en cada nómina; si una nómina no tiene códigos, por el nombre
+- Usa el precio de la nómina si **unidades × precio = importe**; si no cuadra (por ejemplo, con los precios corridos de fila) o no viene, lo calcula como **importe ÷ unidades** y lo marca con *
+- Cuenta como cambio una diferencia del **0,5 % o más**: los redondeos de la empresa no llegan
+- **Solo informa:** no cambia ninguna nómina ni el ⚠ del Panel
+
+Ejemplo (datos inventados): *«Salario base» (010): el precio por unidad sube un 3,00 % (de 40,00 € a 41,20 €) en Marzo 2026, respecto a Diciembre 2025. Entre medias faltan 2 nóminas mensuales.*
 
 ---
 
@@ -643,6 +663,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.9.0 (Octubre 2026)
+- **Precios por concepto:** la app compara el precio por unidad de cada devengo con el de la nómina mensual anterior de la misma empresa y avisa si sube, baja o cambia más del 25 % (desde el 0,5 %). Se ve en el Informe Anual (tarjeta *Precios por concepto*, observaciones y texto exportable) y en *Ver* de cada nómina mensual (y en la copia para el abogado si hay cambios). Reconoce cada concepto por su código aunque cambie el nombre, y por el nombre si a una nómina le faltan los códigos. Con precios corridos de fila o sin precio leído, calcula importe ÷ unidades. Fuera: pagas extra, atrasos, deducciones y nóminas con ⚠. Los conceptos sin precio muestran su importe de cada mes, sin avisos. Sin IA y sin cambiar ninguna nómina guardada
 
 ### v2.8.13 (Octubre 2026)
 - **Redondeos de la empresa:** una diferencia de 10 céntimos o menos entre el IRPF o una cotización y su base × %, o entre remuneración + prorrata y la base C.C., sale en gris con **≈** como redondeo de la empresa, no como aviso. Solo cuando las tres sumas de la nómina se pueden comprobar y cuadran (así la cifra está bien leída); si alguna falla, sigue siendo un aviso. No cuenta para *Con avisos*, no marca celdas, no ofrece *Releer* ni se le dice a Gemini en la segunda lectura. El informe y el texto para el abogado lo siguen mostrando

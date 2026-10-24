@@ -217,6 +217,19 @@ code { font-family:'JetBrains Mono',monospace; }
 .cmp th, .cmp td { padding:5px 6px;border-bottom:1px solid var(--border);text-align:left; }
 .cmp td.r, .cmp th.r { text-align:right;font-family:'JetBrains Mono',monospace; }
 .obs-item.info { color:var(--text-dim); }
+/* Precios por concepto (v2.9.0) */
+.price-intro { font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:6px; }
+.price-item { padding:8px 0;border-top:1px solid var(--border); }
+.price-head { display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12px; }
+.price-name { font-weight:600;min-width:0;overflow-wrap:anywhere; }
+.price-code { font-size:10px;font-weight:400;color:var(--text-muted);font-family:'JetBrains Mono',monospace; }
+.price-now { font-family:'JetBrains Mono',monospace;white-space:nowrap; }
+.price-change { font-size:11px;margin-top:3px;line-height:1.45;color:var(--text-dim); }
+.price-change.down, .price-change.big { color:var(--warning); }
+.price-change.none { color:var(--text-muted); }
+.price-amounts { font-size:11px;color:var(--text-dim);margin-top:3px;line-height:1.6;font-family:'JetBrains Mono',monospace; }
+.price-sub { font-size:11px;font-weight:700;color:var(--accent);margin:14px 0 2px;text-transform:uppercase;letter-spacing:0.5px; }
+.price-note { font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5; }
 .offline-banner { display:flex;gap:8px;align-items:flex-start;padding:10px 24px;background:var(--warning-bg);border-bottom:1px solid rgba(245,158,11,0.35);color:var(--warning);font-size:12px;line-height:1.5; }
 .offline-banner strong { color:var(--warning); }
 @media (max-width:700px) { .offline-banner { padding:10px 16px; } }
@@ -354,7 +367,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.8.13</span>
+    <span class="logo-badge">Forense v2.9.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -3023,6 +3036,14 @@ Revisar con el documento original antes de usar estos datos.
 ------------------------------------------------------------
 ${[...real, ...checks.filter(c => c.level === 'round')].map(c => chkIcon(c.level) + ' ' + c.text).join('\n')}
 ------------------------------------------------------------` : '';
+  // v2.9.0: cambios del precio por unidad frente a las mensuales anteriores (solo si los hay; detrás de los avisos)
+  const pr = priceReport(p);
+  const priceTail = pr?.text ? `
+
+${checks.length ? 6 : 5}. CAMBIOS DEL PRECIO POR UNIDAD (RESPECTO A LAS NÓMINAS ANTERIORES)
+------------------------------------------------------------
+${pr.text}
+------------------------------------------------------------` : '';
   const reportText = `${warnHead}RESUMEN DE DATOS DE NÓMINA - PERIODO: ${p.period?.month || '?'} ${p.period?.year || '?'}${lbl ? ' — ' + lbl.toUpperCase() : ''}
 ------------------------------------------------------------
 1. DATOS IDENTIFICATIVOS
@@ -3051,7 +3072,7 @@ TOTAL DEDUCIR: ${fmt(p.totals?.totalDeductions)} €
 LÍQUIDO A PERCIBIR (NETO): ${fmt(p.totals?.netPay)} €
 BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} €
 % RETENCIÓN IRPF: ${irpf.rate === null ? 'N/L' : fmtPct(irpf.rate)}${irpf.source && irpf.source !== 'nomina' ? ' (' + IRPF_SOURCE_TEXT[irpf.source] + ')' : ''}
-------------------------------------------------------------${warnTail}`;
+------------------------------------------------------------${warnTail}${priceTail}`;
 
   const state = errs.length ? 'bad' : real.length ? 'meh' : 'good';
   document.getElementById('reportContent').innerHTML = `
@@ -3069,6 +3090,10 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
       </div>
       ${p.editedAt ? `<div style="font-size:11px;color:var(--text-muted);margin-top:8px">Datos corregidos después de guardarla, el ${esc(new Date(p.editedAt).toLocaleDateString('es-ES'))}</div>` : ''}
     </div>
+    ${pr ? `<div class="card" id="priceReport" style="padding:14px 16px">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Precios por unidad</div>
+      ${pr.html}
+    </div>` : ''}
     <div class="card" style="padding:14px 16px">
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Tipo de nómina</div>
       <div class="type-picker">
@@ -3518,7 +3543,8 @@ function renderAnnual() {
   const fp = payrolls.filter(p => p.period?.year === currentYear);
   const totals = calcTotals(fp);
 
-  const obs = buildAnnualObservations(fp);
+  const prices = annualPrices(currentYear);             // v2.9.0
+  const obs = buildAnnualObservations(fp, currentYear, prices);
   const annualText = generateAnnualText(fp, totals, currentYear, obs);
 
   document.getElementById('annualContent').innerHTML = `
@@ -3560,6 +3586,8 @@ function renderAnnual() {
       </table>
     </div>
 
+    ${priceCardHtml(prices, currentYear)}
+
     <div class="card">
       <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">Observaciones para Abogado</h3>
       ${obs.map(o => `<div class="obs-item ${o.level}">${esc(o.text)}</div>`).join('')}
@@ -3584,7 +3612,7 @@ function renderAnnual() {
 
 // Las comparaciones de estabilidad (IRPF, base, categoría) se hacen solo con las mensuales ordinarias:
 // una paga extra suele llevar la base de cotización a 0 (va prorrateada) y daría falsas alarmas.
-function buildAnnualObservations(fp) {
+function buildAnnualObservations(fp, year = fp[0]?.period?.year, prices = annualPrices(year)) {
   const ord = fp.filter(p => payTypeOf(p) === 'ordinaria');
   const others = fp.filter(p => payTypeOf(p) !== 'ordinaria');
   const obs = [];
@@ -3620,7 +3648,193 @@ function buildAnnualObservations(fp) {
   if (fp.some(p => ['calculado', 'aprox'].includes(irpfRateOf(p).source)))
     obs.push({ level: 'info', text: 'ℹ * % de IRPF calculado (no venía en la nómina). Corrígelo desde "Ver" si no coincide con el papel' });
   if (others.length) obs.push({ level: 'info', text: 'ℹ Pagas extra / atrasos incluidos en los totales: ' + others.map(p => `${p.period?.month} (${payLabelOf(p)})`).join(', ') });
+
+  // v2.9.0: cambios del precio por unidad en el año (comparando también la primera del año con la anterior)
+  const changes = prices.flatMap(b => b.changes);
+  for (const c of changes) obs.push({ level: c.kind === 'up' ? 'info' : 'warn', text: (c.kind === 'up' ? 'ℹ ' : '⚠ ') + priceChangeText(c) });
+  const nPriced = prices.reduce((s, b) => s + b.withPrice.length, 0);
+  if (nPriced && !changes.length)
+    obs.push({ level: 'ok', text: `✓ Sin cambios del precio por unidad en ${year} (${nPriced === 1 ? '1 concepto con precio' : nPriced + ' conceptos con precio'})` });
+  if (changes.some(c => c.from.price.src === 'calculado' || c.to.price.src === 'calculado'))
+    obs.push({ level: 'info', text: 'ℹ ' + PRICE_CALC_NOTE });
   return obs;
+}
+
+// ═══════════ PRECIOS POR CONCEPTO (v2.9.0) ═══════════
+// Sin IA. El precio por unidad de cada devengo, de una nómina MENSUAL a la anterior de la misma empresa (CIF).
+//   · Fuera: pagas extra y atrasos (los atrasos llevan diferencias, no precios), las deducciones (ya se comprueban
+//     como base × %) y las nóminas con ⚠ (checkErrors: sus cifras no son fiables).
+//   · El concepto es su CÓDIGO: el nombre cambia de una nómina a otra (un símbolo delante, otras mayúsculas, errores
+//     de lectura). Sin código, el nombre parecido; una línea sin código (Gemini no lo leyó) se une por el nombre al concepto
+//     con código, y al revés. Dos códigos distintos nunca se juntan; un código con un concepto muy distinto (la empresa
+//     renumera) va aparte.
+//   · Precio: el leído si unidades × precio = importe (con el margen de la comprobación 6, upTol); si no, importe ÷
+//     unidades (con los precios corridos de fila, el leído es el de otra línea). Sin unidades: concepto sin precio,
+//     del que solo se enseña el importe de cada mes, sin avisos.
+//   · Cambio: desde PRICE_MIN_PCT y por encima de lo que pueden mover los redondeos de los dos precios.
+//     Más de PRICE_BIG_PCT: «cambio grande» (error de lectura, cambio de jornada o de contrato…: lo mira la persona).
+//   · Solo informa: no entra en checkPayroll, así que ninguna nómina guardada cambia de estado ni sale con ⚠.
+const PRICE_MIN_PCT = 0.5;
+const PRICE_BIG_PCT = 25;
+const PRICE_ICON = { up: '▲', down: '▼', big: '⚠' };
+const PRICE_CALC_NOTE = '* Precio calculado como importe ÷ unidades: el precio leído no cuadraba con el importe (o no venía).';
+
+function cifKey(p) { const k = compactText(p?.company?.cif); return k && k !== 'nl' ? k : ''; }
+function sameCompany(a, b) { const x = cifKey(a), y = cifKey(b); return !x || !y || x === y; }
+function monthIndex(p) { const m = String(p?.id || '').match(/^(\d{4})-(\d{2})/); return m ? +m[1] * 12 + +m[2] - 1 : NaN; }
+function cleanCode(c) { const s = String(c ?? '').trim(); return /^[-–—]?$/.test(s) ? '' : s; }
+function conceptLabel(c) { return String(c ?? '').replace(/^[\s*·.\-]+/, '').trim() || '(sin nombre)'; }
+function fmtSignedPct(x) { return (x > 0 ? '+' : '') + fmt(x) + ' %'; }
+function priceText(pr) { return fmtPrice(pr.price) + ' €' + (pr.src === 'calculado' ? '*' : ''); }
+
+// Precio por unidad de una línea de devengo: { price, src: 'leido' | 'calculado', err } o null si no tiene.
+// err = lo que puede moverse el precio por redondeo: 4 decimales en el leído; el céntimo del importe en el calculado.
+function linePrice(l) {
+  const u = num(l?.units), pr = num(l?.price), a = num(l?.amount);
+  if (!Number.isFinite(u) || u <= 0 || !Number.isFinite(a) || a <= 0) return null;
+  if (Number.isFinite(pr) && pr > 0 && Math.abs(round2(u * pr) - a) <= upTol(a)) return { price: pr, src: 'leido', err: 0.00005 };
+  return { price: a / u, src: 'calculado', err: 0.005 / u };
+}
+
+// Historial de los devengos de las mensuales de la empresa de `ref`, en orden de fecha.
+// groups: [{ code, concept (el último nombre), rows: [{ p, lines, amount, price }] }] en el orden en que aparecen.
+// Si un concepto sale dos veces en la misma nómina (p. ej. una subida a mitad de mes), cuenta el precio de la última línea.
+function priceHistory(ref) {
+  const used = [], skipped = [], months = new Set();
+  for (const p of payrolls) {
+    if (payTypeOf(p) !== 'ordinaria' || !sameCompany(p, ref)) continue;
+    months.add(monthIndex(p));
+    (checkErrors(p).length ? skipped : used).push(p);
+  }
+  used.sort((a, b) => a.id.localeCompare(b.id));
+  const groups = [];
+  for (const p of used) {
+    const here = new Map();                                   // grupo → su fila en esta nómina
+    for (const l of p.earnings || []) {
+      const code = cleanCode(l?.code);
+      if (!code && !String(l?.concept ?? '').trim()) continue;
+      const ck = compactText(l.concept).replace(/\d+/g, '');
+      let g = null, best = 0;
+      for (const x of groups) {
+        if (x.code && code && x.code !== code) continue;      // dos códigos distintos: nunca juntos
+        const exact = x.ck === ck;
+        if (here.has(x) && !exact) continue;                  // dos líneas de la misma nómina: juntas solo si se llaman igual
+        const s = exact ? 2 : conceptSimilarity(x.concept, l.concept);
+        // Mismo código: basta un nombre parecido (0,6). Si a uno le falta el código (Gemini no lo leyó), 0,8.
+        const score = s + (x.code === code ? 0.5 : 0);
+        if (s >= (x.code && code ? 0.6 : 0.8) && score > best) { g = x; best = score; }
+      }
+      if (!g) { g = { code, concept: l.concept, ck, rows: [] }; groups.push(g); }
+      g.concept = l.concept; g.ck = ck;
+      if (code && !g.code) g.code = code;
+      let r = here.get(g);
+      if (!r) { r = { p, lines: [] }; here.set(g, r); g.rows.push(r); }
+      r.lines.push(l);
+    }
+  }
+  for (const g of groups) for (const r of g.rows) {
+    r.amount = round2(r.lines.reduce((s, l) => s + amt(l.amount), 0));
+    r.price = r.lines.map(linePrice).filter(Boolean).pop() || null;
+  }
+  return { groups, used, skipped, months };
+}
+
+// Cambios de precio de un concepto: cada nómina con precio frente a la anterior que también lo tenía.
+// missing = meses sin ninguna mensual guardada entre las dos; flagged = mensuales con ⚠ entre las dos (no cuentan).
+function priceChanges(g, hist) {
+  const out = [];
+  let prev = null;
+  for (const r of g.rows) {
+    if (!r.price) continue;
+    if (prev) {
+      const a = prev.price.price, b = r.price.price, pct = (b - a) / a * 100;
+      if (Math.abs(pct) + 1e-9 >= PRICE_MIN_PCT && Math.abs(b - a) > prev.price.err + r.price.err + 1e-9) {
+        const i0 = monthIndex(prev.p), i1 = monthIndex(r.p);
+        let missing = 0;
+        for (let i = i0 + 1; i < i1; i++) if (!hist.months.has(i)) missing++;
+        const flagged = hist.skipped.filter(s => monthIndex(s) > i0 && monthIndex(s) < i1).length;
+        out.push({ g, from: prev, to: r, pct, missing, flagged,
+          kind: Math.abs(pct) > PRICE_BIG_PCT ? 'big' : pct > 0 ? 'up' : 'down' });
+      }
+    }
+    prev = r;
+  }
+  return out;
+}
+
+function priceChangeText(c) {
+  const name = `«${conceptLabel(c.g.concept)}»${c.g.code ? ' (' + c.g.code + ')' : ''}`;
+  const what = c.kind === 'big' ? `cambio grande del precio por unidad, ${fmtSignedPct(c.pct)}`
+    : `el precio por unidad ${c.pct > 0 ? 'sube' : 'baja'} un ${fmt(Math.abs(c.pct))} %`;
+  let t = `${name}: ${what} (de ${priceText(c.from.price)} a ${priceText(c.to.price)}) en ${payName(c.to.p)}, respecto a ${payName(c.from.p)}.`;
+  if (c.missing) t += ` Entre medias ${c.missing === 1 ? 'falta 1 nómina mensual' : `faltan ${c.missing} nóminas mensuales`}.`;
+  if (c.flagged) t += ` Entre medias hay ${c.flagged === 1 ? '1 nómina con ⚠ que no cuenta' : c.flagged + ' nóminas con ⚠ que no cuentan'}.`;
+  if (c.kind === 'big') t += ' Compruébalo con el papel: puede ser un error de lectura o un cambio de jornada o de contrato.';
+  return t;
+}
+
+// Lo del año para el Informe Anual: un bloque por empresa (casi siempre uno).
+function annualPrices(year) {
+  const fp = payrolls.filter(p => p.period?.year === year && payTypeOf(p) === 'ordinaria');
+  const keys = [...new Set(fp.map(cifKey).filter(Boolean))];
+  const refs = keys.length ? keys.map(k => fp.find(p => cifKey(p) === k)) : fp.slice(0, 1);
+  return refs.map(ref => {
+    const hist = priceHistory(ref);
+    const inYear = r => r.p.period?.year === year;
+    const items = hist.groups.filter(g => g.rows.some(inYear)).map(g => {
+      const rows = g.rows.filter(inYear), priced = rows.filter(r => r.price);
+      return { g, rows, last: priced[priced.length - 1] || null, changes: priceChanges(g, hist).filter(c => inYear(c.to)) };
+    });
+    return { ref, many: refs.length > 1, withPrice: items.filter(i => i.last), noPrice: items.filter(i => !i.last),
+      changes: items.flatMap(i => i.changes).sort((a, b) => a.to.p.id.localeCompare(b.to.p.id)),
+      skipped: hist.skipped.filter(p => p.period?.year === year) };
+  });
+}
+
+function priceCardHtml(prices, year) {
+  if (!prices.some(b => b.withPrice.length || b.noPrice.length)) return '';
+  const calc = prices.some(b => b.withPrice.some(i => i.last.price.src === 'calculado' || i.changes.some(c => c.from.price.src === 'calculado')));
+  const mon = m => String(m || '?').slice(0, 3);
+  return `<div class="card" id="priceCard">
+    <h3 style="margin:0 0 8px;font-size:13px;color:var(--accent)">Precios por concepto</h3>
+    <div class="price-intro">Precio por unidad de cada devengo en las nóminas mensuales (sin pagas extra ni atrasos), comparado con la nómina anterior. Cuenta como cambio desde el ${fmtPct(PRICE_MIN_PCT)}.</div>
+    ${prices.map(b => `
+      ${b.many ? `<div class="price-sub">${esc(b.ref.company?.name || 'Empresa')}</div>` : ''}
+      ${b.withPrice.map(i => `<div class="price-item">
+        <div class="price-head"><span class="price-name">${esc(conceptLabel(i.g.concept))}${i.g.code ? ` <span class="price-code">${esc(i.g.code)}</span>` : ''}</span><span class="price-now">${esc(priceText(i.last.price))}</span></div>
+        ${i.changes.length ? i.changes.map(c => `<div class="price-change ${c.kind}">${PRICE_ICON[c.kind]} ${esc(fmtSignedPct(c.pct))} en ${esc(c.to.p.period?.month)} <span style="color:var(--text-muted)">(desde ${esc(payName(c.from.p))}${c.missing ? `; ${c.missing === 1 ? 'falta 1 nómina' : `faltan ${c.missing} nóminas`} entre medias` : ''})</span>${c.kind === 'big' ? ' · cambio grande: compruébalo con el papel' : ''}</div>`).join('')
+          : `<div class="price-change none">Sin cambios en ${esc(year)}</div>`}
+      </div>`).join('')}
+      ${b.noPrice.length ? `<div class="price-sub">Sin precio por unidad: importe de cada mes</div>
+        ${b.noPrice.map(i => `<div class="price-item">
+          <div class="price-head"><span class="price-name">${esc(conceptLabel(i.g.concept))}${i.g.code ? ` <span class="price-code">${esc(i.g.code)}</span>` : ''}</span></div>
+          <div class="price-amounts">${i.rows.map(r => `${esc(mon(r.p.period?.month))} ${esc(fmt(r.amount))}`).join(' · ')}</div>
+        </div>`).join('')}` : ''}
+      ${b.skipped.length ? `<div class="price-note">No cuentan, porque sus cuentas no cuadran: ${esc(b.skipped.map(payName).join(', '))}.</div>` : ''}`).join('')}
+    ${calc ? `<div class="price-note">${esc(PRICE_CALC_NOTE)}</div>` : ''}
+  </div>`;
+}
+
+// Sección «Precios por unidad» de Ver: { html, text }. text solo lleva algo si hay cambios (para el abogado).
+function priceReport(p) {
+  if (payTypeOf(p) !== 'ordinaria') return null;
+  const note = t => ({ html: `<div class="price-change none">${esc(t)}</div>`, text: '' });
+  if (checkErrors(p).length) return note('No se comparan los precios: las cuentas de esta nómina no cuadran.');
+  const hist = priceHistory(p);
+  const rowOf = g => g.rows.find(r => r.p.id === p.id);
+  const priced = hist.groups.filter(g => rowOf(g)?.price);
+  if (!priced.length) return note('Esta nómina no trae precios por unidad (ningún devengo con unidades).');
+  const compared = priced.filter(g => g.rows.slice(0, g.rows.indexOf(rowOf(g))).some(r => r.price));
+  if (!compared.length) return note('Es la primera nómina mensual guardada con estos conceptos: todavía no hay con qué comparar los precios.');
+  const changes = compared.flatMap(g => priceChanges(g, hist)).filter(c => c.to.p.id === p.id);
+  if (!changes.length) return {
+    html: `<div class="price-change none" style="color:var(--success)">✓ Mismos precios por unidad que en las nóminas anteriores (${compared.length === 1 ? '1 concepto comparado' : compared.length + ' conceptos comparados'}).</div>`,
+    text: '' };
+  const calc = changes.some(c => c.from.price.src === 'calculado' || c.to.price.src === 'calculado');
+  return {
+    html: changes.map(c => `<div class="price-change ${c.kind}">${PRICE_ICON[c.kind]} ${esc(priceChangeText(c))}</div>`).join('') +
+      (calc ? `<div class="price-note">${esc(PRICE_CALC_NOTE)}</div>` : ''),
+    text: changes.map(c => PRICE_ICON[c.kind] + ' ' + priceChangeText(c)).join('\n') + (calc ? '\n' + PRICE_CALC_NOTE : '') };
 }
 
 function generateAnnualText(fp, totals, year, obs) {
@@ -3803,6 +4017,8 @@ function calcTotals(fp) {
 const CHECK_TOL = 0.02;
 const ROUND_TOL = 0.10;                       // v2.8.13: hasta aquí, una diferencia con base × % es un redondeo
 const SUM_KEYS = ['sumE', 'sumD', 'net'];
+// Margen de «unidades × precio = importe» (comprobación 6). El historial de precios usa el mismo (v2.9.0).
+function upTol(x) { return Math.max(0.05, Math.abs(x) * 0.002); }
 
 function pctOfLine(line) {
   const u = parsePct(line?.units);
@@ -3915,7 +4131,7 @@ function checkPayroll(p, opts = {}) {
   //    es el importe de OTRA línea: entonces lo mal leído es la columna de precios (corrida de fila), no el importe.
   for (const side of ['earnings']) {
     const lines = p[side] || [];
-    const tol = x => Math.max(0.05, Math.abs(x) * 0.002);
+    const tol = upTol;
     lines.forEach((l, i) => {
       const u = num(l.units), pr = num(l.price), a = num(l.amount);
       if (!Number.isFinite(u) || !Number.isFinite(pr) || !Number.isFinite(a) || u <= 0 || pr <= 0) return;
@@ -4129,7 +4345,7 @@ function createBackupData() {
   return {
     _meta: {
       app: 'Nomina Auditor Forense',
-      version: '2.8.13',
+      version: '2.9.0',
       exportedAt: new Date().toISOString(),
       totalPayrolls: payrolls.length
     },
