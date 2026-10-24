@@ -383,7 +383,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.10.0</span>
+    <span class="logo-badge">Forense v2.10.1</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -3612,12 +3612,12 @@ function renderAnnual() {
 
     <div class="card">
       <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">Observaciones para Abogado</h3>
-      ${obs.map(o => `<div class="obs-item ${o.level}">${esc(o.text)}</div>`).join('')}
+      <div id="annualObs">${obs.map(o => `<div class="obs-item ${o.level}">${esc(o.text)}</div>`).join('')}</div>
     </div>
 
     <div class="card">
       <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">Formato Exportable</h3>
-      <pre class="report-pre report-pre-sm">${esc(annualText)}</pre>
+      <pre class="report-pre report-pre-sm" id="annualText">${esc(annualText)}</pre>
     </div>
 
     <div class="btn-group">
@@ -3681,7 +3681,11 @@ function yearCompleteness(year) {
   const mi = p => MONTHS.indexOf(p.period?.month);
   const ordOf = list => list.filter(p => payTypeOf(p) === 'ordinaria');
   const months = new Set(ordOf(payers.flatMap(b => b.list)).map(mi));
-  const out = { year: String(year), closed: y < cy, last, missing: [], companyGaps: [], extras: [], many: payers.length > 1, ask: y < cy };
+  const out = { year: String(year), closed: y < cy, last, missing: [], companyGaps: [], extras: [], many: payers.length > 1, ask: y < cy,
+    // v2.10.1: las nóminas aparte que ya están (para que la pregunta no parezca no haberlas visto) y lo que dice Hacienda
+    aside: payers.flatMap(b => b.list).filter(p => payTypeOf(p) !== 'ordinaria').sort((a, b) => a.id.localeCompare(b.id))
+      .map(p => `${p.period?.month} (${payLabelOf(p)})`),
+    hac: hacYearStatus(String(year), payers) };
   for (let m = 0; m <= last; m++) if (!months.has(m)) out.missing.push(MONTHS[m]);
   for (const b of payers) {
     const ord = ordOf(b.list), ms = new Set(ord.map(mi));
@@ -3708,8 +3712,28 @@ function yearCompleteness(year) {
   return out;
 }
 
-function completenessAskText(year) {
-  return `¿Te pagaron en ${year} algún bonus, atrasos o finiquito en una nómina aparte, además de las mensuales? Si es así, súbela: si no, el Anual se queda corto.`;
+function completenessAskText(year, aside = []) {
+  if (aside.length) return `Ya tienes ${aside.length === 1 ? '1 nómina aparte' : aside.length + ' nóminas aparte'} de ${year}: ${aside.join(', ')}. ` +
+    '¿Te pagaron alguna otra (bonus, atrasos o finiquito) además de las mensuales? Si es así, súbela: si no, el Anual se queda corto. Para salir de dudas, compara con Hacienda.';
+  return `¿Te pagaron en ${year} algún bonus, atrasos o finiquito en una nómina aparte, además de las mensuales? Si es así, súbela: si no, el Anual se queda corto. Para salir de dudas, compara con Hacienda.`;
+}
+
+// v2.10.1: lo que dice la comparación con Hacienda de todo el año.
+//   'ok'    → todas las empresas del año comparadas, coinciden (✓ o ≈) y no hay otro pagador sin nóminas
+//   'falta' → en alguna, Hacienda tiene más, o hay un pagador sin nóminas en la app
+//   null    → sin comparar (o a medias), o la app tiene más / no coincide (no dice nada de nóminas que falten)
+function hacYearStatus(year, payers) {
+  const saved = hacienda[year];
+  if (!saved || !Object.keys(saved).length) return null;
+  const kinds = [];
+  for (const b of payers) {
+    const list = b.list;
+    kinds.push(compareHacienda(calcTotals(list), saved[b.key], round2(list.reduce((s, p) => s + amt(p.bases?.baseIRPF), 0)))?.kind || null);
+  }
+  for (const k of Object.keys(saved).filter(k => k.startsWith('otro:'))) kinds.push(compareHacienda(null, saved[k])?.kind || 'vacio');
+  if (kinds.some(k => k === 'falta' || k === 'haciendaMas' || k === 'sinNominas')) return 'falta';
+  if (kinds.every(k => k === 'ok' || k === 'cents' || k === 'vacio') && kinds.some(k => k === 'ok' || k === 'cents')) return 'ok';
+  return null;
 }
 
 // Los avisos para las observaciones y el texto exportable (sustituyen a la línea de huecos de antes)
@@ -3722,7 +3746,9 @@ function completenessObs(c) {
   else if (c.last >= 0) obs.push({ level: 'ok', text: `✓ Nóminas mensuales completas de Enero a ${upTo}` });
   for (const g of c.companyGaps) obs.push({ level: 'warn', text: `⚠ ${g.name}: sin nómina mensual de ${g.months.join(', ')}` });
   for (const e of c.extras) obs.push({ level: 'warn', text: `⚠ Falta la paga extra de ${e.month}${c.many ? ` de ${e.name}` : ''}: el año anterior hubo una` });
-  if (c.ask) obs.push({ level: 'info', text: 'ℹ ' + completenessAskText(c.year) });
+  if (c.hac === 'ok') obs.push({ level: 'ok', text: '✓ Coincide con lo que declaró la empresa a Hacienda: no falta ninguna nómina aparte' });
+  else if (c.hac === 'falta') obs.push({ level: 'warn', text: '⚠ Según las cifras de Hacienda que has escrito, parece que falta una nómina (o un pagador): míralo en «Comparar con Hacienda»' });
+  else if (c.ask) obs.push({ level: 'info', text: 'ℹ ' + completenessAskText(c.year, c.aside) });
   return obs;
 }
 
@@ -3846,7 +3872,7 @@ function haciendaCardHtml(year) {
     <button class="btn btn-secondary" onclick="hacOpen=true;renderHaciendaCard()">🏛️ Comparar con Hacienda</button></div>`;
   const yN = Number(year), cy = appToday().getFullYear();
   const field = (k, f, label, v, extra = '') => `<label class="hac-row"><span>${esc(label)}</span>
-    <input class="hac-input" inputmode="decimal" autocomplete="off" data-y="${esc(year)}" data-k="${esc(k)}" data-f="${f}" value="${esc(hacVal(v))}" onchange="hacInput(this)" placeholder="0,00"></label>${extra}`;
+    <input class="hac-input" inputmode="decimal" autocomplete="off" data-y="${esc(year)}" data-k="${esc(k)}" data-f="${f}" value="${esc(hacVal(v))}" onchange="hacInput(this)" oninput="hacTyping(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}" placeholder="0,00"></label>${extra}`;
   const block = (k, title, nif, h, app, list, other) => {
     const r = compareHacienda(app, h, list ? round2(list.reduce((s, p) => s + amt(p.bases?.baseIRPF), 0)) : null);
     const appOf = app ? { integro: app.bruto, retenciones: app.irpf, gastos: app.ss } : null;
@@ -3878,6 +3904,7 @@ function haciendaCardHtml(year) {
 function renderHaciendaCard(soft = false) {
   const el = document.getElementById('hacCard');
   if (!el) return;
+  refreshAnnualDerived();   // v2.10.1
   if (!soft) { el.outerHTML = haciendaCardHtml(currentYear); return; }
   const tmp = document.createElement('div');
   tmp.innerHTML = haciendaCardHtml(currentYear);
@@ -3890,6 +3917,23 @@ function renderHaciendaCard(soft = false) {
       if (a && b) a.innerHTML = b.innerHTML;
     }
   }
+}
+
+// v2.10.1: lo del Anual que depende de las cifras de Hacienda (tarjeta del año completo, observaciones y texto
+// exportable), sin rehacer la página: así no se tocan las casillas en las que se está escribiendo.
+function refreshAnnualDerived() {
+  const fp = payrolls.filter(p => p.period?.year === currentYear);
+  if (!fp.length) return;
+  const cc = document.getElementById('completeCard');
+  if (cc) cc.outerHTML = completenessCardHtml(yearCompleteness(currentYear));
+  const obs = buildAnnualObservations(fp, currentYear);
+  const text = generateAnnualText(fp, calcTotals(fp), currentYear, obs);
+  const ob = document.getElementById('annualObs');
+  if (ob) ob.innerHTML = obs.map(o => `<div class="obs-item ${o.level}">${esc(o.text)}</div>`).join('');
+  const tx = document.getElementById('annualText');
+  if (tx) tx.textContent = text;
+  const btn = document.getElementById('copyAnnualBtn');
+  if (btn) btn.onclick = () => copyToClipboard(text, btn);
 }
 
 function hacInput(el) {
@@ -3906,6 +3950,27 @@ function hacInput(el) {
   } else return;
   saveHacienda();
   renderHaciendaCard(true);
+}
+
+// v2.10.1: comparar mientras se escribe, sin esperar a salir de la casilla (en el móvil, después de la última cifra
+// lo normal es quedarse ahí mirando). Solo si lo escrito se entiende; el formato (34.166,92) y el aviso de una
+// cifra que no se entiende siguen al salir (hacInput).
+let hacTypingTimer = null;
+function hacTyping(el) {
+  clearTimeout(hacTypingTimer);
+  hacTypingTimer = setTimeout(() => {
+    const { y, k, f } = el.dataset;
+    if (!HAC_YEAR_RE.test(y) || !HAC_KEY_RE.test(k) || !HAC_FIELDS.some(([x]) => x === f)) return;
+    const t = el.value.trim();
+    const v = t === '' ? null : num(t);
+    if (v !== null && !Number.isFinite(v)) return;
+    const row = ((hacienda[y] ||= {})[k] ||= { name: '', nif: '', integro: null, retenciones: null, gastos: null });
+    const nv = v === null ? null : round2(v);
+    if (row[f] === nv) return;
+    row[f] = nv;
+    saveHacienda();
+    renderHaciendaCard(true);
+  }, 500);
 }
 
 function hacAddOther(year) {
