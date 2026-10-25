@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.12.4)
+## 🆕 Novedades (v2.3 – v2.12.5)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -40,6 +40,7 @@
 | 🏛️ **¿Está completo el año? y Comparar con Hacienda (v2.10.0–v2.10.1)** | El Anual te dice si **falta alguna nómina** (también las del final del año y las pagas extra que tuviste el año anterior) y, en los años cerrados, te pregunta si cobraste algún bonus, atrasos o finiquito en una **nómina aparte**. Y si escribes las tres cifras de tus **datos fiscales** (o del certificado de retenciones de tu empresa), las compara con tus nóminas: si coinciden, si difieren en céntimos o, si Hacienda tiene más, **cómo sería la nómina que te falta** para buscarla en el banco. Sin IA y sin entrar en Hacienda: tú escribes las cifras y se guardan solo en tu dispositivo (y en el backup) | Anual |
 | 📊 **Precios por concepto (v2.9.0–v2.9.1)** | La app compara el **precio por unidad** de cada concepto (salario base por día, plus por hora…) con el de tu nómina mensual anterior y te dice si **sube, baja o cambia mucho**, en qué mes y desde cuándo. Los conceptos sin precio (incentivos, comisiones…) muestran su importe mes a mes. Sin IA: lo calcula la app con tus nóminas guardadas | Anual y Ver |
 | ≈ **Redondeos de la empresa (v2.8.13)** | Si el IRPF, una cotización o la base de cotización difieren de la cuenta (base × %) en **10 céntimos o menos** y las sumas de la nómina cuadran, la app lo muestra en gris como *redondeo de la empresa*, no como aviso: la cifra está bien leída y la diferencia es del cálculo de la empresa. Si alguna suma no cuadra, sigue siendo un aviso. Desde la v2.12.3 dice **hacia qué lado**: si te han descontado esos céntimos de más o de menos y, si hay varias deducciones con céntimos de diferencia, **cuánto suman en total** | Revisión, Ver nómina, bandeja y texto para el abogado |
+| 📤 **Backup en iCloud o Drive desde el iPhone (v2.12.5)** | En iPhone y iPad, **🗂️ Guardar backup completo…** abre el menú de compartir: eliges *Guardar en Archivos* → **iCloud Drive**, o la app de **Drive**. Si el menú no se abre o lo cierras, el backup queda preparado con un botón **Guardar en…** y otro para descargarlo | Panel · Datos |
 | 🗂️ **Guardar el backup en Drive (v2.8.10)** | En Chrome (Android y ordenador), **🗂️ Guardar backup completo…** abre el «Guardar como» del móvil o del ordenador: eliges Drive (o una carpeta) y la app comprueba que el archivo ha quedado entero. Drive lo sube después: la app te dice cuánto debe pesar para que lo compruebes en Drive (v2.8.11). Sin iniciar sesión en Google ni dar permisos a la app. En iPhone y en otros navegadores se descarga, como antes, y el aviso explica cómo llevarlo a Drive desde Descargas | Panel · Datos |
 | 💳 **Saldo de Gemini agotado (v2.8.9)** | Google cobra ahora Gemini por **prepago**: compras crédito y cada lectura lo va gastando. Si se acaba, la app lo dice tal cual («Se ha acabado el saldo de Gemini de esta clave») y explica qué hacer, en vez de un error genérico. En la bandeja, la lectura se para sin marcar nada como error y sigue con *Reanudar* cuando hay saldo | Subir · Bandeja |
 | ⇄ **Línea en el lado equivocado (v2.8.8)** | A veces Gemini pone una línea de deducciones en los devengos (o al revés), y además igual en las dos lecturas. Si a un lado le sobra justo lo que le falta al otro, la app te dice qué línea pasar para que cuadren las dos sumas, con un botón **⇄ Pasar a deducciones**. Es una sugerencia: mira el papel antes. Y debajo de cada tabla, **⇄ Pasar una línea…** para hacerlo a mano. Además, una cifra que ya has corregido o mirado deja de marcarse con **≠**, y la lista de diferencias avisa de que la otra lectura **cuadraba peor**: úsala solo si lo confirma el papel | Subir · Bandeja |
@@ -124,7 +125,7 @@ Tus nóminas y backups de versiones anteriores siguen funcionando tal cual: no h
 - Para eliminar una nómina: botón 🗑 en el Panel (borra también su documento original)
 
 ### 7️⃣ Haz copias de seguridad
-- Cuando tengas cambios sin copia, el **Panel te avisa**. Pulsa **🗂️ Guardar backup completo…** y elige Drive (o una carpeta fuera del móvil). En iPhone y en algunos navegadores el botón dice **Descargar backup completo**: el ZIP va a Descargas y desde ahí lo llevas a Drive (el aviso te dice cómo). **Ahora no** oculta el aviso hasta el siguiente cambio
+- Cuando tengas cambios sin copia, el **Panel te avisa**. Pulsa **🗂️ Guardar backup completo…** y elige Drive (o una carpeta fuera del móvil). En iPhone y iPad, el mismo botón abre el menú de compartir: elige *Guardar en Archivos* → **iCloud Drive**, o **Drive** (v2.12.5). En algunos navegadores el botón dice **Descargar backup completo**: el ZIP va a Descargas y desde ahí lo llevas a Drive (el aviso te dice cómo). **Ahora no** oculta el aviso hasta el siguiente cambio
 - También desde la pestaña **Datos**. Ver [Copias de seguridad y varios dispositivos](#-copias-de-seguridad-y-varios-dispositivos)
 
 ---
@@ -322,7 +323,8 @@ Las cifras se guardan en tu dispositivo y van en el backup. La app **no entra en
 - **Guardarlo en Drive** (v2.8.10):
   - **Chrome en Android o en el ordenador:** *Guardar backup completo…* abre el «Guardar como» del sistema. Elige **Drive** (o una carpeta) y pulsa *Guardar*. La app comprueba que el archivo tiene el tamaño correcto; si no, lo quita y lo descarga. Si cancelas, no se hace nada y el aviso sigue.
     - **Comprueba en Drive que el archivo pesa lo que dice la app** (por ejemplo, 12,5 MB). Drive lo sube en segundo plano y la subida puede fallar: en una prueba quedó en Drive con **0 bytes** mientras la app decía *guardado*. Si pesa 0 o Drive avisa de que no ha podido subirlo, vuelve a guardarlo (y borra el vacío). No hace falta iniciar sesión en Google en la app: el archivo lo guarda el propio móvil u ordenador.
-  - **iPhone y otros navegadores:** se descarga en *Descargas*. Para llevarlo a Drive: app de archivos (*Archivos*, *Files* o *Mis archivos*) → *Descargas* → mantén pulsado el archivo → *Compartir* → *Drive*. En iPhone también puedes *Mover* a iCloud Drive.
+  - **iPhone y iPad (v2.12.5):** se abre el menú de compartir: *Guardar en Archivos* → iCloud Drive, o la app de Drive.
+  - **Otros navegadores:** se descarga en *Descargas*. Para llevarlo a Drive: app de archivos (*Archivos*, *Files* o *Mis archivos*) → *Descargas* → mantén pulsado el archivo → *Compartir* → *Drive*. En iPhone, si se ha descargado, también puedes *Mover* a iCloud Drive.
 
 **Aviso de copia pendiente:** cada vez que cambias algo (guardar, corregir, adjuntar un original…), la app lo apunta. Si no has hecho un backup completo después, el **Panel te avisa** con un botón para hacerlo. Solo cuenta el backup completo: el de solo datos no lleva tus nóminas. En *Datos* ves la fecha del último backup completo.
 
@@ -694,6 +696,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.12.5 (Octubre 2026)
+- **Backup en iCloud o Drive desde el iPhone:** en iPhone y iPad, *Guardar backup completo…* abre el menú de compartir del sistema y desde ahí lo guardas en *Archivos* → iCloud Drive o en Drive. Antes solo se descargaba. Si el menú no llega a abrirse (con muchas nóminas, preparar el ZIP tarda) o lo cierras sin elegir, el backup queda preparado con su botón *Guardar en…* y otro para *Descargar*. En Android y en el ordenador no cambia nada
 
 ### v2.12.4 (Octubre 2026)
 - **Nóminas en catalán:** la app reconoce los conceptos en catalán (cotització, formació, desocupació, contingències comunes, sou base, paga de Nadal, endarreriments…). Antes, en una nómina en catalán la formación y el desempleo no se sumaban a la Seguridad Social (el Anual, *Comparar con Hacienda* y el informe salían cortos) ni se comprobaban con base × %, y el glosario no explicaba esas líneas. Si ya tienes guardada alguna nómina en catalán, se corrige sola: no hay que volver a subirla

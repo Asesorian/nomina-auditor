@@ -397,7 +397,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.12.4</span>
+    <span class="logo-badge">Forense v2.12.5</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -575,11 +575,11 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
     <div class="card" style="text-align:center;padding:30px 20px">
       <div style="font-size:28px;margin-bottom:8px">🗂️</div>
       <h3 style="font-size:14px;color:var(--accent);margin-bottom:6px">Backup completo</h3>
-      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">Datos <strong>y documentos originales</strong> en un ZIP ordenado por año. Guárdalo en Drive o donde quieras: sirve para restaurarlo todo en otro dispositivo. En Chrome (Android y ordenador) eliges dónde guardarlo, Drive incluido; en los demás navegadores se descarga.</p>
+      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">Datos <strong>y documentos originales</strong> en un ZIP ordenado por año. Guárdalo en Drive o donde quieras: sirve para restaurarlo todo en otro dispositivo. En Chrome (Android y ordenador) eliges dónde guardarlo, Drive incluido; en iPhone y iPad, con «Guardar en…» (iCloud Drive o Drive); en los demás navegadores se descarga.</p>
       <button class="btn btn-primary" onclick="exportFullBackup()" id="fullBackupBtn">
         🗂️ Descargar backup completo
       </button>
-      <p id="fullBackupNote" class="hidden" style="color:var(--text-dim);font-size:12px;line-height:1.55;margin-top:12px;text-align:left"></p>
+      <div id="fullBackupNote" class="hidden" style="color:var(--text-dim);font-size:12px;line-height:1.55;margin-top:12px;text-align:left"></div>
     </div>
     <div class="card" style="text-align:center;padding:30px 20px">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="2" style="margin-bottom:12px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -964,6 +964,18 @@ async function pickSaveLocation(suggestedName) {
   } catch (e) {
     return e?.name === 'AbortError' ? null : undefined;
   }
+}
+
+// v2.12.5: iPhone e iPad. Safari no tiene «Guardar como», pero sí la hoja de compartir con archivos: desde ella se
+// guarda en Archivos (iCloud Drive o «En mi iPhone») o en la app de Drive. Solo donde no hay «Guardar como» (en Chrome
+// de Android y del ordenador manda el de la v2.8.10; además, Chrome no deja compartir un .zip), con pantalla táctil (en
+// el ordenador, mejor la descarga) y si el navegador acepta un .zip en la hoja de compartir.
+function canShareBackup() {
+  if (canPickSaveLocation()) return false;
+  try {
+    return !!(navigator.share && navigator.canShare && navigator.maxTouchPoints > 0 &&
+      navigator.canShare({ files: [new File(['x'], 'prueba.zip', { type: 'application/zip' })] }));
+  } catch { return false; }
 }
 
 // Escribe el archivo y comprueba que ha quedado entero (mismo tamaño). Devuelve si se ha podido comprobar.
@@ -5129,12 +5141,17 @@ function needsBackup() {
   return !full || change > full;
 }
 
+let pendingBackup = null;   // v2.12.5: { file, size, fromPanel, nDocs }: ZIP preparado, a falta de elegir dónde guardarlo
 let backupJustDone = null;   // { how, name, verified }: para decirlo en el Panel justo después
 
 // v2.8.10: guardado donde se eligió (con su nombre) o descargado (y cómo llevarlo a Drive)
-function fullBackupLabel() { return canPickSaveLocation() ? '🗂️ Guardar backup completo…' : '🗂️ Descargar backup completo'; }
+function fullBackupLabel() { return canPickSaveLocation() || canShareBackup() ? '🗂️ Guardar backup completo…' : '🗂️ Descargar backup completo'; }
 function backupDoneHtml(r) {
   const peso = r.size ? fmtBytes(r.size) : '';
+  // v2.12.5: desde la hoja de compartir (iPhone): la app no sabe dónde ha ido, solo que se ha elegido un destino
+  if (r.how === 'shared') return `<strong>Backup completo enviado</strong> («${esc(r.name)}»${peso ? `, ${peso}` : ''}). ` +
+    `Si lo has guardado en <em>Archivos</em> → <strong>iCloud Drive</strong> o en <strong>Drive</strong>, compruébalo allí: debe pesar ${peso || 'lo mismo'}. ` +
+    `Si lo has guardado en <em>En mi iPhone</em>, sigue estando solo en el móvil: muévelo a iCloud Drive o a Drive.`;
   if (r.how === 'saved') return `<strong>Backup completo guardado</strong> como «${esc(r.name)}»${peso ? ` (${peso})` : ''}.` +
     (r.verified ? '' : ' No se ha podido comprobar que haya quedado entero: mira que el archivo no esté vacío.') +
     // v2.8.11: Drive lo sube después; si falla, el archivo queda vacío en Drive y la app no se entera
@@ -5158,6 +5175,7 @@ function renderBackupReminder() {
     el.innerHTML = `<div class="backup-reminder done">✓ <span>${backupDoneHtml(r)}</span></div>`;
     return;
   }
+  if (pendingBackup?.fromPanel) { el.innerHTML = pendingBackupHtml(); return; }   // v2.12.5: preparado, sin guardar aún
   const dismissed = lsTime('nomina-auditor-backupnag-dismissed');
   if (!needsBackup() || (dismissed && dismissed >= lsTime('nomina-auditor-lastchange'))) { el.innerHTML = ''; return; }
   const full = lsTime('nomina-auditor-lastfullbackup');
@@ -5165,7 +5183,7 @@ function renderBackupReminder() {
     <div class="backup-reminder-text">💾 <span><strong>Tienes cambios sin copia de seguridad.</strong>
       ${full ? `Último backup completo: ${esc(new Date(full).toLocaleDateString('es-ES'))}.` : 'Todavía no has hecho ningún backup completo.'}
       Tus nóminas solo están en este dispositivo: si se borran los datos del navegador o pierdes el móvil, se pierden.
-      ${canPickSaveLocation() ? 'Guarda el backup completo en Drive.' : 'Descarga el backup completo y guárdalo en Drive.'}</span></div>
+      ${canPickSaveLocation() ? 'Guarda el backup completo en Drive.' : canShareBackup() ? 'Guarda el backup completo en iCloud Drive o en Drive.' : 'Descarga el backup completo y guárdalo en Drive.'}</span></div>
     <div class="doc-actions">
       <button class="btn btn-primary btn-sm" onclick="exportFullBackup(this)">${fullBackupLabel()}</button>
       <button class="btn btn-secondary btn-sm" onclick="dismissBackupReminder()">Ahora no</button>
@@ -5295,6 +5313,15 @@ async function exportFullBackup(srcBtn) {
       'Contiene datos personales (DNI, salario…): guárdalo en un sitio privado.\n');
     const blob = await zip.generateAsync({ type: 'blob' });
     const done = { how: 'downloaded', name: fileName, verified: true, size: blob.size };
+    // v2.12.5: iPhone. Se intenta abrir la hoja de compartir al momento; si Safari no la abre (el toque ya «caducó»
+    // mientras se preparaba el ZIP) o se cierra sin elegir, el ZIP queda preparado con su botón «Guardar en…».
+    if (!handle && canShareBackup()) {
+      pendingBackup = { file: new File([blob], fileName, { type: 'application/zip' }), size: blob.size, fromPanel, nDocs };
+      const r = await shareBackupFile(pendingBackup.file);
+      if (r !== 'shared') { showPendingBackup(); if (btn) btn.innerHTML = orig; return; }
+      pendingBackup = null;
+      done.how = 'shared'; done.verified = false;
+    }
     if (handle) {
       try { done.verified = await writeToPicked(handle, blob); done.how = 'saved'; done.name = handle.name || fileName; }
       catch (e) {
@@ -5302,14 +5329,9 @@ async function exportFullBackup(srcBtn) {
         alert(`No se ha podido guardar el backup en el sitio elegido (${e.message || e}). Se descarga en su lugar: lo tendrás en Descargas.`);
       }
     }
-    if (done.how !== 'saved') downloadBlob(blob, fileName);
-    localStorage.setItem('nomina-auditor-lastbackup', new Date().toISOString());
-    lsSetNow('nomina-auditor-lastfullbackup');
-    const note = document.getElementById('fullBackupNote');
-    if (note) { note.innerHTML = '✓ ' + backupDoneHtml(done); note.classList.remove('hidden'); }
-    if (fromPanel) { backupJustDone = done; renderBackupReminder(); }
-    else if (btn) { btn.innerHTML = `✓ ${done.how === 'saved' ? 'Guardado' : 'Descargado'} (${payrolls.length} nóminas, ${nDocs} documentos)`; setTimeout(() => { btn.innerHTML = orig; }, 3000); }
-    renderBackupView();
+    if (done.how === 'downloaded') downloadBlob(blob, fileName);
+    markFullBackupDone(done, fromPanel);
+    if (!fromPanel && btn) { btn.innerHTML = `✓ ${done.how === 'saved' ? 'Guardado' : done.how === 'shared' ? 'Enviado' : 'Descargado'} (${payrolls.length} nóminas, ${nDocs} documentos)`; setTimeout(() => { btn.innerHTML = orig; }, 3000); }
   } catch (e) {
     if (handle) { try { await handle.remove?.(); } catch {} }   // que no quede un archivo vacío donde se eligió
     alert(`No se pudo crear el backup completo: ${e.message || e}`);
@@ -5317,6 +5339,62 @@ async function exportFullBackup(srcBtn) {
   } finally {
     if (btn) btn.disabled = false;
   }
+}
+
+// Cuenta como backup completo y lo dice (en Datos y, si se hizo desde el Panel, en el Panel)
+function markFullBackupDone(done, fromPanel) {
+  localStorage.setItem('nomina-auditor-lastbackup', new Date().toISOString());
+  lsSetNow('nomina-auditor-lastfullbackup');
+  const note = document.getElementById('fullBackupNote');
+  if (note) { note.innerHTML = '✓ ' + backupDoneHtml(done); note.classList.remove('hidden'); }
+  if (fromPanel) { backupJustDone = done; renderBackupReminder(); }
+  renderBackupView();
+}
+
+// ── v2.12.5: backup por la hoja de compartir (iPhone) ──
+
+// 'shared' si se ha elegido un destino; 'cancel' si se ha cerrado sin elegir; 'blocked' si el navegador no la abre
+async function shareBackupFile(file) {
+  try { await navigator.share({ files: [file] }); return 'shared'; }   // sin title: en iOS crearía un archivo de texto aparte
+  catch (e) { return e?.name === 'AbortError' ? 'cancel' : 'blocked'; }
+}
+
+function pendingBackupHtml() {
+  const pb = pendingBackup;
+  return `<div class="backup-reminder" id="pendingBackup">
+    <div class="backup-reminder-text">🗂️ <span><strong>Backup completo preparado</strong> («${esc(pb.file.name)}», ${fmtBytes(pb.size)}).
+      Toca <strong>Guardar en…</strong> y elige <em>Guardar en Archivos</em> → <strong>iCloud Drive</strong>, o la app de <strong>Drive</strong>.</span></div>
+    <div class="doc-actions">
+      <button class="btn btn-primary btn-sm" onclick="sharePendingBackup()">📤 Guardar en… (iCloud, Drive…)</button>
+      <button class="btn btn-secondary btn-sm" onclick="downloadPendingBackup()">⬇ Descargar</button>
+    </div>
+  </div>`;
+}
+
+function showPendingBackup() {
+  if (!pendingBackup) return;
+  const el = document.getElementById(pendingBackup.fromPanel ? 'backupReminder' : 'fullBackupNote');
+  if (!el) return;
+  el.innerHTML = pendingBackupHtml();
+  el.classList.remove('hidden');
+}
+
+async function sharePendingBackup() {
+  const pb = pendingBackup;
+  if (!pb) return;
+  const r = await shareBackupFile(pb.file);
+  if (r === 'cancel') return;   // sigue preparado: puede volver a tocar
+  if (r === 'blocked') { alert('Este navegador no ha abierto «Guardar en…». Usa «Descargar»: lo tendrás en Archivos → Descargas.'); return; }
+  pendingBackup = null;
+  markFullBackupDone({ how: 'shared', name: pb.file.name, verified: false, size: pb.size }, pb.fromPanel);
+}
+
+function downloadPendingBackup() {
+  const pb = pendingBackup;
+  if (!pb) return;
+  pendingBackup = null;
+  downloadBlob(pb.file, pb.file.name);
+  markFullBackupDone({ how: 'downloaded', name: pb.file.name, verified: true, size: pb.size }, pb.fromPanel);
 }
 
 function isZIP(arrayBuffer) {
