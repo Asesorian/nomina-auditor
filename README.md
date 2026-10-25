@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.11.0)
+## 🆕 Novedades (v2.3 – v2.11.1)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -690,6 +690,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.11.1 (Octubre 2026)
+- **Nombre del backup con el día bueno:** el día salía en hora UTC y la hora en hora local, así que un backup hecho entre medianoche y la 1:00 (las 2:00 en verano) llevaba en el nombre la fecha del día anterior. Ahora los dos van en hora local. Los backups antiguos no cambian: solo su nombre podía estar un día atrás
 
 ### v2.11.0 (Octubre 2026)
 - **Glosario:** en *Ver*, la tarjeta «¿Qué es cada concepto?» explica cada línea que reconoce (unos 30 conceptos habituales de devengos y deducciones). Los conceptos propios de la empresa salen aparte, sin inventar nada: su regla está en el convenio, el contrato o un acuerdo de empresa
