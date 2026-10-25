@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.11.1)
+## 🆕 Novedades (v2.3 – v2.12.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 📄 **PDF digital (v2.12.0)** | Si subes la nómina en el **PDF que genera el programa de nóminas** (no un escaneo), la app saca sus números del propio PDF, **sin IA**, y comprueba que **cada cifra que ha leído Gemini está en el documento**. Pilla una cifra mal leída aunque las sumas cuadren. No tienes que hacer nada: sale el sello «📄 PDF digital: N de N cifras comprobadas» | En la revisión y en *Ver* |
 | 📖 **Glosario (v2.11.0)** | En cada nómina, **«¿Qué es cada concepto?»**: toca una línea (salario base, prorrata, contingencias comunes, MEI, desempleo, IRPF…) y te explica qué es. En las cotizaciones, además, el **tipo oficial de ese año** (del BOE) frente al % de tu nómina. Y una página con el glosario completo y la tabla de tipos por año. Sin IA: textos fijos, revisados con las fuentes oficiales | Ver · Panel |
 | 🏛️ **¿Está completo el año? y Comparar con Hacienda (v2.10.0–v2.10.1)** | El Anual te dice si **falta alguna nómina** (también las del final del año y las pagas extra que tuviste el año anterior) y, en los años cerrados, te pregunta si cobraste algún bonus, atrasos o finiquito en una **nómina aparte**. Y si escribes las tres cifras de tus **datos fiscales** (o del certificado de retenciones de tu empresa), las compara con tus nóminas: si coinciden, si difieren en céntimos o, si Hacienda tiene más, **cómo sería la nómina que te falta** para buscarla en el banco. Sin IA y sin entrar en Hacienda: tú escribes las cifras y se guardan solo en tu dispositivo (y en el backup) | Anual |
 | 📊 **Precios por concepto (v2.9.0–v2.9.1)** | La app compara el **precio por unidad** de cada concepto (salario base por día, plus por hora…) con el de tu nómina mensual anterior y te dice si **sube, baja o cambia mucho**, en qué mes y desde cuándo. Los conceptos sin precio (incentivos, comisiones…) muestran su importe mes a mes. Sin IA: lo calcula la app con tus nóminas guardadas | Anual y Ver |
@@ -233,6 +234,7 @@ Gemini **solo lee** la nómina, y a veces se equivoca: se salta una fila, pone u
 | Cada código lleva el mismo concepto que en tus otras nóminas de esa empresa (si no, probablemente las filas están corridas) | ⚠ aviso |
 | Si las dos sumas fallan y a un lado le sobra lo que le falta al otro, qué línea pasar de lado para que cuadren | ⚠ aviso con botón ⇄ (sugerencia) |
 | El CIF o NIF de la empresa tiene un formato válido y su dígito o letra de control cuadra (v2.9.1) | ⚠ aviso (no es error: no marca ⚠ en el Panel) |
+| Con un PDF digital, cada cifra leída (importes, totales, bases, unidades y precio) está en el texto del PDF (v2.12.0). Si falta un importe, un total o una base, se lee otra vez | ⚠ aviso (no marca ⚠ en el Panel) |
 | Cada código va en el mismo lado (devengos o deducciones) que en tus otras nóminas de esa empresa (v2.10.2). Si dos líneas del mismo importe se leen cambiadas de lado, las sumas cuadran igual: esto es lo único que lo ve | ⚠ aviso (no marca ⚠ en el Panel) |
 
 **Qué hace con eso:**
@@ -243,7 +245,9 @@ Gemini **solo lee** la nómina, y a veces se equivoca: se salta una fila, pone u
 
 **Redondeos de la empresa (v2.8.13):** muchas empresas calculan el IRPF o las cotizaciones de forma que el resultado se queda a unos céntimos de base × %. Si la diferencia es de **10 céntimos o menos** y las tres sumas de la nómina cuadran, la cifra está bien leída: la app lo muestra en gris con **≈** («redondeo de la empresa») y no lo cuenta como aviso. Si alguna suma no cuadra, o falta un total para comprobarlo, sigue saliendo como ⚠ aviso, porque podría ser un error de lectura.
 
-**Lo que no puede detectar:** un error de lectura que siga cuadrando (por ejemplo, dos conceptos con el nombre cambiado pero con sus importes bien). Por eso la revisión humana sigue siendo obligatoria.
+**PDF digital (v2.12.0):** el PDF que sale del programa de nóminas lleva el texto dentro. La app lo saca en tu dispositivo, sin IA, y busca en él cada cifra que ha leído Gemini. Así se ve una cifra mal leída o inventada **aunque las sumas cuadren**. Con un escaneo o una foto no hay texto (o el que hay es de un OCR, con sus propios errores) y no se comprueba nada, como antes. A Gemini se le sigue mandando el PDF entero: Google ya le pasa ese texto al modelo sin cobrarlo, y con el PDF ve en qué columna va cada cifra.
+
+**Lo que no puede detectar:** un error de lectura que siga cuadrando (por ejemplo, dos conceptos con el nombre cambiado pero con sus importes bien). Con un PDF digital, tampoco una cifra que sí está en el documento pero en otra línea o en el otro lado. Por eso la revisión humana sigue siendo obligatoria.
 
 ---
 
@@ -690,6 +694,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.12.0 (Octubre 2026)
+- **PDF digital:** con el PDF que genera el programa de nóminas (no un escaneo), la app saca los números del texto del PDF con el visor que ya tenía (sin IA) y comprueba que cada cifra leída por Gemini está en el documento. Las que no están salen marcadas con un aviso, y si es un importe, un total o una base, Gemini la lee otra vez. Sello en la revisión y en *Ver*. Se guarda solo la lista de números del PDF, para volver a comprobar al corregir a mano. Escaneos y fotos, como antes. Las nóminas ya guardadas no cambian
 
 ### v2.11.1 (Octubre 2026)
 - **Nombre del backup con el día bueno:** el día salía en hora UTC y la hora en hora local, así que un backup hecho entre medianoche y la 1:00 (las 2:00 en verano) llevaba en el nombre la fecha del día anterior. Ahora los dos van en hora local. Los backups antiguos no cambian: solo su nombre podía estar un día atrás

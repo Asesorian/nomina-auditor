@@ -397,7 +397,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.11.1</span>
+    <span class="logo-badge">Forense v2.12.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -1493,6 +1493,7 @@ async function processImage() {
 // No cambia typeDetection: desde la v2.8 la bandeja lee unas nóminas mientras se revisa otra.
 // fileName: el nombre del archivo, que puede indicar el tipo (fileNameHint).
 function prepareExtracted(d, fileName = '') {
+  delete d.docNumbers;   // v2.12.0: los números del PDF los pone el código (setDocNumbers), nunca la lectura de Gemini
   d.period = d.period || {};
   const m = normalizeMonth(d.period.month);
   if (m) d.period.month = m;
@@ -1526,18 +1527,24 @@ function prepareExtracted(d, fileName = '') {
 // cifra para que cuadre: solo elige entre lo que se ha leído y marca lo que hay que revisar.
 // La segunda lectura solo se hace si hay errores (cuesta lo mismo que la primera, ~1 céntimo).
 async function readWithChecks(base64, mediaType, onStatus = updateProcessStatus, fileName = '') {
+  // v2.12.0: con un PDF, sus números se sacan a la vez que lee Gemini (sin IA; null si es un escaneo)
+  const numsP = mediaType === 'application/pdf' ? docNumbersOrNull(base64) : Promise.resolve(null);
   const first = await callGemini(base64, mediaType, undefined, onStatus);
   const det1 = prepareExtracted(first, fileName);
+  const nums = await numsP;
+  setDocNumbers(first, nums);
   const errs1 = checkErrors(first);
-  if (!errs1.length) return { data: first, detection: det1, info: { reads: 1 } };
+  const pdfMiss1 = docMissingStrong(first);   // v2.12.0: una cifra que no está en el PDF también pide otra lectura
+  if (!errs1.length && !pdfMiss1) return { data: first, detection: det1, info: { reads: 1 } };
 
-  onStatus('Los importes no cuadran: segunda lectura…');
+  onStatus(errs1.length ? 'Los importes no cuadran: segunda lectura…' : 'Alguna cifra no está en el PDF: segunda lectura…');
   let second, det2;
   try {
     second = await callGemini(base64, mediaType, feedbackFor(first), onStatus);
     det2 = prepareExtracted(second, fileName);
+    setDocNumbers(second, nums);
   } catch (e) {
-    return { data: first, detection: det1, info: { reads: 1, retryFailed: true, firstErrors: errs1.length } };
+    return { data: first, detection: det1, info: { reads: 1, retryFailed: true, firstErrors: errs1.length, pdfOnly: !errs1.length } };
   }
   const s1 = readScore(first), s2 = readScore(second);
   const useSecond = s2 < s1;
@@ -1546,7 +1553,8 @@ async function readWithChecks(base64, mediaType, onStatus = updateProcessStatus,
   // v2.8.8: y si la otra cuadraba peor (altWorse) o igual, para avisarlo junto a sus cifras.
   return {
     data: best, detection: useSecond ? det2 : det1,
-    info: { reads: 2, chosen: useSecond ? 2 : 1, firstErrors: errs1.length, okNow: !checkErrors(best).length,
+    info: { reads: 2, chosen: useSecond ? 2 : 1, firstErrors: errs1.length, okNow: !checkErrors(best).length && !docMissingStrong(best),
+            pdfOnly: !errs1.length,
             alt: altReading(useSecond ? first : second), altName: useSecond ? 'la primera lectura' : 'la segunda lectura',
             altWorse: useSecond || s2 > s1 }
   };
@@ -1634,6 +1642,13 @@ function readInfoHtml() {
     t = i.worse ? '🔁 La nueva lectura cuadraba peor que la que ya tenías: se mantiene la anterior.'
       : i.okNow ? '🔁 Nueva lectura de Gemini: ahora las cuentas cuadran. Revísala igualmente con el documento.'
       : '🔁 Nueva lectura de Gemini: sigue sin cuadrar. Corrige a mano los valores marcados mirando el documento.';
+  } else if (i.reads === 2 && i.pdfOnly) {
+    t = i.chosen === 2
+      ? (i.okNow ? '🔁 Alguna cifra de la primera lectura no estaba en el texto del PDF. Se ha leído otra vez y en la segunda están todas. Revísala igualmente.'
+                 : '🔁 Alguna cifra de la primera lectura no estaba en el texto del PDF. La segunda va mejor, pero sigue habiendo alguna: mírala en el documento.')
+      : '🔁 Alguna cifra no está en el texto del PDF y Gemini la ha leído dos veces sin mejorar (se muestra la primera). Mira en el documento las cifras marcadas.';
+  } else if (i.retryFailed && i.pdfOnly) {
+    t = '⚠ Alguna cifra no está en el texto del PDF y no se ha podido hacer la segunda lectura. Mira en el documento las cifras marcadas.';
   } else if (i.reads === 2) {
     t = i.chosen === 2
       ? (i.okNow ? '🔁 La primera lectura de Gemini no cuadraba. Se ha leído otra vez y la segunda sí cuadra. Revísala igualmente.'
@@ -1905,6 +1920,7 @@ function renderChecks(d, checks, diffs = []) {
     <div class="card checks-card ${state}" id="checksCard">
       <h3 style="margin:0 0 10px;font-size:13px;color:var(--accent)">COMPROBACIÓN DE LAS CUENTAS</h3>
       ${readInfoHtml()}
+      ${docSealHtml(d)}
       <div class="chk-title ${state}">${esc(title)}</div>
       ${real.length ? real.map(c => `<div class="chk ${c.level}">${chkIcon(c.level)} <span>${esc(c.text)}${sideMoveButtons(c)}</span></div>`).join('')
         : `<div class="chk ok">Devengos = bruto · deducciones = total a deducir · bruto − deducciones = líquido · IRPF y cotizaciones = base × %.</div>`}
@@ -2190,6 +2206,7 @@ async function rereadCurrent(btn) {
     const fresh = await callGemini(doc.base64, doc.type, issues.length ? feedbackFor(before) : '');
     const docName = editingId ? (payrolls.find(p => p.id === editingId)?.original?.name || '') : pendingFileName;
     const det = prepareExtracted(fresh, docName);       // el tipo nuevo solo se usa si se queda esta lectura (abajo)
+    if (doc.type === 'application/pdf') setDocNumbers(fresh, await docNumbersOrNull(doc.base64));   // v2.12.0
     if (keepType) fresh.payType = payTypeOf(before);
     if (extractedData !== before) return;               // se ha salido de la revisión mientras tanto
     const sFresh = readScore(fresh), sBefore = readScore(before);
@@ -3279,6 +3296,7 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
     <div class="card checks-card ${state}" style="padding:14px 16px">
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Comprobación de las cuentas</div>
       <div class="chk-title ${state}">${errs.length ? '✗ Las cuentas no cuadran: Gemini leyó mal alguna línea' : real.length ? '⚠ Las sumas cuadran, pero hay algo que mirar' : '✓ Las cuentas cuadran'}</div>
+      ${docSealHtml(p)}
       ${[...real, ...checks.filter(c => c.level === 'round')].map(c => `<div class="chk ${c.level}">${chkIcon(c.level)} <span>${esc(c.text)}</span></div>`).join('')}
       <div class="doc-actions">
         <button class="btn ${errs.length ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="editPayroll(${jsArg(p.id)})">✏ Corregir datos</button>
@@ -3436,6 +3454,130 @@ function loadPdfJs() {
     pdfjsPromise.catch(() => { pdfjsPromise = null; });
   }
   return pdfjsPromise;
+}
+
+// ═══════════ PDF DIGITAL (v2.12.0) ═══════════
+// Un PDF «digital» (el que sale del programa de nóminas, no un escaneo) lleva el texto dentro. La app saca los números
+// de ese texto con pdf.js, sin IA, y comprueba que cada cifra que ha leído Gemini está en el documento: pilla una cifra
+// mal leída o inventada aunque las sumas cuadren. No ve una cifra en el lado o la fila equivocados (existe en el PDF).
+// A Gemini se le manda el PDF como antes: Google ya le pasa ese texto al modelo sin cobrarlo, y con el PDF ve las columnas.
+// Se guarda solo la lista de números (p.docNumbers), para seguir comprobando al corregir a mano y en otro dispositivo.
+// Un escaneo no tiene texto (o lo tiene invisible, de un OCR): entonces no se comprueba nada, como antes.
+const DOCNUM_MAX = 3000;          // un PDF de nómina tiene unos cientos de números
+const DOCNUM_MIN_CHARS = 80;      // con menos texto, es un escaneo o casi vacío
+
+// Todos los números de un texto, en las dos lecturas posibles cuando hay duda («1.234» = 1234 o 1,234). Pura (pruebas).
+function docNumbersFromText(text) {
+  const out = new Set();
+  for (const raw of String(text || '').match(/\d[\d.,]*/g) || []) {
+    const s = raw.replace(/[.,]+$/, '');
+    if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(s) || /^\d+(,\d+)?$/.test(s)) out.add(+s.replace(/\./g, '').replace(',', '.'));
+    if (/^\d{1,3}(,\d{3})+(\.\d+)?$/.test(s) || /^\d+(\.\d+)?$/.test(s)) out.add(+s.replace(/,/g, ''));
+  }
+  return [...out].filter(Number.isFinite).sort((a, b) => a - b);
+}
+
+// Los números del texto de un PDF digital, o null (escaneo, texto invisible de un OCR, contraseña, sin pdf.js…).
+async function pdfDocNumbers(base64) {
+  let pdf = null;
+  try {
+    const lib = await loadPdfJs();
+    const task = lib.getDocument({ data: new Uint8Array(b64ToArrayBuffer(base64)), isEvalSupported: false });
+    task.onPassword = update => update(new Error('PDF con contraseña'));
+    pdf = await task.promise;
+    const lines = [];
+    let chars = 0;
+    for (let i = 1; i <= Math.min(pdf.numPages, 6); i++) {
+      const page = await pdf.getPage(i);
+      const ops = await page.getOperatorList();
+      // Texto invisible (modo 3 o 7): es la capa de OCR de un escaneo, con sus errores de lectura. No vale de referencia.
+      if (ops.fnArray.some((fn, k) => fn === lib.OPS.setTextRenderingMode && (ops.argsArray[k]?.[0] & 3) === 3)) return null;
+      const rows = new Map();
+      for (const it of (await page.getTextContent()).items) {
+        if (!it.str || !it.transform) continue;
+        chars += it.str.trim().length;
+        const y = Math.round(it.transform[5] / 3);
+        if (!rows.has(y)) rows.set(y, []);
+        rows.get(y).push(it);
+      }
+      // Cada fila dos veces: con espacios y todo junto (un importe partido en dos trozos, «1.234» y «,56», se junta)
+      for (const row of rows.values()) {
+        row.sort((a, b) => a.transform[4] - b.transform[4]);
+        lines.push(row.map(it => it.str).join(' '), row.map(it => it.str).join(''));
+      }
+    }
+    if (chars < DOCNUM_MIN_CHARS) return null;
+    const nums = docNumbersFromText(lines.join('\n'));
+    return nums.length ? nums.slice(0, DOCNUM_MAX) : null;
+  } catch { return null; }
+  finally { try { pdf?.destroy(); } catch {} }
+}
+
+// Con un límite: si pdf.js no llega (red lenta), la lectura sigue como antes, sin comprobar con el PDF
+function docNumbersOrNull(base64, ms = 20000) {
+  return Promise.race([pdfDocNumbers(base64), new Promise(r => setTimeout(() => r(null), ms))]);
+}
+
+function setDocNumbers(d, nums) {
+  delete d.docNumbers;
+  if (Array.isArray(nums) && nums.length) d.docNumbers = nums;
+}
+
+// ¿Está v (en valor absoluto) en la lista ordenada, con margen tol?
+function inDocNumbers(nums, v, tol) {
+  let lo = 0, hi = nums.length - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (Math.abs(nums[mid] - v) <= tol) return true;
+    if (nums[mid] < v) lo = mid + 1; else hi = mid - 1;
+  }
+  return false;
+}
+
+// Qué cifras de la lectura no están en el PDF. strong: importes, totales y bases; las unidades y el precio, aparte
+// (con medio céntimo de margen, por si Gemini redondea un precio de 4 decimales). Las cifras a 0 y «N/L» no cuentan.
+// usable = false si falta más de la mitad de los importes: el texto del PDF no se saca bien (fuentes raras) y no se
+// avisa de nada, para no marcar una nómina bien leída.
+const DOC_TOTAL_LABELS = { grossTotal: 'Total devengado', totalDeductions: 'Total a deducir', netPay: 'Líquido a percibir' };
+const DOC_BASE_LABELS = { totalRemuneration: 'Remuneración total', extraPayProrata: 'Prorrata de pagas extra', baseCC: 'Base C.C.', baseAT: 'Base AT/EP', baseIRPF: 'Base IRPF' };
+function docNumberCheck(p) {
+  const nums = p?.docNumbers;
+  if (!Array.isArray(nums) || !nums.length) return null;
+  const items = [];
+  const add = (path, label, raw, strong) => {
+    const v = strong ? num(raw) : numAI(raw);
+    if (!Number.isFinite(v) || v === 0) return;
+    items.push({ path, label, value: Math.abs(v), strong, shown: strong ? fmt(Math.abs(v)) + ' €' : fmtPrice(Math.abs(v)) });
+  };
+  for (const side of ['earnings', 'deductions']) (Array.isArray(p[side]) ? p[side] : []).forEach((l, i) => {
+    const name = `«${l?.concept || l?.code || '?'}»`;
+    add(`${side}.${i}.amount`, name, l?.amount, true);
+    add(`${side}.${i}.units`, `${name} (unidades o %)`, l?.units, false);
+    add(`${side}.${i}.price`, `${name} (precio)`, l?.price, false);
+  });
+  for (const [k, label] of Object.entries(DOC_TOTAL_LABELS)) add(`totals.${k}`, label, p.totals?.[k], true);
+  for (const [k, label] of Object.entries(DOC_BASE_LABELS)) add(`bases.${k}`, label, p.bases?.[k], true);
+  if (!p.bases?.irpfSource) add('bases.irpfPercentage', '% de IRPF', p.bases?.irpfPercentage, false);   // si lo dedujo la app, no está impreso
+  const missing = items.filter(it => !inDocNumbers(nums, it.value, it.strong ? 0.005 : 0.0051));
+  const strong = items.filter(it => it.strong), strongMiss = missing.filter(it => it.strong);
+  const usable = !(strongMiss.length >= 3 && strongMiss.length * 2 > strong.length);
+  return { usable, checked: items.length, missing: usable ? missing : [] };
+}
+
+// Algún importe, total o base que no está en el PDF (pide la segunda lectura en readWithChecks)
+function docMissingStrong(d) {
+  const r = docNumberCheck(d);
+  return !!(r?.usable && r.missing.some(m => m.strong));
+}
+
+// El sello de la revisión y de Ver
+function docSealHtml(p) {
+  const r = docNumberCheck(p);
+  if (!r) return '';
+  if (!r.usable) return `<div class="read-info doc-seal">📄 PDF digital, pero su texto no se saca bien: las cifras no se han podido comprobar con él.</div>`;
+  const miss = r.missing.length;
+  return `<div class="read-info doc-seal">📄 PDF digital: ${r.checked - miss} de ${r.checked} cifras comprobadas con el texto del documento` +
+    (miss ? `; ${miss === 1 ? '1 no está' : `${miss} no están`} en él.` : ', sin IA.') + `</div>`;
 }
 
 // Si hay algún PDF guardado, deja el visor descargado en segundo plano para poder usarlo sin conexión
@@ -4826,6 +4968,14 @@ function checkPayroll(p, opts = {}) {
     out.push({ level: 'warn', key: 'cif', paths: ['company.cif'],
       text: `El CIF de la empresa («${p.company.cif}») no es válido (formato o dígito de control): seguramente está mal leído. Corrígelo con el del papel; es el mismo en todas las nóminas de esa empresa.` });
 
+  // 13. (v2.12.0) PDF digital: cada cifra leída tiene que estar en el texto del PDF (docNumberCheck). Es un aviso:
+  //     no pone ⚠ en el Panel, porque una nómina bien leída no debe quedarse marcada para siempre si alguna cifra
+  //     no se saca bien del texto. Pero pide la segunda lectura (docMissingStrong) y cuenta en readScore.
+  const dc = docNumberCheck(p);
+  if (dc?.usable) for (const m of dc.missing)
+    out.push({ level: 'warn', key: `pdf:${m.path}`, paths: [m.path],
+      text: `${m.label}: ${m.shown} no está en el texto del PDF. Míralo en el documento: puede estar mal leído.` });
+
   // 10. (v2.8.13) Redondeos de la empresa: el IRPF, una cotización o la base C.C. a 10 céntimos o menos de base × %
   //     (o de remuneración + prorrata) no son un aviso sino un redondeo, PERO solo si se han podido comprobar las tres
   //     sumas y cuadran: entonces la cifra está bien leída y la diferencia es del cálculo de la empresa. Si alguna
@@ -5172,6 +5322,10 @@ function sanitizeImportedPayroll(raw) {
   for (const k of ['earnings', 'deductions']) {
     if (p[k] !== undefined) p[k] = Array.isArray(p[k]) ? p[k].filter(e => e && typeof e === 'object') : [];
   }
+  // v2.12.0: los números del PDF, solo si son una lista de números (si no, la nómina entra sin ellos)
+  if (p.docNumbers !== undefined && !(Array.isArray(p.docNumbers) && p.docNumbers.length <= DOCNUM_MAX &&
+      p.docNumbers.every(x => typeof x === 'number' && Number.isFinite(x)))) delete p.docNumbers;
+  else if (p.docNumbers) p.docNumbers = [...p.docNumbers].sort((a, b) => a - b);   // inDocNumbers busca en una lista ordenada
   if (p.original !== undefined && !(p.original && typeof p.original === 'object' && typeof p.original.key === 'string' && DOC_KEY_RE.test(p.original.key))) {
     delete p.original;   // referencia rota o extraña: la nómina entra, sin documento
   }
