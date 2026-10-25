@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.12.1)
+## 🆕 Novedades (v2.3 – v2.12.2)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -134,7 +134,7 @@ Tus nóminas y backups de versiones anteriores siguen funcionando tal cual: no h
 Para empezar con un año entero (o cuando tienes varias pendientes) no hace falta subirlas de una en una.
 
 1. **Subir → 📁 Elegir archivos** y selecciona todas (fotos o PDF; en el ordenador también puedes arrastrarlas). Van a la **bandeja** y se guardan en tu dispositivo.
-2. La app te dice cuántas lecturas de Gemini hará (≈ 1 céntimo cada una con una clave de pago) y pulsas **▶ Leer las N**. Las lee de dos en dos, con las mismas comprobaciones que una sola: si una no cuadra, la vuelve a leer.
+2. La app te dice cuántas lecturas de Gemini hará (menos de 1 céntimo cada una con una clave de pago) y pulsas **▶ Leer las N**. Las lee de dos en dos, con las mismas comprobaciones que una sola: si una no cuadra, la vuelve a leer.
 3. **Puedes empezar a revisar en cuanto está la primera.** Se revisan **ordenadas por fecha**, con la pantalla de revisión de siempre. Arriba, *‹ ›* para moverte y *← Volver a la bandeja*; abajo, una barra fija con **Descartar** y **✓ Confirmar y siguiente**.
 4. Al terminar, la app te dice cuántas has guardado y te lleva al informe anual del año.
 
@@ -378,7 +378,7 @@ Una nómina lleva tu DNI, tu sueldo y los datos de tu empresa, así que importa 
 | | Capa gratuita | Con facturación activada |
 |---|---|---|
 | ¿Puede Google usar tus nóminas para mejorar sus productos? | Sí, y pueden leerlas revisores humanos. **Excepción:** en el Espacio Económico Europeo (España incluida), Suiza y Reino Unido se aplica el mismo trato que en la de pago | No. Solo las guarda un tiempo limitado para detectar abusos |
-| Coste | 0 € | Alrededor de **1 céntimo por nómina** procesada (medido en 2026 con `gemini-2.5-flash`) |
+| Coste | 0 € | Alrededor de **0,3 céntimos por nómina** procesada (medido en octubre de 2026 con `gemini-3.5-flash-lite`; con `gemini-2.5-flash` era ≈ 0,9) |
 | Límites de uso | Bajos y cambiantes; en algunas cuentas europeas, `limit: 0` | Holgados para uso personal |
 
 **Qué elegir:**
@@ -491,7 +491,7 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige, 
 
 **"El modelo X ya no está disponible"**
 - Google retira modelos de Gemini cada cierto tiempo
-- La app usa la cadena `gemini-2.5-flash → gemini-3.5-flash-lite → gemini-3.8-flash` (desde la v2.12.1, octubre de 2026). Google ya no da los modelos 2.5 a las claves nuevas, salvo (de momento) `gemini-2.5-flash`; si no lo tienes, la app lee con el siguiente sin que hagas nada
+- La app usa la cadena `gemini-3.5-flash-lite → gemini-2.5-flash → gemini-3.8-flash` (desde la v2.12.2, octubre de 2026). Google ya no da los modelos 2.5 a las claves nuevas, salvo (de momento) `gemini-2.5-flash`; si un modelo no está, la app lee con el siguiente sin que hagas nada
 - Si alguno falla, el error muestra cuál y por qué. Se cambia en el array `GEMINI_MODELS` del código
 
 **La foto no se extrae bien**
@@ -535,7 +535,7 @@ Este repo aplica la filosofía **"código científico, IA divulgadora"** a un ca
                              ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ FASE 1 — Extracción OCR (Gemini con fallback en cadena)     │
-│ gemini-2.5-flash → gemini-3.5-flash-lite → gemini-3.8-flash │
+│ gemini-3.5-flash-lite → gemini-2.5-flash → gemini-3.8-flash │
 │ Cualquier error en un modelo cae al siguiente               │
 └─────────────────────────────────────────────────────────────┘
                              ↓
@@ -694,6 +694,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.12.2 (Octubre 2026)
+- **Modelo principal nuevo: `gemini-3.5-flash-lite`.** Probado con 25 nóminas reales frente a `gemini-2.5-flash`: lee igual o mejor (98,9 % de cifras bien frente a 97,8 %; 22 de 24 cuadraban a la primera frente a 19), unas 5 veces más rápido (unos 3,5 s por nómina) y unas 3 veces más barato (≈ 0,3 céntimos por lectura). `gemini-2.5-flash` pasa a ser el recambio y `gemini-3.8-flash` sigue el último
 
 ### v2.12.1 (Octubre 2026)
 - **Modelos de recambio para claves nuevas:** Google ya no da `gemini-2.5-flash-lite` ni `gemini-2.5-pro` a los usuarios nuevos (responden 404). Con una clave nueva, si `gemini-2.5-flash` fallaba un rato, no quedaba otro modelo. Ahora la cadena es `gemini-2.5-flash → gemini-3.5-flash-lite` (mismo precio) `→ gemini-3.8-flash` (más caro, el último). Con tu clave de siempre no cambia nada: sigue leyendo con `gemini-2.5-flash`

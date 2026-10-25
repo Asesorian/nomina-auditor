@@ -397,7 +397,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.12.1</span>
+    <span class="logo-badge">Forense v2.12.2</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -1117,9 +1117,13 @@ REGLAS:
 // clave nueva (25-10), 2.5-flash-lite y 2.5-pro daban 404 «no longer available to new users»: si 2.5-flash fallaba un
 // rato, no quedaba recambio. Los recambios son los que propone Google: 3.5-flash-lite (mismo precio que 2.5-flash) y,
 // el último, 3.8-flash (más caro). Cualquier error pasa al siguiente (un 404 también).
+// v2.12.2: 3.5-flash-lite pasa a ser el principal. En un banco de pruebas con 25 nóminas reales (escaneos; fuera del
+// repositorio) leyó igual o mejor que 2.5-flash (98,9 % de cifras bien frente a 97,8 %; 22 cuadraban sin segunda
+// lectura frente a 19), unas 5 veces más rápido (3,5 s frente a 16 s) y unas 3 veces más barato (≈ 0,3 céntimos frente
+// a ≈ 0,9): mismo precio por token, pero «piensa» mucho menos. Y es el que Google da a las claves nuevas.
 const GEMINI_MODELS = [
-  'gemini-2.5-flash',
   'gemini-3.5-flash-lite',
+  'gemini-2.5-flash',
   'gemini-3.8-flash'
 ];
 
@@ -2897,7 +2901,7 @@ function renderBatch() {
     top = `<div class="card">
       <div style="font-size:14px;font-weight:800;color:var(--text)">${waiting === 1 ? '1 documento listo' : `${waiting} documentos listos`} para leer</div>
       <p style="font-size:12px;color:var(--text-dim);line-height:1.6;margin:8px 0 0">
-        Gemini hará ${waiting === 1 ? 'una lectura' : `unas ${waiting} lecturas`} (≈ 1 céntimo cada una con una clave de pago; alguna puede necesitar una segunda lectura).
+        Gemini hará ${waiting === 1 ? 'una lectura' : `unas ${waiting} lecturas`} (menos de 1 céntimo cada una con una clave de pago; alguna puede necesitar una segunda lectura).
         Las lee de dos en dos y <strong style="color:var(--text)">puedes empezar a revisar en cuanto esté la primera</strong>.
         La bandeja se guarda en este dispositivo: si cierras la app, sigue aquí.</p>
       <div class="btn-group" style="justify-content:flex-start">
