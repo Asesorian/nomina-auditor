@@ -397,7 +397,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.12.3</span>
+    <span class="logo-badge">Forense v2.12.4</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -702,18 +702,19 @@ function sortPayrolls() { payrolls.sort((a, b) => a.id.localeCompare(b.id)); }
 // ── Detección determinista del tipo ──
 // El código decide con reglas comprobables; lo que lea Gemini (payType) solo es una pista más.
 // Ojo: la "prorrata de pagas extras" de una mensual NO la convierte en paga extra.
-const EXTRA_RE    = /\bpaga\s*extra|\bp\.?\s*extra|\bpagas?\s*extraordinaria|gratificaci[oó]n\s*extra|extra\s*(de\s*)?(verano|navidad|junio|julio|diciembre|beneficios|marzo)|paga\s*(de\s*)?(verano|navidad|beneficios)/i;
-const PRORRATA_RE = /prorr|p\.\s*p\.|parte\s*proporcional|partes\s*proporcionales/i;
-const ATRASOS_RE  = /atrasos|diferencias?\s*(de\s*)?convenio|regularizaci[oó]n\s*salarial|revisi[oó]n\s*salarial/i;
+// v2.12.4: también en catalán (paga de Nadal / d'estiu, extraordinària, part proporcional, endarreriments…)
+const EXTRA_RE    = /\bpaga\s*extra|\bp\.?\s*extra|\bpagas?\s*extraordin[aà]ri|gratificaci[oó]n?\s*extra|extra\s*(de\s*|d['’]\s*)?(verano|navidad|junio|julio|diciembre|beneficios|marzo|nadal|estiu|juny|juliol|desembre)|paga\s*(de\s*|d['’]\s*)?(verano|navidad|beneficios|nadal|estiu)/i;
+const PRORRATA_RE = /prorr|p\.\s*p\.|parte\s*proporcional|partes\s*proporcionales|parts?\s*proporcionals?/i;
+const ATRASOS_RE  = /atrasos|endarrer|diferencias?\s*(de\s*)?convenio|difer[eè]ncies?\s*(de\s*)?conveni|regularizaci[oó]n\s*salarial|regularitzaci[oó]\s*salarial|revisi[oó]n?\s*salarial/i;
 
 // Pista del nombre del archivo (v2.8.2): «0624 Nómina Junio Atrasos.pdf», «Paga extra julio.jpg»…
 // Lo ha escrito la persona, así que manda sobre la pista de Gemini (pero no sobre unos conceptos claros).
 function fileNameHint(name) {
   const n = ' ' + String(name || '').replace(/\.[a-z0-9]{2,5}$/i, '').toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[_\-.]+/g, ' ') + ' ';
-  const atrasos = /\batrasos?\b|\bdiferencias? (de )?convenio\b|\bregularizacion\b/.test(n);
-  const extra = !/\bhoras? extras?\b/.test(n) &&
-    /\bpagas? extras?\b|\bextras?\b|\bextraordinaria\b|\bgratificacion\b|\bpaga (de )?(navidad|verano|beneficios)\b/.test(n);
+  const atrasos = /\batrasos?\b|\bendarrer\w*|\bdiferencias? (de )?convenio\b|\bdiferencies (de )?conveni\b|\bregularizacion\b|\bregularitzacio\b/.test(n);
+  const extra = !/\bhoras? extras?\b|\bhores? extres?\b/.test(n) &&
+    /\bpagas? extras?\b|\bextras?\b|\bextres\b|\bextraordinari\w*|\bgratificacio\w*|\bpaga (de |d'? ?)?(navidad|verano|beneficios|nadal|estiu)\b/.test(n);
   if (atrasos === extra) return null;   // ninguna o las dos: no es una pista fiable
   return atrasos ? 'atrasos' : 'extra';
 }
@@ -3094,48 +3095,48 @@ const SS_RATE_NAMES = { cc: 'Contingencias comunes', mei: 'MEI', des: 'Desempleo
 // side: 'e' devengo, 'd' deducción, 'b' base o total (solo en la página del glosario). Gana la primera que encaja,
 // así que el orden importa (la prorrata antes que la paga extra; las horas extra de un lado y del otro aparte).
 const GLOSSARY = [
-  { id: 'salario', side: 'e', title: 'Salario base', re: /sal(ario)?\.?\s*base|sueldo\s*base/i,
+  { id: 'salario', side: 'e', title: 'Salario base', re: /sal(ario)?\.?\s*base|sueldo\s*base|\bsou\s*base|salari\s*base/i,
     text: 'La parte fija del sueldo que marca el convenio para tu categoría, por día o por mes. Sobre ella se calculan muchos pluses.' },
   { id: 'convenio', side: 'e', title: 'Plus convenio', re: /plus\s*(de\s*)?conv/i,
     text: 'Complemento fijo que el convenio da a todas las personas de una categoría. Cuando sube el convenio, sube su precio.' },
-  { id: 'antiguedad', side: 'e', title: 'Antigüedad', re: /antig|trienio|quinquen|cuatrienio|\bbienio/i,
+  { id: 'antiguedad', side: 'e', title: 'Antigüedad', re: /antig|trienio|trienni|quinquen|cuatrienio|quadrienni|\bbienio|\bbienni/i,
     text: 'Complemento por los años en la empresa (trienios, quinquenios…). Cuánto y cada cuánto lo dice el convenio; algunos lo tienen congelado.' },
   { id: 'prorrata', side: 'e', title: 'Prorrata de pagas extra', re: PRORRATA_RE,
     text: 'Las pagas extra repartidas entre los doce meses. Si la cobras así, luego no hay paga extra aparte (o solo la parte que no se reparte).' },
-  { id: 'extra', side: 'e', title: 'Paga extra', re: /paga\s*extra|paga\s*(de\s*)?(navidad|verano|julio|diciembre|beneficios)|p\.\s*extra|gratif|extra\s*(de\s*)?(verano|navidad|julio|diciembre|beneficios)|\bbeneficios\b/i,
+  { id: 'extra', side: 'e', title: 'Paga extra', re: /paga\s*extra|paga\s*(de\s*|d['’]\s*)?(navidad|verano|julio|diciembre|beneficios|nadal|estiu|juliol|desembre)|p\.\s*extra|gratif|extra\s*(de\s*|d['’]\s*)?(verano|navidad|julio|diciembre|beneficios|nadal|estiu)|\bbeneficios\b/i,
     text: 'Paga extraordinaria: por ley hay al menos dos al año, y una es en Navidad (art. 31 del Estatuto de los Trabajadores). Su importe lo fija el convenio.' },
-  { id: 'hextra', side: 'e', title: 'Horas extra', re: /h(oras|rs)?\.?\s*ext/i,
+  { id: 'hextra', side: 'e', title: 'Horas extra', re: /h(oras|ores|rs)?\.?\s*ext/i,
     text: 'Horas por encima de tu jornada. Se pagan como diga el convenio o el contrato, o se compensan con descanso; como máximo 80 al año (art. 35 del Estatuto).' },
   { id: 'nocturnidad', side: 'e', title: 'Nocturnidad', re: /noct/i,
     text: 'Plus por trabajar de noche (de 22:00 a 6:00). Lo fija el convenio, salvo que el salario del puesto ya se haya fijado por ser nocturno (art. 36 del Estatuto).' },
-  { id: 'festivos', side: 'e', title: 'Festivos y domingos', re: /festiv|domingo/i,
+  { id: 'festivos', side: 'e', title: 'Festivos y domingos', re: /festiv|festiu|domingo|diumenge/i,
     text: 'Pago por trabajar un festivo o un domingo, si el convenio lo prevé. A veces se compensa con un día libre en vez de dinero.' },
-  { id: 'variable', side: 'e', title: 'Incentivos y variable', re: /incentiv|variable|productiv|comisi(o|ó)n|\bbonus\b|objetivo|\bprima\b/i,
+  { id: 'variable', side: 'e', title: 'Incentivos y variable', re: /incentiv|incentiu|variable|productiv|comisi(o|ó)n|comissi|\bbonus\b|objetivo|objectiu|\bprima\b/i,
     text: 'Paga variable: objetivos, productividad, comisiones. Su regla está en tu contrato, el convenio o un acuerdo de empresa; la nómina suele traer solo el total, sin el desglose.' },
-  { id: 'gastos', side: 'e', title: 'Transporte, dietas y kilometraje', re: /transport|dieta|kilomet|km\.?\b|locomoci/i,
+  { id: 'gastos', side: 'e', title: 'Transporte, dietas y kilometraje', re: /transport|dieta|dietes|kilomet|quilomet|km\.?\b|locomoci/i,
     text: 'Compensaciones por gastos. Las dietas y el kilometraje, dentro de unos límites, no pagan IRPF ni Seguridad Social; el plus de transporte del convenio, en cambio, cotiza como el resto del sueldo.' },
   { id: 'especie', side: 'e', title: 'Salario en especie', re: /especie/i,
     text: 'Algo que te dan en lugar de dinero (vivienda, coche, comida…). Cuenta como sueldo para el IRPF y la Seguridad Social; por eso suele salir otra vez en las deducciones.' },
 
-  { id: 'cc', side: 'd', title: 'Contingencias comunes', rate: 'cc', re: /cont(ing(encias)?)?\.?\s*com|c\.\s*com(u|ú)n|contingencias\s*comunes/i,
+  { id: 'cc', side: 'd', title: 'Contingencias comunes', rate: 'cc', re: /cont(ing(encias)?)?\.?\s*com|c\.\s*com(u|ú)n|contingencias\s*comunes|contingencies\s*comunes/i,
     text: 'Tu parte de la cotización a la Seguridad Social por enfermedad, accidente no laboral, jubilación… Se calcula sobre la base de contingencias comunes. La empresa paga aparte su parte, mucho mayor, que no sale de tu sueldo.' },
-  { id: 'mei', side: 'd', title: 'MEI (Mecanismo de Equidad Intergeneracional)', rate: 'mei', re: /\bm\.?\s*e\.?\s*i\b|equidad/i,
+  { id: 'mei', side: 'd', title: 'MEI (Mecanismo de Equidad Intergeneracional)', rate: 'mei', re: /\bm\.?\s*e\.?\s*i\b|equidad|equitat/i,
     text: 'Una cotización extra para el fondo de las pensiones, sobre la misma base que las contingencias comunes. Sube un poco cada año.' },
-  { id: 'desempleo', side: 'd', title: 'Desempleo', rate: 'des', re: /desemp|\bdesem\b/i,
+  { id: 'desempleo', side: 'd', title: 'Desempleo', rate: 'des', re: /desemp|\bdesem\b|desocup|\batur\b/i,
     text: 'Tu parte de la cotización por desempleo (el paro). Es algo más alta con un contrato temporal que con uno indefinido. Se calcula sobre la base de contingencias profesionales.' },
   { id: 'fp', side: 'd', title: 'Formación profesional', rate: 'fp', re: /formaci|form\.?\s*prof|\bf\.\s*p\b/i,
     text: 'Tu parte de la cotización para la formación de los trabajadores. Se calcula sobre la base de contingencias profesionales.' },
-  { id: 'hextra-cot', side: 'd', title: 'Cotización de horas extra', re: /h(oras|rs)?\.?\s*ext/i,
+  { id: 'hextra-cot', side: 'd', title: 'Cotización de horas extra', re: /h(oras|ores|rs)?\.?\s*ext/i,
     text: 'La cotización de las horas extra. En 2026, tu parte es el 2 % si son por fuerza mayor y el 4,70 % las demás (Orden PJC/297/2026).' },
-  { id: 'solidaridad', side: 'd', title: 'Cotización de solidaridad', re: /solidaridad/i,
+  { id: 'solidaridad', side: 'd', title: 'Cotización de solidaridad', re: /solidaridad|solidaritat/i,
     text: 'Cotización adicional, desde 2025, solo para la parte del sueldo que pasa de la base máxima de cotización. Si no cobras tanto, no te sale.' },
   { id: 'irpf', side: 'd', title: 'IRPF', re: /i\.?\s*r\.?\s*p\.?\s*f|tributaci|retenci/i,
     text: 'Retención a cuenta del impuesto sobre la renta. No es el impuesto final: en la declaración de la renta se ajusta y te devuelven o pagas la diferencia. El % depende de tu sueldo y tu situación familiar.' },
-  { id: 'anticipo', side: 'd', title: 'Anticipo', re: /anticip/i,
+  { id: 'anticipo', side: 'd', title: 'Anticipo', re: /anticip|bestret/i,
     text: 'Dinero que ya cobraste antes y que ahora se descuenta.' },
   { id: 'especie-d', side: 'd', title: 'Descuento del salario en especie', re: /especie/i,
     text: 'Como el salario en especie no lo cobras en dinero, se suma arriba (para calcular impuestos y cotización) y se resta aquí.' },
-  { id: 'embargo', side: 'd', title: 'Embargo', re: /embargo/i,
+  { id: 'embargo', side: 'd', title: 'Embargo', re: /embarg/i,
     text: 'Retención ordenada por un juzgado o una administración. La ley pone límites a la parte del sueldo que se puede embargar.' },
 
   { id: 'base-cc', side: 'b', title: 'Base de contingencias comunes',
@@ -3153,7 +3154,8 @@ const GLOSSARY = [
 function glossaryFor(concept, side) {
   const c = String(concept ?? '');
   if (!c.trim()) return null;
-  return GLOSSARY.find(g => g.side === side && g.re && g.re.test(c)) || null;
+  const plain = c.normalize('NFD').replace(/[\u0300-\u036f]/g, '');   // v2.12.4: «Espècie», «Formació»… sin acentos
+  return GLOSSARY.find(g => g.side === side && g.re && (g.re.test(c) || g.re.test(plain))) || null;
 }
 
 // Tipo oficial frente al % impreso en la línea (units). Solo informa: no es una comprobación y nunca pone ⚠.
@@ -4628,14 +4630,15 @@ const LINE_KIND_TEXT = {
 
 function deductionKind(line) {
   const c = compactText(line?.concept), w = spacedText(line?.concept);
-  if (/irp[fp]|tributa|hacienda/.test(c) || (/retenc/.test(c) && !/judic|embarg|pension|alimen/.test(c))) return 'irpf';
+  if (/irp[fp]|tributa|hacienda|hisenda/.test(c) || (/retenc/.test(c) && !/judic|embarg|pension|alimen/.test(c))) return 'irpf';
   if (/especie/.test(c)) return 'especie';
-  if (/contcom|contingcom|contingenciacom|contingenciascom|ccomun|contcomun/.test(c) || / cc /.test(w)) return 'cc';
-  if (/ mei | m e i |equidad|intergen/.test(w) || /^mei|cotizacionmei|cotizmei|cotmei/.test(c)) return 'mei';
-  if (/formacion|formprof|fprof/.test(c) || / fp /.test(w)) return 'fp';
-  if (/desemp/.test(c)) return 'desempleo';
+  // v2.12.4: también en catalán (cotització, contingències comunes, formació, desocupació / atur, seguretat social)
+  if (/contcom|contingcom|contingenciacom|contingenciascom|contingenciescom|ccomun|contcomun/.test(c) || / cc /.test(w)) return 'cc';
+  if (/ mei | m e i |equidad|equitat|intergen/.test(w) || /^mei|cotizacionmei|cotizmei|cotmei|cotitzaciomei/.test(c)) return 'mei';
+  if (/formacio|formprof|fprof/.test(c) || / fp /.test(w)) return 'fp';
+  if (/desemp|desocup/.test(c) || / atur /.test(w)) return 'desempleo';
   if (/solidar/.test(c)) return 'solidaridad';
-  if (/cotiz|segsoc|segurosocial|seguridadsocial/.test(c) || / ss /.test(w)) return 'ss';
+  if (/cotiz|cotitz|segsoc|segurosocial|seguridadsocial|seguretatsocial/.test(c) || / ss /.test(w)) return 'ss';
   return 'otra';
 }
 function isSSKind(k) { return SS_KINDS.includes(k); }

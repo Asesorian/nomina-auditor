@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.12.3)
+## 🆕 Novedades (v2.3 – v2.12.4)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -694,6 +694,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.12.4 (Octubre 2026)
+- **Nóminas en catalán:** la app reconoce los conceptos en catalán (cotització, formació, desocupació, contingències comunes, sou base, paga de Nadal, endarreriments…). Antes, en una nómina en catalán la formación y el desempleo no se sumaban a la Seguridad Social (el Anual, *Comparar con Hacienda* y el informe salían cortos) ni se comprobaban con base × %, y el glosario no explicaba esas líneas. Si ya tienes guardada alguna nómina en catalán, se corrige sola: no hay que volver a subirla
 
 ### v2.12.3 (Octubre 2026)
 - **Redondeos con su lado:** el ≈ de un redondeo de la empresa ya dice si te han descontado esos céntimos **de más o de menos** (en la base C.C., si es mayor o menor que remuneración + prorrata). Y si varias deducciones tienen céntimos de diferencia, una línea más con **el total**, que muchas veces es cero porque se compensan. Sigue sin ser un aviso
