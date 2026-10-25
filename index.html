@@ -397,7 +397,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.12.0</span>
+    <span class="logo-badge">Forense v2.12.1</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -1113,10 +1113,14 @@ REGLAS:
 - Asegúrate de que el JSON sea válido y parseable
 - RESPONDE SOLO CON EL JSON, SIN NINGÚN TEXTO ADICIONAL, SIN BACKTICKS`;
 
+// v2.12.1: desde 2026 Google ya no da los modelos 2.5 a los usuarios nuevos, salvo (de momento) gemini-2.5-flash. Con una
+// clave nueva (25-10), 2.5-flash-lite y 2.5-pro daban 404 «no longer available to new users»: si 2.5-flash fallaba un
+// rato, no quedaba recambio. Los recambios son los que propone Google: 3.5-flash-lite (mismo precio que 2.5-flash) y,
+// el último, 3.8-flash (más caro). Cualquier error pasa al siguiente (un 404 también).
 const GEMINI_MODELS = [
   'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-2.5-pro'
+  'gemini-3.5-flash-lite',
+  'gemini-3.8-flash'
 ];
 
 // Guía para conseguir la clave (sección del README)

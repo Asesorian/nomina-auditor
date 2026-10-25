@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.12.0)
+## 🆕 Novedades (v2.3 – v2.12.1)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -491,7 +491,7 @@ Teclear una API Key en el móvil es propenso a errores: el teclado autocorrige, 
 
 **"El modelo X ya no está disponible"**
 - Google retira modelos de Gemini cada cierto tiempo
-- La app usa la cadena `gemini-2.5-flash → gemini-2.5-flash-lite → gemini-2.5-pro` (activos en mayo de 2026)
+- La app usa la cadena `gemini-2.5-flash → gemini-3.5-flash-lite → gemini-3.8-flash` (desde la v2.12.1, octubre de 2026). Google ya no da los modelos 2.5 a las claves nuevas, salvo (de momento) `gemini-2.5-flash`; si no lo tienes, la app lee con el siguiente sin que hagas nada
 - Si alguno falla, el error muestra cuál y por qué. Se cambia en el array `GEMINI_MODELS` del código
 
 **La foto no se extrae bien**
@@ -535,7 +535,7 @@ Este repo aplica la filosofía **"código científico, IA divulgadora"** a un ca
                              ↓
 ┌─────────────────────────────────────────────────────────────┐
 │ FASE 1 — Extracción OCR (Gemini con fallback en cadena)     │
-│ gemini-2.5-flash → gemini-2.5-flash-lite → gemini-2.5-pro   │
+│ gemini-2.5-flash → gemini-3.5-flash-lite → gemini-3.8-flash │
 │ Cualquier error en un modelo cae al siguiente               │
 └─────────────────────────────────────────────────────────────┘
                              ↓
@@ -694,6 +694,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.12.1 (Octubre 2026)
+- **Modelos de recambio para claves nuevas:** Google ya no da `gemini-2.5-flash-lite` ni `gemini-2.5-pro` a los usuarios nuevos (responden 404). Con una clave nueva, si `gemini-2.5-flash` fallaba un rato, no quedaba otro modelo. Ahora la cadena es `gemini-2.5-flash → gemini-3.5-flash-lite` (mismo precio) `→ gemini-3.8-flash` (más caro, el último). Con tu clave de siempre no cambia nada: sigue leyendo con `gemini-2.5-flash`
 
 ### v2.12.0 (Octubre 2026)
 - **PDF digital:** con el PDF que genera el programa de nóminas (no un escaneo), la app saca los números del texto del PDF con el visor que ya tenía (sin IA) y comprueba que cada cifra leída por Gemini está en el documento. Las que no están salen marcadas con un aviso, y si es un importe, un total o una base, Gemini la lee otra vez. Sello en la revisión y en *Ver*. Se guarda solo la lista de números del PDF, para volver a comprobar al corregir a mano. Escaneos y fotos, como antes. Las nóminas ya guardadas no cambian
