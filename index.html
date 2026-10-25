@@ -397,7 +397,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.12.2</span>
+    <span class="logo-badge">Forense v2.12.3</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -2092,9 +2092,10 @@ function renderValidation(d) {
   const ok = diff < 0.02;
   // v2.8.13: unos céntimos con las sumas cuadradas son un redondeo de la empresa (checkPayroll lo decide)
   const rounding = !ok && checkPayroll(d).some(c => c.key === 'bcc' && c.level === 'round');
+  const lado = bcc - (rem + pro);   // v2.12.3: el lado del redondeo
   return `<div class="validation ${ok || rounding ? 'ok' : 'err'}">
     ${ok ? '✓' : rounding ? '≈' : '⚠'} Validación: Remuneración (${fmt(rem)}) + Prorrata (${fmt(pro)}) = ${fmt(rem+pro)}
-    ${ok ? '✓ Coincide con Base C.C.' : rounding ? `≈ Base C.C. (${fmt(bcc)}): ${Math.round(diff * 100)} céntimos, redondeo de la empresa` : `≠ Base C.C. (${fmt(bcc)}) — Diferencia: ${fmt(diff)} €`}
+    ${ok ? '✓ Coincide con Base C.C.' : rounding ? `≈ Base C.C. (${fmt(bcc)}): ${cts(lado)} ${lado > 0 ? 'mayor' : 'menor'}, redondeo de la empresa` : `≠ Base C.C. (${fmt(bcc)}) — Diferencia: ${fmt(diff)} €`}
   </div>`;
 }
 
@@ -4851,6 +4852,7 @@ function checkPayroll(p, opts = {}) {
   const out = checkSums(p);
   const ded = p.deductions || [], earn = p.earnings || [];
   const bases = p.bases || {};
+  const sdl = [];   // v2.12.3: nómina − cuenta de cada deducción comprobada (IRPF y cotizaciones), con su signo
 
   // 4. IRPF = base × %
   const irpfLine = findIRPFLine(p);
@@ -4858,12 +4860,13 @@ function checkPayroll(p, opts = {}) {
   const baseIRPF = amt(bases.baseIRPF);
   if (r.rate !== null && baseIRPF > 0 && !['calculado', 'aprox'].includes(r.source)) {
     const expected = round2(baseIRPF * r.rate / 100);
+    if (irpfLine) sdl.push(round2(amt(irpfLine.amount) - expected));   // v2.12.3: lado de cada diferencia, para el neto
     if (!irpfLine) {
       if (expected >= 1) out.push({ level: 'err', key: 'irpfMissing', paths: ['bases.irpfPercentage'],
         text: `No encuentro la línea de IRPF: con base ${fmt(baseIRPF)} € al ${fmtPct(r.rate)} debería haber una retención de ${fmt(expected)} €.` });
     } else if (Math.abs(amt(irpfLine.amount) - expected) > CHECK_TOL) {
       out.push({ level: 'warn', key: 'irpf', paths: [`deductions.${ded.indexOf(irpfLine)}.amount`, 'bases.baseIRPF', 'bases.irpfPercentage'],
-        diff: round2(Math.abs(amt(irpfLine.amount) - expected)),
+        diff: round2(Math.abs(amt(irpfLine.amount) - expected)), sdiff: round2(amt(irpfLine.amount) - expected), ded: true,
         rtext: `IRPF: ${fmt(irpfLine.amount)} € en la nómina y base IRPF ${fmt(baseIRPF)} € × ${fmtPct(r.rate)} = ${fmt(expected)} €`,
         text: `IRPF leído: ${fmt(irpfLine.amount)} €, pero base IRPF ${fmt(baseIRPF)} € × ${fmtPct(r.rate)} = ${fmt(expected)} €.` });
     }
@@ -4882,12 +4885,13 @@ function checkPayroll(p, opts = {}) {
     const main = /hor\w*\s*ext/i.test(String(d.concept || '')) ? overtime : (k === 'fp' || k === 'desempleo') ? baseAT : baseCC;
     const candidates = [main, baseCC, baseAT, overtime].filter((b, j, a) => b > 0 && a.indexOf(b) === j);
     if (!candidates.length) return;
-    if (candidates.some(b => Math.abs(amt(d.amount) - round2(b * pct / 100)) <= CHECK_TOL)) return;
-    const base = candidates[0], expected = round2(base * pct / 100);
-    // v2.8.13: para el redondeo, la base con la que más se acerca
+    // v2.8.13: para el redondeo, la base con la que más se acerca (v2.12.3: antes de dar la línea por buena, para el neto)
     const near = candidates.map(b => ({ b, e: round2(b * pct / 100) })).sort((x, y) => Math.abs(amt(d.amount) - x.e) - Math.abs(amt(d.amount) - y.e))[0];
+    sdl.push(round2(amt(d.amount) - near.e));
+    if (Math.abs(amt(d.amount) - near.e) <= CHECK_TOL) return;
+    const base = candidates[0], expected = round2(base * pct / 100);
     out.push({ level: 'warn', key: 'ss' + i, paths: [`deductions.${i}.amount`],
-      diff: round2(Math.abs(amt(d.amount) - near.e)),
+      diff: round2(Math.abs(amt(d.amount) - near.e)), sdiff: round2(amt(d.amount) - near.e), ded: true,
       rtext: `«${d.concept}»: ${fmt(d.amount)} € en la nómina y ${fmt(near.b)} € × ${fmtPct(pct)} = ${fmt(near.e)} €`,
       text: `«${d.concept}»: leído ${fmt(d.amount)} €, pero ${fmt(base)} € × ${fmtPct(pct)} = ${fmt(expected)} €.` });
   });
@@ -4918,7 +4922,7 @@ function checkPayroll(p, opts = {}) {
     const rem = amt(bases.totalRemuneration), pro = amt(bases.extraPayProrata);
     if (rem > 0 && Math.abs(rem + pro - baseCC) > CHECK_TOL)
       out.push({ level: 'warn', key: 'bcc', paths: ['bases.totalRemuneration', 'bases.extraPayProrata', 'bases.baseCC'],
-        diff: round2(Math.abs(rem + pro - baseCC)),
+        diff: round2(Math.abs(rem + pro - baseCC)), sdiff: round2(baseCC - (rem + pro)),
         rtext: `Remuneración (${fmt(rem)}) + prorrata (${fmt(pro)}) = ${fmt(round2(rem + pro))} € y base C.C. ${fmt(baseCC)} €`,
         text: `Remuneración (${fmt(rem)}) + prorrata (${fmt(pro)}) = ${fmt(round2(rem + pro))} €, distinto de la base C.C. (${fmt(baseCC)} €).` });
   }
@@ -4990,13 +4994,22 @@ function checkPayroll(p, opts = {}) {
   //     suma falla o falta un total, siguen como aviso (puede ser un error de lectura de Gemini).
   const gross = num(p.totals?.grossTotal), totDed = num(p.totals?.totalDeductions), net = num(p.totals?.netPay);
   const sumsOk = earn.length && ded.length && [gross, totDed, net].every(Number.isFinite) && !out.some(c => SUM_KEYS.includes(c.key));
+  //     v2.12.3: con el lado (más o menos) y, si hay varias deducciones con céntimos de diferencia, el neto. Solo
+  //     documenta: con el % impreso redondeado, la app no puede saber cuál de las dos cifras es la exacta.
   for (const c of out) {
     if (c.rtext && sumsOk && c.diff <= ROUND_TOL + 1e-9) {
-      const cts = Math.round(c.diff * 100);
       c.level = 'round';
-      c.text = `${c.rtext}: ${cts} céntimo${cts === 1 ? '' : 's'} de diferencia. Redondeo de la empresa: las sumas cuadran, así que la cifra está bien leída.`;
+      c.text = `${c.rtext}: ${c.ded ? descontado(c.sdiff) : baseLado(c.sdiff)}. Redondeo de la empresa: las sumas cuadran, así que la cifra está bien leída.`;
     }
-    delete c.rtext;
+    delete c.rtext; delete c.ded;
+  }
+  const conCts = sdl.map(x => Math.round(x * 100)).filter(x => x !== 0);
+  if (out.some(c => c.level === 'round' && /^(irpf|ss\d)/.test(c.key)) && conCts.length >= 2) {
+    const neto = conCts.reduce((a, b) => a + b, 0);
+    out.push({ level: 'round', key: 'roundNet', paths: [],
+      text: neto === 0
+        ? `En total, los céntimos de diferencia de las ${conCts.length} deducciones se compensan: te han descontado lo mismo que sale de las cuentas.`
+        : `En total, sumando las ${conCts.length} deducciones con céntimos de diferencia, ${descontado(neto / 100)}.` });
   }
   return out;
 }
@@ -5025,6 +5038,10 @@ function taxIdValid(raw) {
 }
 
 // Icono de cada nivel: ✗ error, ⚠ aviso, ≈ redondeo de la empresa (v2.8.13)
+// v2.12.3: el lado de un redondeo, en palabras (s = cifra de la nómina − cuenta, en euros)
+function cts(s) { const n = Math.abs(Math.round(s * 100)); return `${n} céntimo${n === 1 ? '' : 's'}`; }
+function descontado(s) { return `te han descontado ${cts(s)} ${s > 0 ? 'más' : 'menos'} de lo que sale de la cuenta`; }
+function baseLado(s) { return `la base C.C. es ${cts(s)} ${s > 0 ? 'mayor' : 'menor'} que la suma`; }
 function chkIcon(level) { return level === 'err' ? '✗' : level === 'round' ? '≈' : '⚠'; }
 // Lo que hay que mirar: todo menos los redondeos (v2.8.13)
 function realChecks(checks) { return checks.filter(c => c.level !== 'round'); }
