@@ -227,6 +227,20 @@ code { font-family:'JetBrains Mono',monospace; }
 .price-change { font-size:11px;margin-top:3px;line-height:1.45;color:var(--text-dim); }
 .price-change.down, .price-change.big { color:var(--warning); }
 .price-change.none { color:var(--text-muted); }
+/* Glosario (v2.11.0) */
+.gl-note { font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:8px; }
+.gl-item { border-top:1px solid var(--border); }
+.gl-item summary { display:flex;justify-content:space-between;gap:10px;padding:8px 0;cursor:pointer;font-size:12px;color:var(--text);list-style:none; }
+.gl-item summary::-webkit-details-marker { display:none; }
+.gl-item summary::before { content:'ⓘ';color:var(--accent);flex:none; }
+.gl-concept { flex:1;min-width:0;overflow-wrap:anywhere; }
+.gl-amount { white-space:nowrap;color:var(--text-dim); }
+.gl-body { font-size:12px;line-height:1.55;color:var(--text-dim);padding:0 0 10px 20px; }
+.gl-rate { margin-top:6px;font-size:11px; }
+.gl-rate.ok { color:var(--success); } .gl-rate.diff { color:var(--warning); } .gl-rate.noprint { color:var(--text-muted); }
+.gl-h { font-size:13px;font-weight:800;color:var(--accent);margin:4px 0 6px; }
+table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8px; }
+.gl-link { background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;padding:0;margin:-6px 0 14px;font-family:inherit;text-align:left; }
 .price-amounts { font-size:11px;color:var(--text-dim);margin-top:3px;line-height:1.6;font-family:'JetBrains Mono',monospace; }
 .price-sub { font-size:11px;font-weight:700;color:var(--accent);margin:14px 0 2px;text-transform:uppercase;letter-spacing:0.5px; }
 .price-note { font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5; }
@@ -383,7 +397,7 @@ code { font-family:'JetBrains Mono',monospace; }
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.10.2</span>
+    <span class="logo-badge">Forense v2.11.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -432,6 +446,7 @@ code { font-family:'JetBrains Mono',monospace; }
 <main id="view-dashboard">
   <h2>Panel de Control</h2>
   <p class="subtitle" id="dashSubtitle"></p>
+  <button class="gl-link" onclick="openGlossary()">📖 ¿Qué es cada concepto de la nómina? Glosario</button>
 
   <div class="year-pills" id="yearPills"></div>
 
@@ -490,6 +505,11 @@ code { font-family:'JetBrains Mono',monospace; }
 <!-- ═══════════ REPORT VIEW ═══════════ -->
 <main id="view-report" class="hidden">
   <div id="reportContent"></div>
+</main>
+
+<!-- ═══════════ GLOSSARY VIEW (v2.11.0) ═══════════ -->
+<main id="view-glossary" class="hidden">
+  <div id="glossaryContent"></div>
 </main>
 
 <!-- ═══════════ ANNUAL VIEW ═══════════ -->
@@ -1038,7 +1058,7 @@ function showView(name) {
   if (editingId && name !== 'upload') clearUpload();
   // Al salir de una bandeja ya terminada, su resumen ya no hace falta
   if (name !== 'upload' && !batch.items.length && (batch.saved.length || batch.discarded)) { batch = emptyBatch(); saveBatch(); }
-  ['dashboard','upload','report','annual','backup'].forEach(v => {
+  ['dashboard','upload','report','annual','backup','glossary'].forEach(v => {
     document.getElementById('view-' + v).classList.toggle('hidden', v !== name);
   });
   document.querySelectorAll('.nav-btn').forEach(b => {
@@ -1049,6 +1069,7 @@ function showView(name) {
   if (name === 'upload' && !extractedData && !imageBase64) renderUploadArea();
   if (name === 'annual') renderAnnual();
   if (name === 'backup') renderBackupView();
+  if (name === 'glossary') renderGlossary();
 }
 
 // ═══════════ GEMINI FLASH API ═══════════
@@ -3028,6 +3049,163 @@ async function discardBatchItem(skipConfirm) {
   bp.addEventListener('drop', e => { e.preventDefault(); handleFiles(e.dataTransfer.files); });
 })();
 
+// ═══════════ GLOSARIO (v2.11.0) ═══════════
+// Explicación fija de los conceptos habituales de una nómina. Sin IA: el concepto se reconoce por su texto con
+// expresiones regulares; si no se reconoce, no se explica (nunca se adivina). Los textos son generales: lo que manda
+// es el convenio y el contrato de cada persona. Diseño y fuentes en docs/TECNICO.md §24.
+
+// Tipos a cargo del trabajador en el Régimen General, comprobados en el BOE (orden de cotización de cada año).
+// Para añadir un año: copiar la línea, comprobar cada tipo en su orden y poner el enlace.
+const SS_WORKER_RATES = {
+  '2024': { cc: 4.70, mei: 0.12, des: [1.55, 1.60], fp: 0.10, src: 'Orden PJC/51/2024', url: 'https://www.boe.es/buscar/act.php?id=BOE-A-2024-1691' },
+  '2025': { cc: 4.70, mei: 0.13, des: [1.55, 1.60], fp: 0.10, src: 'Orden PJC/178/2025', url: 'https://www.boe.es/buscar/act.php?id=BOE-A-2025-3780' },
+  '2026': { cc: 4.70, mei: 0.15, des: [1.55, 1.60], fp: 0.10, src: 'Orden PJC/297/2026', url: 'https://www.boe.es/buscar/act.php?id=BOE-A-2026-7296' },
+};
+// Porcentaje con dos decimales, como en las nóminas y en el BOE: 4,70 % · 0,15 %
+function glPct(n) { return Number(n).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %'; }
+const SS_RATE_NAMES = { cc: 'Contingencias comunes', mei: 'MEI', des: 'Desempleo', fp: 'Formación profesional' };
+
+// side: 'e' devengo, 'd' deducción, 'b' base o total (solo en la página del glosario). Gana la primera que encaja,
+// así que el orden importa (la prorrata antes que la paga extra; las horas extra de un lado y del otro aparte).
+const GLOSSARY = [
+  { id: 'salario', side: 'e', title: 'Salario base', re: /sal(ario)?\.?\s*base|sueldo\s*base/i,
+    text: 'La parte fija del sueldo que marca el convenio para tu categoría, por día o por mes. Sobre ella se calculan muchos pluses.' },
+  { id: 'convenio', side: 'e', title: 'Plus convenio', re: /plus\s*(de\s*)?conv/i,
+    text: 'Complemento fijo que el convenio da a todas las personas de una categoría. Cuando sube el convenio, sube su precio.' },
+  { id: 'antiguedad', side: 'e', title: 'Antigüedad', re: /antig|trienio|quinquen|cuatrienio|\bbienio/i,
+    text: 'Complemento por los años en la empresa (trienios, quinquenios…). Cuánto y cada cuánto lo dice el convenio; algunos lo tienen congelado.' },
+  { id: 'prorrata', side: 'e', title: 'Prorrata de pagas extra', re: PRORRATA_RE,
+    text: 'Las pagas extra repartidas entre los doce meses. Si la cobras así, luego no hay paga extra aparte (o solo la parte que no se reparte).' },
+  { id: 'extra', side: 'e', title: 'Paga extra', re: /paga\s*extra|paga\s*(de\s*)?(navidad|verano|julio|diciembre|beneficios)|p\.\s*extra|gratif|extra\s*(de\s*)?(verano|navidad|julio|diciembre|beneficios)|\bbeneficios\b/i,
+    text: 'Paga extraordinaria: por ley hay al menos dos al año, y una es en Navidad (art. 31 del Estatuto de los Trabajadores). Su importe lo fija el convenio.' },
+  { id: 'hextra', side: 'e', title: 'Horas extra', re: /h(oras|rs)?\.?\s*ext/i,
+    text: 'Horas por encima de tu jornada. Se pagan como diga el convenio o el contrato, o se compensan con descanso; como máximo 80 al año (art. 35 del Estatuto).' },
+  { id: 'nocturnidad', side: 'e', title: 'Nocturnidad', re: /noct/i,
+    text: 'Plus por trabajar de noche (de 22:00 a 6:00). Lo fija el convenio, salvo que el salario del puesto ya se haya fijado por ser nocturno (art. 36 del Estatuto).' },
+  { id: 'festivos', side: 'e', title: 'Festivos y domingos', re: /festiv|domingo/i,
+    text: 'Pago por trabajar un festivo o un domingo, si el convenio lo prevé. A veces se compensa con un día libre en vez de dinero.' },
+  { id: 'variable', side: 'e', title: 'Incentivos y variable', re: /incentiv|variable|productiv|comisi(o|ó)n|\bbonus\b|objetivo|\bprima\b/i,
+    text: 'Paga variable: objetivos, productividad, comisiones. Su regla está en tu contrato, el convenio o un acuerdo de empresa; la nómina suele traer solo el total, sin el desglose.' },
+  { id: 'gastos', side: 'e', title: 'Transporte, dietas y kilometraje', re: /transport|dieta|kilomet|km\.?\b|locomoci/i,
+    text: 'Compensaciones por gastos. Las dietas y el kilometraje, dentro de unos límites, no pagan IRPF ni Seguridad Social; el plus de transporte del convenio, en cambio, cotiza como el resto del sueldo.' },
+  { id: 'especie', side: 'e', title: 'Salario en especie', re: /especie/i,
+    text: 'Algo que te dan en lugar de dinero (vivienda, coche, comida…). Cuenta como sueldo para el IRPF y la Seguridad Social; por eso suele salir otra vez en las deducciones.' },
+
+  { id: 'cc', side: 'd', title: 'Contingencias comunes', rate: 'cc', re: /cont(ing(encias)?)?\.?\s*com|c\.\s*com(u|ú)n|contingencias\s*comunes/i,
+    text: 'Tu parte de la cotización a la Seguridad Social por enfermedad, accidente no laboral, jubilación… Se calcula sobre la base de contingencias comunes. La empresa paga aparte su parte, mucho mayor, que no sale de tu sueldo.' },
+  { id: 'mei', side: 'd', title: 'MEI (Mecanismo de Equidad Intergeneracional)', rate: 'mei', re: /\bm\.?\s*e\.?\s*i\b|equidad/i,
+    text: 'Una cotización extra para el fondo de las pensiones, sobre la misma base que las contingencias comunes. Sube un poco cada año.' },
+  { id: 'desempleo', side: 'd', title: 'Desempleo', rate: 'des', re: /desemp|\bdesem\b/i,
+    text: 'Tu parte de la cotización por desempleo (el paro). Es algo más alta con un contrato temporal que con uno indefinido. Se calcula sobre la base de contingencias profesionales.' },
+  { id: 'fp', side: 'd', title: 'Formación profesional', rate: 'fp', re: /formaci|form\.?\s*prof|\bf\.\s*p\b/i,
+    text: 'Tu parte de la cotización para la formación de los trabajadores. Se calcula sobre la base de contingencias profesionales.' },
+  { id: 'hextra-cot', side: 'd', title: 'Cotización de horas extra', re: /h(oras|rs)?\.?\s*ext/i,
+    text: 'La cotización de las horas extra. En 2026, tu parte es el 2 % si son por fuerza mayor y el 4,70 % las demás (Orden PJC/297/2026).' },
+  { id: 'solidaridad', side: 'd', title: 'Cotización de solidaridad', re: /solidaridad/i,
+    text: 'Cotización adicional, desde 2025, solo para la parte del sueldo que pasa de la base máxima de cotización. Si no cobras tanto, no te sale.' },
+  { id: 'irpf', side: 'd', title: 'IRPF', re: /i\.?\s*r\.?\s*p\.?\s*f|tributaci|retenci/i,
+    text: 'Retención a cuenta del impuesto sobre la renta. No es el impuesto final: en la declaración de la renta se ajusta y te devuelven o pagas la diferencia. El % depende de tu sueldo y tu situación familiar.' },
+  { id: 'anticipo', side: 'd', title: 'Anticipo', re: /anticip/i,
+    text: 'Dinero que ya cobraste antes y que ahora se descuenta.' },
+  { id: 'especie-d', side: 'd', title: 'Descuento del salario en especie', re: /especie/i,
+    text: 'Como el salario en especie no lo cobras en dinero, se suma arriba (para calcular impuestos y cotización) y se resta aquí.' },
+  { id: 'embargo', side: 'd', title: 'Embargo', re: /embargo/i,
+    text: 'Retención ordenada por un juzgado o una administración. La ley pone límites a la parte del sueldo que se puede embargar.' },
+
+  { id: 'base-cc', side: 'b', title: 'Base de contingencias comunes',
+    text: 'La cifra sobre la que se calculan las contingencias comunes y el MEI: el sueldo del mes más la prorrata de las pagas extra, sin las horas extra. Tiene un mínimo y un máximo cada año.' },
+  { id: 'base-at', side: 'b', title: 'Base de contingencias profesionales (AT/EP)',
+    text: 'Como la anterior, más las horas extra. Sobre ella se calculan el desempleo y la formación profesional (y lo que paga la empresa por accidentes de trabajo).' },
+  { id: 'base-irpf', side: 'b', title: 'Base del IRPF',
+    text: 'Lo que cobras este mes y paga IRPF. No incluye la prorrata (no la cobras ese mes) ni lo que está exento.' },
+  { id: 'bruto', side: 'b', title: 'Total devengado (bruto)', text: 'La suma de todo lo que te pagan este mes, antes de los descuentos.' },
+  { id: 'deducir', side: 'b', title: 'Total a deducir', text: 'La suma de todos los descuentos: Seguridad Social, IRPF, anticipos…' },
+  { id: 'liquido', side: 'b', title: 'Líquido a percibir', text: 'Lo que te llega al banco: total devengado menos total a deducir.' },
+];
+
+// La explicación de una línea de la nómina, o null si no se reconoce. side: 'e' (devengos) o 'd' (deducciones)
+function glossaryFor(concept, side) {
+  const c = String(concept ?? '');
+  if (!c.trim()) return null;
+  return GLOSSARY.find(g => g.side === side && g.re && g.re.test(c)) || null;
+}
+
+// Tipo oficial frente al % impreso en la línea (units). Solo informa: no es una comprobación y nunca pone ⚠.
+// { kind: 'ok'|'diff'|'noprint', text } o null si no hay tipo oficial para ese concepto o ese año.
+function glossaryRate(g, line, year) {
+  const r = g?.rate && SS_WORKER_RATES[String(year ?? '')];
+  if (!r) return null;
+  const off = [].concat(r[g.rate]);
+  const offTxt = off.length > 1 ? `${glPct(off[0])} con contrato indefinido y ${glPct(off[1])} con contrato temporal` : glPct(off[0]);
+  // El % a veces viene en su columna y a veces al final del nombre («COTIZACION DESEMPLEO 1,55»)
+  const ok = v => Number.isFinite(v) && v > 0 && v < 30;
+  let printed = numAI(line?.units);
+  if (!ok(printed)) { const m = String(line?.concept ?? '').match(/(\d{1,2}[.,]\d{1,2})\s*%?\s*$/); if (m) printed = numAI(m[1]); }
+  // Hay empresas que juntan contingencias comunes y MEI en la misma línea (en 2024, 4,70 + 0,12 = 4,82 %)
+  if (g.rate === 'cc' && ok(printed) && Math.abs(r.cc + r.mei - printed) < 0.005)
+    return { kind: 'ok', text: `✓ El ${glPct(printed)} de tu nómina es contingencias comunes (${glPct(r.cc)}) más el MEI (${glPct(r.mei)}) de ${year}, juntos en la misma línea (${r.src}).` };
+  if (!ok(printed))
+    return { kind: 'noprint', text: `Tipo oficial de ${year}: ${offTxt} (${r.src}). En esta nómina no se leyó el %.` };
+  const hit = off.findIndex(o => Math.abs(o - printed) < 0.005);
+  if (hit >= 0)
+    return { kind: 'ok', text: `✓ El ${glPct(printed)} de tu nómina es el tipo oficial de ${year} (${off.length > 1 ? (hit ? 'contrato temporal; ' : 'contrato indefinido; ') : ''}${r.src}).` };
+  return { kind: 'diff', text: `Tipo oficial de ${year}: ${offTxt} (${r.src}). En tu nómina pone ${glPct(printed)}: míralo en el papel, puede ser un error de lectura.` };
+}
+
+// Tarjeta «¿Qué es cada concepto?» de Ver
+function glossaryCardHtml(p) {
+  const year = p?.period?.year;
+  const items = [], unknown = [];
+  for (const [side, lines] of [['e', p?.earnings || []], ['d', p?.deductions || []]]) {
+    for (const l of lines) {
+      const g = glossaryFor(l?.concept, side);
+      if (!g) { if (side === 'e' && String(l?.concept ?? '').trim()) unknown.push(l.concept); continue; }
+      const rt = glossaryRate(g, l, year);
+      items.push(`<details class="gl-item"><summary><span class="gl-concept">${esc(l.concept)}</span><span class="gl-amount mono">${fmt(l.amount)} €</span></summary>
+        <div class="gl-body"><strong>${esc(g.title)}.</strong> ${esc(g.text)}${rt ? `<div class="gl-rate ${rt.kind}">${esc(rt.text)}</div>` : ''}</div></details>`);
+    }
+  }
+  if (!items.length && !unknown.length) return '';
+  return `<div class="card" id="glossaryCard" style="padding:14px 16px">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">¿Qué es cada concepto?</div>
+      <div class="gl-note">Toca un concepto para ver qué es. Son explicaciones generales: lo que manda es tu convenio y tu contrato.</div>
+      ${items.join('')}
+      ${unknown.length ? `<div class="gl-note" style="margin-top:8px">Sin explicación: ${unknown.map(esc).join(', ')}. Son conceptos propios de tu empresa: su regla está en tu convenio, tu contrato o un acuerdo de empresa.</div>` : ''}
+      <div class="doc-actions"><button class="btn btn-secondary btn-sm" onclick="openGlossary(${jsArg(p?.id)})">📖 Glosario completo</button></div>
+    </div>`;
+}
+
+// Página del glosario (no está en la barra: en el móvil no cabe otro botón). Se abre desde el Panel y desde Ver.
+let glossaryReturnId = null;
+function openGlossary(fromId) {
+  glossaryReturnId = fromId || null;
+  showView('glossary');
+  window.scrollTo(0, 0);   // desde el final de Ver, que no se abra a media página
+}
+function closeGlossary() {
+  const p = glossaryReturnId && payrolls.find(x => x.id === glossaryReturnId);
+  glossaryReturnId = null;
+  if (p) showReport(p); else showView('dashboard');
+}
+function renderGlossary() {
+  const sec = (title, side) => `<h3 class="gl-h">${title}</h3>` + GLOSSARY.filter(g => g.side === side).map(g =>
+    `<details class="gl-item"><summary><span class="gl-concept">${esc(g.title)}</span></summary><div class="gl-body">${esc(g.text)}</div></details>`).join('');
+  const years = Object.keys(SS_WORKER_RATES).sort();
+  const rateRow = k => `<tr><td>${SS_RATE_NAMES[k]}</td>${years.map(y => `<td class="mono">${[].concat(SS_WORKER_RATES[y][k]).map(glPct).join(' / ')}</td>`).join('')}</tr>`;
+  document.getElementById('glossaryContent').innerHTML = `
+    <h2>Glosario</h2>
+    <p class="subtitle">Qué es cada concepto de una nómina. Son explicaciones generales: lo que manda es tu convenio y tu contrato. La app documenta; no asesora.</p>
+    <div class="card" style="padding:14px 16px">${sec('Lo que cobras (devengos)', 'e')}</div>
+    <div class="card" style="padding:14px 16px">${sec('Lo que te descuentan (deducciones)', 'd')}
+      <h3 class="gl-h">Tipos a cargo del trabajador (Régimen General)</h3>
+      <table class="kv gl-rates"><thead><tr><th></th>${years.map(y => `<th>${y}</th>`).join('')}</tr></thead>
+        <tbody>${['cc', 'mei', 'des', 'fp'].map(rateRow).join('')}</tbody></table>
+      <div class="gl-note">Desempleo: contrato indefinido / temporal. Fuente, la orden de cotización de cada año en el BOE: ${years.map(y => `<a href="${escAttr(SS_WORKER_RATES[y].url)}" target="_blank" rel="noopener">${esc(SS_WORKER_RATES[y].src)}</a>`).join(' · ')}.</div>
+    </div>
+    <div class="card" style="padding:14px 16px">${sec('Bases y totales', 'b')}</div>
+    <div class="btn-group"><button class="btn btn-secondary" onclick="closeGlossary()">${glossaryReturnId ? 'Volver a la nómina' : 'Volver al Panel'}</button></div>`;
+}
+
 // ═══════════ MONTHLY REPORT (FASE 2) ═══════════
 function showReport(p) {
   showView('report');
@@ -3112,6 +3290,7 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Precios por unidad</div>
       ${pr.html}
     </div>` : ''}
+    ${glossaryCardHtml(p)}
     <div class="card" style="padding:14px 16px">
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Tipo de nómina</div>
       <div class="type-picker">

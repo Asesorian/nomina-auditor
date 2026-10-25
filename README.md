@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.10.2)
+## 🆕 Novedades (v2.3 – v2.11.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 📖 **Glosario (v2.11.0)** | En cada nómina, **«¿Qué es cada concepto?»**: toca una línea (salario base, prorrata, contingencias comunes, MEI, desempleo, IRPF…) y te explica qué es. En las cotizaciones, además, el **tipo oficial de ese año** (del BOE) frente al % de tu nómina. Y una página con el glosario completo y la tabla de tipos por año. Sin IA: textos fijos, revisados con las fuentes oficiales | Ver · Panel |
 | 🏛️ **¿Está completo el año? y Comparar con Hacienda (v2.10.0–v2.10.1)** | El Anual te dice si **falta alguna nómina** (también las del final del año y las pagas extra que tuviste el año anterior) y, en los años cerrados, te pregunta si cobraste algún bonus, atrasos o finiquito en una **nómina aparte**. Y si escribes las tres cifras de tus **datos fiscales** (o del certificado de retenciones de tu empresa), las compara con tus nóminas: si coinciden, si difieren en céntimos o, si Hacienda tiene más, **cómo sería la nómina que te falta** para buscarla en el banco. Sin IA y sin entrar en Hacienda: tú escribes las cifras y se guardan solo en tu dispositivo (y en el backup) | Anual |
 | 📊 **Precios por concepto (v2.9.0–v2.9.1)** | La app compara el **precio por unidad** de cada concepto (salario base por día, plus por hora…) con el de tu nómina mensual anterior y te dice si **sube, baja o cambia mucho**, en qué mes y desde cuándo. Los conceptos sin precio (incentivos, comisiones…) muestran su importe mes a mes. Sin IA: lo calcula la app con tus nóminas guardadas | Anual y Ver |
 | ≈ **Redondeos de la empresa (v2.8.13)** | Si el IRPF, una cotización o la base de cotización difieren de la cuenta (base × %) en **10 céntimos o menos** y las sumas de la nómina cuadran, la app lo muestra en gris como *redondeo de la empresa*, no como aviso: la cifra está bien leída y la diferencia es del cálculo de la empresa. Si alguna suma no cuadra, sigue siendo un aviso | Revisión, Ver nómina, bandeja y texto para el abogado |
@@ -689,6 +690,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.11.0 (Octubre 2026)
+- **Glosario:** en *Ver*, la tarjeta «¿Qué es cada concepto?» explica cada línea que reconoce (unos 30 conceptos habituales de devengos y deducciones). Los conceptos propios de la empresa salen aparte, sin inventar nada: su regla está en el convenio, el contrato o un acuerdo de empresa
+- **Tipo oficial frente al de tu nómina:** en contingencias comunes, MEI, desempleo y formación profesional, el tipo a cargo del trabajador de ese año (2024–2026, comprobado en la orden de cotización del BOE) junto al % impreso. Solo informa: no es una comprobación de las cuentas y no pone ⚠
+- **Página del glosario:** todos los conceptos, las bases y los totales, y la tabla de tipos por año con sus fuentes. Se abre desde el Panel y desde *Ver*
 
 ### v2.10.2 (Octubre 2026)
 - **Unidades × precio, más fino:** el margen ya no es el 0,2 % del importe, sino lo que pueden mover los redondeos según los decimales impresos del precio y de las unidades. En una prueba real, una cifra del precio mal leída (más de un euro de diferencia en el importe) pasaba sin aviso y la subida del precio salía mal en el historial y en las observaciones. Ahora es un error en la revisión, y el historial de precios usa importe ÷ unidades (con *). Con las nóminas guardadas de la prueba, solo esa pasa a salir con ⚠
