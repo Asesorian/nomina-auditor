@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.12.5)
+## 🆕 Novedades (v2.3 – v2.13.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -40,6 +40,7 @@
 | 🏛️ **¿Está completo el año? y Comparar con Hacienda (v2.10.0–v2.10.1)** | El Anual te dice si **falta alguna nómina** (también las del final del año y las pagas extra que tuviste el año anterior) y, en los años cerrados, te pregunta si cobraste algún bonus, atrasos o finiquito en una **nómina aparte**. Y si escribes las tres cifras de tus **datos fiscales** (o del certificado de retenciones de tu empresa), las compara con tus nóminas: si coinciden, si difieren en céntimos o, si Hacienda tiene más, **cómo sería la nómina que te falta** para buscarla en el banco. Sin IA y sin entrar en Hacienda: tú escribes las cifras y se guardan solo en tu dispositivo (y en el backup) | Anual |
 | 📊 **Precios por concepto (v2.9.0–v2.9.1)** | La app compara el **precio por unidad** de cada concepto (salario base por día, plus por hora…) con el de tu nómina mensual anterior y te dice si **sube, baja o cambia mucho**, en qué mes y desde cuándo. Los conceptos sin precio (incentivos, comisiones…) muestran su importe mes a mes. Sin IA: lo calcula la app con tus nóminas guardadas | Anual y Ver |
 | ≈ **Redondeos de la empresa (v2.8.13)** | Si el IRPF, una cotización o la base de cotización difieren de la cuenta (base × %) en **10 céntimos o menos** y las sumas de la nómina cuadran, la app lo muestra en gris como *redondeo de la empresa*, no como aviso: la cifra está bien leída y la diferencia es del cálculo de la empresa. Si alguna suma no cuadra, sigue siendo un aviso. Desde la v2.12.3 dice **hacia qué lado**: si te han descontado esos céntimos de más o de menos y, si hay varias deducciones con céntimos de diferencia, **cuánto suman en total** | Revisión, Ver nómina, bandeja y texto para el abogado |
+| 🌐 **Glosario en tu idioma (v2.13.0)** | Las explicaciones del glosario, en **Español, Català o English**, sea cual sea el idioma de tu nómina. Los conceptos se ven tal como vienen en el papel; en inglés, cada término lleva su nombre en español. Se elige en la propia tarjeta y se recuerda. Es el primer paso para tener toda la app en varios idiomas | Ver · Glosario |
 | 📤 **Backup en iCloud o Drive desde el iPhone (v2.12.5)** | En iPhone y iPad, **🗂️ Guardar backup completo…** abre el menú de compartir: eliges *Guardar en Archivos* → **iCloud Drive**, o la app de **Drive**. Si el menú no se abre o lo cierras, el backup queda preparado con un botón **Guardar en…** y otro para descargarlo | Panel · Datos |
 | 🗂️ **Guardar el backup en Drive (v2.8.10)** | En Chrome (Android y ordenador), **🗂️ Guardar backup completo…** abre el «Guardar como» del móvil o del ordenador: eliges Drive (o una carpeta) y la app comprueba que el archivo ha quedado entero. Drive lo sube después: la app te dice cuánto debe pesar para que lo compruebes en Drive (v2.8.11). Sin iniciar sesión en Google ni dar permisos a la app. En iPhone y en otros navegadores se descarga, como antes, y el aviso explica cómo llevarlo a Drive desde Descargas | Panel · Datos |
 | 💳 **Saldo de Gemini agotado (v2.8.9)** | Google cobra ahora Gemini por **prepago**: compras crédito y cada lectura lo va gastando. Si se acaba, la app lo dice tal cual («Se ha acabado el saldo de Gemini de esta clave») y explica qué hacer, en vez de un error genérico. En la bandeja, la lectura se para sin marcar nada como error y sigue con *Reanudar* cuando hay saldo | Subir · Bandeja |
@@ -696,6 +697,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.13.0 (Octubre 2026)
+- **Glosario en tu idioma:** español, català o English, elegido en la tarjeta «¿Qué es cada concepto?» o en la página del glosario, y recordado. La nómina puede estar en un idioma y las explicaciones en otro: los conceptos se muestran como vienen en el papel. El resto de la app sigue en español por ahora
+- **Glosario, base del IRPF corregida:** decía que no incluye la prorrata de las pagas extra; si las cobras repartidas cada mes, sí pagan IRPF. Lo que no entra es la prorrata que solo se suma para cotizar, cuando las pagas se cobran aparte
 
 ### v2.12.5 (Octubre 2026)
 - **Backup en iCloud o Drive desde el iPhone:** en iPhone y iPad, *Guardar backup completo…* abre el menú de compartir del sistema y desde ahí lo guardas en *Archivos* → iCloud Drive o en Drive. Antes solo se descargaba. Si el menú no llega a abrirse (con muchas nóminas, preparar el ZIP tarda) o lo cierras sin elegir, el backup queda preparado con su botón *Guardar en…* y otro para *Descargar*. En Android y en el ordenador no cambia nada

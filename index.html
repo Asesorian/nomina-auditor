@@ -240,6 +240,10 @@ code { font-family:'JetBrains Mono',monospace; }
 .gl-rate.ok { color:var(--success); } .gl-rate.diff { color:var(--warning); } .gl-rate.noprint { color:var(--text-muted); }
 .gl-h { font-size:13px;font-weight:800;color:var(--accent);margin:4px 0 6px; }
 table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8px; }
+/* Idioma de las explicaciones (v2.13.0) */
+.gl-langs { display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);margin:2px 0 10px; }
+.gl-lang { background:none;border:1px solid var(--border);border-radius:999px;color:var(--text-dim);font-size:11px;padding:3px 10px;cursor:pointer;font-family:inherit; }
+.gl-lang.on { border-color:var(--accent);color:var(--accent);background:var(--accent-glow); }
 .gl-link { background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;padding:0;margin:-6px 0 14px;font-family:inherit;text-align:left; }
 .price-amounts { font-size:11px;color:var(--text-dim);margin-top:3px;line-height:1.6;font-family:'JetBrains Mono',monospace; }
 .price-sub { font-size:11px;font-weight:700;color:var(--accent);margin:14px 0 2px;text-transform:uppercase;letter-spacing:0.5px; }
@@ -397,7 +401,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.12.5</span>
+    <span class="logo-badge">Forense v2.13.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -3100,9 +3104,40 @@ const SS_WORKER_RATES = {
   '2025': { cc: 4.70, mei: 0.13, des: [1.55, 1.60], fp: 0.10, src: 'Orden PJC/178/2025', url: 'https://www.boe.es/buscar/act.php?id=BOE-A-2025-3780' },
   '2026': { cc: 4.70, mei: 0.15, des: [1.55, 1.60], fp: 0.10, src: 'Orden PJC/297/2026', url: 'https://www.boe.es/buscar/act.php?id=BOE-A-2026-7296' },
 };
+// ═══════════ IDIOMAS (v2.13.0) ═══════════
+// Base para traducir la app. Hoy solo el glosario sale en el idioma que elige la persona (gloss_lang); el resto, en
+// español. REGLA desde la v2.13.0: todo texto NUEVO se escribe con tr() y sus tres idiomas, para no acumular deuda.
+// Los conceptos de la nómina nunca se traducen: se muestran como vienen en el papel. Las cifras, en formato español.
+const LANGS = { es: 'Español', ca: 'Català', en: 'English' };
+const I18N = {"es": {"cardTitle": "¿Qué es cada concepto?", "cardNote": "Toca un concepto para ver qué es. Son explicaciones generales: lo que manda es tu convenio y tu contrato.", "unknown": "Sin explicación: {list}. Son conceptos propios de tu empresa: su regla está en tu convenio, tu contrato o un acuerdo de empresa.", "full": "📖 Glosario completo", "lang": "Idioma de las explicaciones", "title": "Glosario", "subtitle": "Qué es cada concepto de una nómina. Son explicaciones generales: lo que manda es tu convenio y tu contrato. La app documenta; no asesora.", "secE": "Lo que cobras (devengos)", "secD": "Lo que te descuentan (deducciones)", "ratesH": "Tipos a cargo del trabajador (Régimen General)", "ratesNote": "Desempleo: contrato indefinido / temporal. Fuente, la orden de cotización de cada año en el BOE: {links}.", "secB": "Bases y totales", "backReport": "Volver a la nómina", "backPanel": "Volver al Panel", "r.cc": "Contingencias comunes", "r.mei": "MEI", "r.des": "Desempleo", "r.fp": "Formación profesional", "rBoth": "{a} con contrato indefinido y {b} con contrato temporal", "rCcMei": "✓ El {p} de tu nómina es contingencias comunes ({cc}) más el MEI ({mei}) de {y}, juntos en la misma línea ({src}).", "rNoPrint": "Tipo oficial de {y}: {off} ({src}). En esta nómina no se leyó el %.", "rOk": "✓ El {p} de tu nómina es el tipo oficial de {y} ({kind}{src}).", "rKindTemp": "contrato temporal; ", "rKindPerm": "contrato indefinido; ", "rDiff": "Tipo oficial de {y}: {off} ({src}). En tu nómina pone {p}: míralo en el papel, puede ser un error de lectura."}, "ca": {"cardTitle": "Què és cada concepte?", "cardNote": "Toca un concepte per veure què és. Són explicacions generals: el que preval és el teu conveni i el teu contracte.", "unknown": "Sense explicació: {list}. Són conceptes propis de la teva empresa: es regeixen pel teu conveni, el teu contracte o un acord d'empresa.", "full": "📖 Glossari complet", "lang": "Idioma de les explicacions", "title": "Glossari", "subtitle": "Què és cada concepte d'una nòmina. Són explicacions generals: el que preval és el teu conveni i el teu contracte. L'app documenta; no assessora.", "secE": "El que cobres (meritacions)", "secD": "El que et descompten (deduccions)", "ratesH": "Tipus a càrrec del treballador (Règim General)", "ratesNote": "Atur: contracte indefinit / temporal. Font: l'ordre de cotització de cada any al BOE: {links}.", "secB": "Bases i totals", "backReport": "Tornar a la nòmina", "backPanel": "Tornar al Panel", "r.cc": "Contingències comunes", "r.mei": "MEI", "r.des": "Atur", "r.fp": "Formació professional", "rBoth": "{a} amb contracte indefinit i {b} amb contracte temporal", "rCcMei": "✓ El {p} de la teva nòmina és contingències comunes ({cc}) més el MEI ({mei}) del {y}, junts a la mateixa línia ({src}).", "rNoPrint": "Tipus oficial del {y}: {off} ({src}). En aquesta nòmina no es va llegir el %.", "rOk": "✓ El {p} de la teva nòmina és el tipus oficial del {y} ({kind}{src}).", "rKindTemp": "contracte temporal; ", "rKindPerm": "contracte indefinit; ", "rDiff": "Tipus oficial del {y}: {off} ({src}). A la teva nòmina posa {p}: mira-ho al paper, pot ser un error de lectura."}, "en": {"cardTitle": "What does each item mean?", "cardNote": "Tap an item to see what it is. These are general explanations: what applies is your collective agreement and your contract.", "unknown": "No explanation: {list}. These are items specific to your company: the rule is in your collective agreement, your contract or a company agreement.", "full": "📖 Full glossary", "lang": "Language of the explanations", "title": "Glossary", "subtitle": "What each item on a Spanish payslip (nómina) means. These are general explanations: what applies is your collective agreement and your contract. The app documents; it does not give advice.", "secE": "What you are paid (devengos)", "secD": "What is deducted (deducciones)", "ratesH": "Employee's contribution rates (General Social Security Scheme)", "ratesNote": "Unemployment: permanent / temporary contract. Source: each year's contribution order in the BOE (Spain's official gazette): {links}.", "secB": "Bases and totals", "backReport": "Back to the payslip", "backPanel": "Back to the Panel", "r.cc": "Common contingencies", "r.mei": "MEI", "r.des": "Unemployment", "r.fp": "Vocational training", "rBoth": "{a} with a permanent contract and {b} with a temporary contract", "rCcMei": "✓ The {p} on your payslip is common contingencies ({cc}) plus the MEI ({mei}) for {y}, together on the same line ({src}).", "rNoPrint": "Official rate for {y}: {off} ({src}). The % was not read on this payslip.", "rOk": "✓ The {p} on your payslip is the official rate for {y} ({kind}{src}).", "rKindTemp": "temporary contract; ", "rKindPerm": "permanent contract; ", "rDiff": "Official rate for {y}: {off} ({src}). Your payslip shows {p}: check it on the paper, it may be a reading error."}};
+// Glosario en català e inglés: [título, explicación] por id. El español es el de GLOSSARY.
+const GLOSSARY_TR = {"ca": {"salario": ["Salari base", "La part fixa del sou que marca el conveni per a la teva categoria, per dia o per mes. Sobre aquesta part es calculen molts plusos."], "convenio": ["Plus conveni", "Complement fix que el conveni dona a totes les persones d'una categoria. Quan puja el conveni, en puja l'import."], "antiguedad": ["Antiguitat", "Complement pels anys a l'empresa (triennis, quinquennis…). Quant i cada quant ho diu el conveni; alguns el tenen congelat."], "prorrata": ["Prorrata de pagues extraordinàries", "Les pagues extraordinàries repartides entre els dotze mesos. Si la cobres així, després no hi ha paga extraordinària a part (o només la part que no es reparteix)."], "extra": ["Paga extraordinària", "Per llei n'hi ha almenys dues l'any, i una és per Nadal (art. 31 de l'Estatut dels treballadors). El seu import el fixa el conveni."], "hextra": ["Hores extraordinàries", "Hores per sobre de la teva jornada. Es paguen com digui el conveni o el contracte, o es compensen amb descans; com a màxim 80 l'any (art. 35 de l'Estatut)."], "nocturnidad": ["Nocturnitat", "Plus per treballar de nit (de 22:00 a 6:00). El fixa el conveni, llevat que el salari del lloc ja s'hagi fixat per ser nocturn (art. 36 de l'Estatut)."], "festivos": ["Festius i diumenges", "Pagament per treballar un festiu o un diumenge, si el conveni ho preveu. De vegades es compensa amb un dia lliure en lloc de diners."], "variable": ["Incentius i variable", "Paga variable: objectius, productivitat, comissions. Es regeix pel teu contracte, el conveni o un acord d'empresa; la nòmina sol portar només el total, sense desglossar."], "gastos": ["Transport, dietes i quilometratge", "Compensacions per despeses. Les dietes i el quilometratge, dins d'uns límits, no paguen IRPF ni Seguretat Social; el plus de transport del conveni, en canvi, cotitza com la resta del sou."], "especie": ["Salari en espècie", "Alguna cosa que et donen en lloc de diners (habitatge, cotxe, menjar…). Compta com a sou per a l'IRPF i la Seguretat Social; per això sol sortir una altra vegada a les deduccions."], "cc": ["Contingències comunes", "La teva part de la cotització a la Seguretat Social per malaltia, accident no laboral, jubilació… Es calcula sobre la base de contingències comunes. L'empresa abona a part la seva quota, molt més gran, que no surt del teu sou."], "mei": ["MEI (Mecanisme d'Equitat Intergeneracional)", "Una cotització extra per al fons de les pensions, sobre la mateixa base que les contingències comunes. Puja una mica cada any."], "desempleo": ["Atur (desocupació)", "La teva part de la cotització per atur. És una mica més alta amb un contracte temporal que amb un d'indefinit. Es calcula sobre la base de contingències professionals."], "fp": ["Formació professional", "La teva part de la cotització per a la formació dels treballadors. Es calcula sobre la base de contingències professionals."], "hextra-cot": ["Cotització de les hores extraordinàries", "La cotització de les hores extraordinàries. El 2026, la teva part és el 2 % si són per força major i el 4,70 % la resta (Orden PJC/297/2026)."], "solidaridad": ["Cotització de solidaritat", "Cotització addicional, des del 2025, només per a la part del sou que passa de la base màxima de cotització. Si no cobres tant, no et surt."], "irpf": ["IRPF", "Retenció a compte de l'impost sobre la renda. No és l'impost final: a la declaració de la renda s'ajusta i et tornen o pagues la diferència. El % depèn del teu sou i de la teva situació familiar."], "anticipo": ["Bestreta", "Diners que ja vas cobrar abans i que ara es descompten."], "especie-d": ["Descompte del salari en espècie", "Com que el salari en espècie no el cobres en diners, se suma a dalt (per calcular impostos i cotització) i es resta aquí."], "embargo": ["Embargament", "Retenció ordenada per un jutjat o una administració. La llei posa límits a la part del sou que es pot embargar."], "base-cc": ["Base de contingències comunes", "La xifra sobre la qual es calculen les contingències comunes i el MEI: el sou del mes més la prorrata de les pagues extraordinàries, sense les hores extraordinàries. Té un mínim i un màxim cada any."], "base-at": ["Base de contingències professionals (AT/MP)", "Com l'anterior, més les hores extraordinàries. Sobre aquesta es calculen l'atur i la formació professional (i el que paga l'empresa per accidents de treball)."], "base-irpf": ["Base de l'IRPF", "El que cobres aquest mes i paga IRPF. No inclou la prorrata de les pagues extraordinàries que només se suma per cotitzar (quan les cobres a part, per exemple al juny i al desembre) ni el que està exempt."], "bruto": ["Total meritat (brut)", "La suma de tot el que et paguen aquest mes, abans dels descomptes."], "deducir": ["Total a deduir", "La suma de tots els descomptes: Seguretat Social, IRPF, bestretes…"], "liquido": ["Líquid a percebre", "El que t'arriba al banc: total meritat menys total a deduir."]}, "en": {"salario": ["Base salary (salario base)", "The fixed part of your pay set by the collective agreement for your job category, per day or per month. Many bonuses are calculated on top of it."], "convenio": ["Agreement bonus (plus convenio)", "A fixed supplement that the collective agreement gives to everyone in a job category. When the agreement rates go up, this amount goes up too."], "antiguedad": ["Seniority (antigüedad)", "A supplement for your years at the company (every three years, every five years…). How much and how often is set by the collective agreement; some have frozen it."], "prorrata": ["Prorated extra payments (prorrata)", "The extra payments spread across the twelve months. If you are paid this way, there is no separate extra payment later (or only the part that is not spread out)."], "extra": ["Extra payment (paga extra)", "By law there are at least two a year, and one is at Christmas (art. 31 of the Workers' Statute, Estatuto de los Trabajadores). The amount is set by the collective agreement."], "hextra": ["Overtime (horas extra)", "Hours beyond your working schedule. They are paid as the collective agreement or your contract says, or compensated with time off; at most 80 a year (art. 35 of the Workers' Statute)."], "nocturnidad": ["Night work (nocturnidad)", "A bonus for working at night (10 pm to 6 am). It is set by the collective agreement, unless the job's pay was already set for being a night job (art. 36 of the Workers' Statute)."], "festivos": ["Public holidays and Sundays (festivos)", "Pay for working on a public holiday or a Sunday, if the collective agreement provides for it. Sometimes it is compensated with a day off instead of money."], "variable": ["Incentives and variable pay (incentivos)", "Variable pay: targets, productivity, commissions. The rule is in your contract, the collective agreement or a company agreement; the payslip usually shows only the total, without a breakdown."], "gastos": ["Transport, allowances and mileage (dietas, kilometraje)", "Expense compensation. Daily allowances and mileage, within certain limits, are free of income tax withholding (IRPF) and Social Security; the agreement's transport bonus, however, is subject to Social Security contributions like the rest of your pay."], "especie": ["Pay in kind (salario en especie)", "Something you receive instead of money (housing, a car, meals…). It counts as pay for income tax (IRPF) and Social Security; that is why it usually appears again among the deductions."], "cc": ["Common contingencies (contingencias comunes)", "Your share of Social Security contributions for illness, non-work accidents, retirement… It is calculated on the common contingencies base. The company pays its own, much larger share separately; it does not come out of your pay."], "mei": ["MEI (Intergenerational Equity Mechanism)", "An extra contribution to the pension fund, on the same base as common contingencies. It goes up a little every year."], "desempleo": ["Unemployment (desempleo)", "Your share of the unemployment contribution. It is a bit higher with a temporary contract than with a permanent one. It is calculated on the professional contingencies base."], "fp": ["Vocational training (formación profesional)", "Your share of the contribution for workers' training. It is calculated on the professional contingencies base."], "hextra-cot": ["Overtime contribution (cotización de horas extra)", "The Social Security contribution on overtime. In 2026, your share is 2 % for overtime due to force majeure and 4,70 % for the rest (Orden PJC/297/2026)."], "solidaridad": ["Solidarity contribution (cotización de solidaridad)", "An additional contribution, since 2025, only on the part of your pay above the maximum contribution base. If you do not earn that much, it does not apply to you."], "irpf": ["IRPF (income tax withholding)", "An advance withholding of Spanish personal income tax. It is not the final tax: it is settled in the annual tax return (declaración de la renta), where you get a refund or pay the difference. The % depends on your pay and your family situation."], "anticipo": ["Advance (anticipo)", "Money you were already paid earlier that is now deducted."], "especie-d": ["Pay-in-kind deduction (descuento del salario en especie)", "Since you do not receive pay in kind as money, it is added above (to calculate tax and contributions) and subtracted here."], "embargo": ["Wage garnishment (embargo)", "A withholding ordered by a court or a public authority. The law limits how much of your pay can be taken."], "base-cc": ["Common contingencies base (base de contingencias comunes)", "The amount on which common contingencies and the MEI are calculated: the month's pay plus the prorated extra payments, without overtime. It has a minimum and a maximum each year."], "base-at": ["Professional contingencies base (base AT/EP)", "Like the previous one, plus overtime. Unemployment and vocational training are calculated on it (and what the company pays for work accidents)."], "base-irpf": ["IRPF base (base del IRPF)", "What you are paid this month that is subject to income tax withholding. It does not include the share of extra payments that is added only for Social Security (when you receive them separately, for example in June and December), or exempt amounts."], "bruto": ["Gross pay (total devengado)", "The sum of everything you are paid this month, before deductions."], "deducir": ["Total deductions (total a deducir)", "The sum of all deductions: Social Security, IRPF, advances…"], "liquido": ["Net pay (líquido a percibir)", "What reaches your bank account: gross pay minus total deductions."]}};
+function glossLang() {
+  try { const l = localStorage.getItem('nomina-auditor-gloss-lang'); return LANGS[l] ? l : 'es'; } catch { return 'es'; }
+}
+// Texto de la interfaz en un idioma, con {variables}. Si falta en ese idioma, el español.
+function tr(key, vars = {}, lang = 'es') {
+  const t = (I18N[lang] && I18N[lang][key]) ?? I18N.es[key] ?? key;
+  return t.replace(/\{(\w+)\}/g, (m, k) => vars[k] ?? m);
+}
+function glossTitle(g, lang = glossLang()) { return GLOSSARY_TR[lang]?.[g.id]?.[0] ?? g.title; }
+function glossText(g, lang = glossLang()) { return GLOSSARY_TR[lang]?.[g.id]?.[1] ?? g.text; }
+function setGlossLang(l, fromId) {
+  if (!LANGS[l]) return;
+  try { localStorage.setItem('nomina-auditor-gloss-lang', l); } catch {}
+  const card = document.getElementById('glossaryCard');
+  const p = fromId && payrolls.find(x => x.id === fromId);
+  if (card && p) card.outerHTML = glossaryCardHtml(p);
+  if (!document.getElementById('view-glossary')?.classList.contains('hidden')) renderGlossary();
+}
+function glossLangPicker(fromId) {
+  const cur = glossLang();
+  return `<div class="gl-langs"><span>${esc(tr('lang', {}, cur))}:</span>` + Object.entries(LANGS).map(([k, name]) =>
+    `<button class="gl-lang${k === cur ? ' on' : ''}" lang="${k}" aria-pressed="${k === cur}" onclick="setGlossLang('${k}', ${jsArg(fromId || null)})">${name}</button>`).join('') + '</div>';
+}
+
 // Porcentaje con dos decimales, como en las nóminas y en el BOE: 4,70 % · 0,15 %
 function glPct(n) { return Number(n).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %'; }
-const SS_RATE_NAMES = { cc: 'Contingencias comunes', mei: 'MEI', des: 'Desempleo', fp: 'Formación profesional' };
 
 // side: 'e' devengo, 'd' deducción, 'b' base o total (solo en la página del glosario). Gana la primera que encaja,
 // así que el orden importa (la prorrata antes que la paga extra; las horas extra de un lado y del otro aparte).
@@ -3110,7 +3145,7 @@ const GLOSSARY = [
   { id: 'salario', side: 'e', title: 'Salario base', re: /sal(ario)?\.?\s*base|sueldo\s*base|\bsou\s*base|salari\s*base/i,
     text: 'La parte fija del sueldo que marca el convenio para tu categoría, por día o por mes. Sobre ella se calculan muchos pluses.' },
   { id: 'convenio', side: 'e', title: 'Plus convenio', re: /plus\s*(de\s*)?conv/i,
-    text: 'Complemento fijo que el convenio da a todas las personas de una categoría. Cuando sube el convenio, sube su precio.' },
+    text: 'Complemento fijo que el convenio da a todas las personas de una categoría. Cuando sube el convenio, sube su importe.' },
   { id: 'antiguedad', side: 'e', title: 'Antigüedad', re: /antig|trienio|trienni|quinquen|cuatrienio|quadrienni|\bbienio|\bbienni/i,
     text: 'Complemento por los años en la empresa (trienios, quinquenios…). Cuánto y cada cuánto lo dice el convenio; algunos lo tienen congelado.' },
   { id: 'prorrata', side: 'e', title: 'Prorrata de pagas extra', re: PRORRATA_RE,
@@ -3156,7 +3191,7 @@ const GLOSSARY = [
   { id: 'base-at', side: 'b', title: 'Base de contingencias profesionales (AT/EP)',
     text: 'Como la anterior, más las horas extra. Sobre ella se calculan el desempleo y la formación profesional (y lo que paga la empresa por accidentes de trabajo).' },
   { id: 'base-irpf', side: 'b', title: 'Base del IRPF',
-    text: 'Lo que cobras este mes y paga IRPF. No incluye la prorrata (no la cobras ese mes) ni lo que está exento.' },
+    text: 'Lo que cobras este mes y paga IRPF. No incluye la prorrata de las pagas extra que solo se suma para cotizar (cuando las cobras aparte, por ejemplo en junio y diciembre) ni lo que está exento.' },
   { id: 'bruto', side: 'b', title: 'Total devengado (bruto)', text: 'La suma de todo lo que te pagan este mes, antes de los descuentos.' },
   { id: 'deducir', side: 'b', title: 'Total a deducir', text: 'La suma de todos los descuentos: Seguridad Social, IRPF, anticipos…' },
   { id: 'liquido', side: 'b', title: 'Líquido a percibir', text: 'Lo que te llega al banco: total devengado menos total a deducir.' },
@@ -3172,46 +3207,48 @@ function glossaryFor(concept, side) {
 
 // Tipo oficial frente al % impreso en la línea (units). Solo informa: no es una comprobación y nunca pone ⚠.
 // { kind: 'ok'|'diff'|'noprint', text } o null si no hay tipo oficial para ese concepto o ese año.
-function glossaryRate(g, line, year) {
+function glossaryRate(g, line, year, L = glossLang()) {
   const r = g?.rate && SS_WORKER_RATES[String(year ?? '')];
   if (!r) return null;
   const off = [].concat(r[g.rate]);
-  const offTxt = off.length > 1 ? `${glPct(off[0])} con contrato indefinido y ${glPct(off[1])} con contrato temporal` : glPct(off[0]);
+  const offTxt = off.length > 1 ? tr('rBoth', { a: glPct(off[0]), b: glPct(off[1]) }, L) : glPct(off[0]);
   // El % a veces viene en su columna y a veces al final del nombre («COTIZACION DESEMPLEO 1,55»)
   const ok = v => Number.isFinite(v) && v > 0 && v < 30;
   let printed = numAI(line?.units);
   if (!ok(printed)) { const m = String(line?.concept ?? '').match(/(\d{1,2}[.,]\d{1,2})\s*%?\s*$/); if (m) printed = numAI(m[1]); }
   // Hay empresas que juntan contingencias comunes y MEI en la misma línea (en 2024, 4,70 + 0,12 = 4,82 %)
   if (g.rate === 'cc' && ok(printed) && Math.abs(r.cc + r.mei - printed) < 0.005)
-    return { kind: 'ok', text: `✓ El ${glPct(printed)} de tu nómina es contingencias comunes (${glPct(r.cc)}) más el MEI (${glPct(r.mei)}) de ${year}, juntos en la misma línea (${r.src}).` };
+    return { kind: 'ok', text: tr('rCcMei', { p: glPct(printed), cc: glPct(r.cc), mei: glPct(r.mei), y: year, src: r.src }, L) };
   if (!ok(printed))
-    return { kind: 'noprint', text: `Tipo oficial de ${year}: ${offTxt} (${r.src}). En esta nómina no se leyó el %.` };
+    return { kind: 'noprint', text: tr('rNoPrint', { y: year, off: offTxt, src: r.src }, L) };
   const hit = off.findIndex(o => Math.abs(o - printed) < 0.005);
   if (hit >= 0)
-    return { kind: 'ok', text: `✓ El ${glPct(printed)} de tu nómina es el tipo oficial de ${year} (${off.length > 1 ? (hit ? 'contrato temporal; ' : 'contrato indefinido; ') : ''}${r.src}).` };
-  return { kind: 'diff', text: `Tipo oficial de ${year}: ${offTxt} (${r.src}). En tu nómina pone ${glPct(printed)}: míralo en el papel, puede ser un error de lectura.` };
+    return { kind: 'ok', text: tr('rOk', { p: glPct(printed), y: year, kind: off.length > 1 ? tr(hit ? 'rKindTemp' : 'rKindPerm', {}, L) : '', src: r.src }, L) };
+  return { kind: 'diff', text: tr('rDiff', { y: year, off: offTxt, src: r.src, p: glPct(printed) }, L) };
 }
 
 // Tarjeta «¿Qué es cada concepto?» de Ver
 function glossaryCardHtml(p) {
-  const year = p?.period?.year;
+  const year = p?.period?.year, L = glossLang();
   const items = [], unknown = [];
   for (const [side, lines] of [['e', p?.earnings || []], ['d', p?.deductions || []]]) {
     for (const l of lines) {
       const g = glossaryFor(l?.concept, side);
       if (!g) { if (side === 'e' && String(l?.concept ?? '').trim()) unknown.push(l.concept); continue; }
-      const rt = glossaryRate(g, l, year);
+      const rt = glossaryRate(g, l, year, L);
+      // El concepto, como en el papel; la explicación, en el idioma elegido (v2.13.0)
       items.push(`<details class="gl-item"><summary><span class="gl-concept">${esc(l.concept)}</span><span class="gl-amount mono">${fmt(l.amount)} €</span></summary>
-        <div class="gl-body"><strong>${esc(g.title)}.</strong> ${esc(g.text)}${rt ? `<div class="gl-rate ${rt.kind}">${esc(rt.text)}</div>` : ''}</div></details>`);
+        <div class="gl-body" lang="${L}"><strong>${esc(glossTitle(g, L))}.</strong> ${esc(glossText(g, L))}${rt ? `<div class="gl-rate ${rt.kind}">${esc(rt.text)}</div>` : ''}</div></details>`);
     }
   }
   if (!items.length && !unknown.length) return '';
-  return `<div class="card" id="glossaryCard" style="padding:14px 16px">
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">¿Qué es cada concepto?</div>
-      <div class="gl-note">Toca un concepto para ver qué es. Son explicaciones generales: lo que manda es tu convenio y tu contrato.</div>
+  return `<div class="card" id="glossaryCard" style="padding:14px 16px" lang="${L}">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">${esc(tr('cardTitle', {}, L))}</div>
+      <div class="gl-note">${esc(tr('cardNote', {}, L))}</div>
+      ${glossLangPicker(p?.id)}
       ${items.join('')}
-      ${unknown.length ? `<div class="gl-note" style="margin-top:8px">Sin explicación: ${unknown.map(esc).join(', ')}. Son conceptos propios de tu empresa: su regla está en tu convenio, tu contrato o un acuerdo de empresa.</div>` : ''}
-      <div class="doc-actions"><button class="btn btn-secondary btn-sm" onclick="openGlossary(${jsArg(p?.id)})">📖 Glosario completo</button></div>
+      ${unknown.length ? `<div class="gl-note" style="margin-top:8px">${tr('unknown', { list: unknown.map(esc).join(', ') }, L)}</div>` : ''}
+      <div class="doc-actions"><button class="btn btn-secondary btn-sm" onclick="openGlossary(${jsArg(p?.id)})">${esc(tr('full', {}, L))}</button></div>
     </div>`;
 }
 
@@ -3228,22 +3265,27 @@ function closeGlossary() {
   if (p) showReport(p); else showView('dashboard');
 }
 function renderGlossary() {
-  const sec = (title, side) => `<h3 class="gl-h">${title}</h3>` + GLOSSARY.filter(g => g.side === side).map(g =>
-    `<details class="gl-item"><summary><span class="gl-concept">${esc(g.title)}</span></summary><div class="gl-body">${esc(g.text)}</div></details>`).join('');
+  const L = glossLang();
+  const sec = (key, side) => `<h3 class="gl-h">${esc(tr(key, {}, L))}</h3>` + GLOSSARY.filter(g => g.side === side).map(g =>
+    `<details class="gl-item"><summary><span class="gl-concept">${esc(glossTitle(g, L))}</span></summary><div class="gl-body">${esc(glossText(g, L))}</div></details>`).join('');
   const years = Object.keys(SS_WORKER_RATES).sort();
-  const rateRow = k => `<tr><td>${SS_RATE_NAMES[k]}</td>${years.map(y => `<td class="mono">${[].concat(SS_WORKER_RATES[y][k]).map(glPct).join(' / ')}</td>`).join('')}</tr>`;
-  document.getElementById('glossaryContent').innerHTML = `
-    <h2>Glosario</h2>
-    <p class="subtitle">Qué es cada concepto de una nómina. Son explicaciones generales: lo que manda es tu convenio y tu contrato. La app documenta; no asesora.</p>
-    <div class="card" style="padding:14px 16px">${sec('Lo que cobras (devengos)', 'e')}</div>
-    <div class="card" style="padding:14px 16px">${sec('Lo que te descuentan (deducciones)', 'd')}
-      <h3 class="gl-h">Tipos a cargo del trabajador (Régimen General)</h3>
+  const rateRow = k => `<tr><td>${esc(tr('r.' + k, {}, L))}</td>${years.map(y => `<td class="mono">${[].concat(SS_WORKER_RATES[y][k]).map(glPct).join(' / ')}</td>`).join('')}</tr>`;
+  const links = years.map(y => `<a href="${escAttr(SS_WORKER_RATES[y].url)}" target="_blank" rel="noopener">${esc(SS_WORKER_RATES[y].src)}</a>`).join(' · ');
+  const el = document.getElementById('glossaryContent');
+  el.setAttribute('lang', L);
+  el.innerHTML = `
+    <h2>${esc(tr('title', {}, L))}</h2>
+    <p class="subtitle">${esc(tr('subtitle', {}, L))}</p>
+    ${glossLangPicker(glossaryReturnId)}
+    <div class="card" style="padding:14px 16px">${sec('secE', 'e')}</div>
+    <div class="card" style="padding:14px 16px">${sec('secD', 'd')}
+      <h3 class="gl-h">${esc(tr('ratesH', {}, L))}</h3>
       <table class="kv gl-rates"><thead><tr><th></th>${years.map(y => `<th>${y}</th>`).join('')}</tr></thead>
         <tbody>${['cc', 'mei', 'des', 'fp'].map(rateRow).join('')}</tbody></table>
-      <div class="gl-note">Desempleo: contrato indefinido / temporal. Fuente, la orden de cotización de cada año en el BOE: ${years.map(y => `<a href="${escAttr(SS_WORKER_RATES[y].url)}" target="_blank" rel="noopener">${esc(SS_WORKER_RATES[y].src)}</a>`).join(' · ')}.</div>
+      <div class="gl-note">${tr('ratesNote', { links }, L)}</div>
     </div>
-    <div class="card" style="padding:14px 16px">${sec('Bases y totales', 'b')}</div>
-    <div class="btn-group"><button class="btn btn-secondary" onclick="closeGlossary()">${glossaryReturnId ? 'Volver a la nómina' : 'Volver al Panel'}</button></div>`;
+    <div class="card" style="padding:14px 16px">${sec('secB', 'b')}</div>
+    <div class="btn-group"><button class="btn btn-secondary" onclick="closeGlossary()">${esc(tr(glossaryReturnId ? 'backReport' : 'backPanel', {}, L))}</button></div>`;
 }
 
 // ═══════════ MONTHLY REPORT (FASE 2) ═══════════
