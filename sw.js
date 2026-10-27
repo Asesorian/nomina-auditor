@@ -21,12 +21,13 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 const CACHE_PREFIX = 'nomina-auditor-';
-const CACHE_VERSION = CACHE_PREFIX + 'sw3';   // sw3 (v2.7.1): librerías con SRI; borra copias opacas antiguas
+const CACHE_VERSION = CACHE_PREFIX + 'sw4';   // sw4 (v2.14.0): pdf-lib, para separar sin conexión un PDF con varias nóminas
 const APP_SHELL = './';
 const NETWORK_TIMEOUT_MS = 4000;
 const CDN_ASSETS = [
   'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js',
   'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap'
 ];
 const CACHE_FIRST_HOSTS = ['cdnjs.cloudflare.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];

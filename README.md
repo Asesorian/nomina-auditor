@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.10.2-blue)
+![Version](https://img.shields.io/badge/version-2.14.0-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.13.1)
+## 🆕 Novedades (v2.3 – v2.14.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 📑 **Un PDF con varias nóminas (v2.14.0)** | Si te mandan **varios meses en un solo PDF** (habitual cuando lo envía una gestoría), súbelo tal cual: la app **lo separa sola**, una página por nómina, y cada una entra en la bandeja con su propio original. Si el PDF trae **los dos ejemplares** de cada nómina (trabajador y empresa), se queda con uno. Si una página no tiene líquido (una nómina de dos páginas), te ofrece **🔗 Unirla** con la de al lado | Subir · Bandeja |
 | 📄 **PDF digital (v2.12.0)** | Si subes la nómina en el **PDF que genera el programa de nóminas** (no un escaneo), la app saca sus números del propio PDF, **sin IA**, y comprueba que **cada cifra que ha leído Gemini está en el documento**. Pilla una cifra mal leída aunque las sumas cuadren. No tienes que hacer nada: sale el sello «📄 PDF digital: N de N cifras comprobadas» | En la revisión y en *Ver* |
 | 📖 **Glosario (v2.11.0)** | En cada nómina, **«¿Qué es cada concepto?»**: toca una línea (salario base, prorrata, contingencias comunes, MEI, desempleo, IRPF…) y te explica qué es. En las cotizaciones, además, el **tipo oficial de ese año** (del BOE) frente al % de tu nómina. Y una página con el glosario completo y la tabla de tipos por año. Sin IA: textos fijos, revisados con las fuentes oficiales | Ver · Panel |
 | 🏛️ **¿Está completo el año? y Comparar con Hacienda (v2.10.0–v2.10.1)** | El Anual te dice si **falta alguna nómina** (también las del final del año y las pagas extra que tuviste el año anterior) y, en los años cerrados, te pregunta si cobraste algún bonus, atrasos o finiquito en una **nómina aparte**. Y si escribes las tres cifras de tus **datos fiscales** (o del certificado de retenciones de tu empresa), las compara con tus nóminas: si coinciden, si difieren en céntimos o, si Hacienda tiene más, **cómo sería la nómina que te falta** para buscarla en el banco. Sin IA y sin entrar en Hacienda: tú escribes las cifras y se guardan solo en tu dispositivo (y en el backup) | Anual |
@@ -135,7 +136,7 @@ Tus nóminas y backups de versiones anteriores siguen funcionando tal cual: no h
 
 Para empezar con un año entero (o cuando tienes varias pendientes) no hace falta subirlas de una en una.
 
-1. **Subir → 📁 Elegir archivos** y selecciona todas (fotos o PDF; en el ordenador también puedes arrastrarlas). Van a la **bandeja** y se guardan en tu dispositivo.
+1. **Subir → 📁 Elegir archivos** y selecciona todas (fotos o PDF; en el ordenador también puedes arrastrarlas). Van a la **bandeja** y se guardan en tu dispositivo. Un **PDF con varias nóminas** también vale: la app lo separa sola, una página por nómina (desde la v2.14.0).
 2. La app te dice cuántas lecturas de Gemini hará (menos de 1 céntimo cada una con una clave de pago) y pulsas **▶ Leer las N**. Las lee de dos en dos, con las mismas comprobaciones que una sola: si una no cuadra, la vuelve a leer.
 3. **Puedes empezar a revisar en cuanto está la primera.** Se revisan **ordenadas por fecha**, con la pantalla de revisión de siempre. Arriba, *‹ ›* para moverte y *← Volver a la bandeja*; abajo, una barra fija con **Descartar** y **✓ Confirmar y siguiente**.
 4. Al terminar, la app te dice cuántas has guardado y te lleva al informe anual del año.
@@ -151,7 +152,10 @@ En la bandeja, cada nómina lleva una etiqueta:
 | **Repetida** | La misma nómina dos veces: mismo mes, mismo tipo y mismos importes (por ejemplo, el PDF y una foto). Confirma una y descarta la otra |
 | **Revisa el tipo** | Dos nóminas «mensuales» del mismo mes con importes distintos: casi seguro una es de atrasos o una paga extra. Al abrirla, elige su tipo |
 | **Ya guardada** / **Mes ocupado** | Ya tenías esa nómina (o otra en ese mes). Al confirmar, la app te pregunta qué hacer, como siempre |
-| **Error** | Esa lectura ha fallado: *🔁 Reintentar* |
+| **Sin líquido** | Una página de un PDF separado que no tiene líquido a percibir: casi seguro es la primera de una nómina de dos páginas. Pulsa **🔗 Unir con la página…** y se leen juntas (una lectura más) |
+| **Error** | Esa lectura ha fallado: *🔁 Reintentar*. Si era una página de un PDF separado, también puedes unirla con la de al lado |
+
+**Un PDF con varias nóminas (v2.14.0).** Cada página se guarda como un PDF propio («nombre (pág. 2).pdf»), que será el original de su nómina, y se lee aparte: un PDF de 4 nóminas son 4 lecturas. Si trae los dos ejemplares de cada nómina, la app se queda con la primera página cuando las dos lecturas dan **exactamente** el mismo mes, tipo, bruto, deducciones y líquido; si no coinciden, se quedan las dos (salen como *Revisa el tipo*) para que elijas tú con el papel. Si no hay conexión y la app aún no tiene guardado el separador, el PDF se lee entero, como antes.
 
 **Si algo se interrumpe no se pierde nada:**
 - **Sin conexión:** la lectura se para y sigue sola cuando vuelve internet.
@@ -697,6 +701,13 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.14.0 (Octubre 2026)
+- **Un PDF con varias nóminas se separa solo:** al subir un PDF de varias páginas, cada página entra en la bandeja como una nómina, con su propio original («nombre (pág. 2).pdf»). No hay que separarlo antes con otra app
+- **Los dos ejemplares, en uno:** si el PDF trae la copia del trabajador y la de la empresa en páginas distintas, la app se queda con una cuando las dos lecturas coinciden en mes, tipo, bruto, deducciones y líquido. La bandeja dice cuántas copias ha quitado
+- **Nóminas de dos páginas:** una página sin líquido sale como *Sin líquido* con el botón **🔗 Unir con la página…**: se juntan en un PDF y se leen juntas
+- **En un PDF digital,** las cifras de cada nómina se comprueban con el texto de **su** página, no con el del documento entero
+- Funciona sin conexión una vez que la app ha guardado el separador (pdf-lib, que se descarga con la actualización)
 
 ### v2.13.1 (Octubre 2026)
 - **Pegar la clave sustituye la anterior:** al pegar el enlace o la clave en la casilla, lo que hubiera se borra. Antes se insertaba donde estaba el cursor y, como la casilla va en puntitos, la clave anterior podía quedarse delante sin que se viera (y Google respondía «API key not valid»). También se quitan los caracteres invisibles, los saltos de línea y el punto o las comillas que se cuelan al copiar de un mensaje

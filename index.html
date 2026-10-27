@@ -371,6 +371,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 .batch-name .type-badge { display:inline; margin:0 0 0 4px; color:var(--warning); }
 .batch-sub { font-size:11px; color:var(--text-dim); margin-top:2px; overflow-wrap:anywhere; line-height:1.45; }
 .batch-sub .spinner { width:10px; height:10px; vertical-align:-1px; margin-right:4px; }
+.batch-join { font-size:11px; color:var(--text-dim); margin-top:6px; line-height:1.5; }
 .batch-file { font-size:10px; color:var(--text-muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .chips { display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; flex-shrink:0; max-width:45%; }
 .chip { font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; white-space:nowrap; border:1px solid transparent; }
@@ -405,7 +406,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.13.1</span>
+    <span class="logo-badge">Forense v2.14.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -1138,7 +1139,7 @@ function showView(name) {
   // Salir de la revisión de una nómina guardada sin pulsar "Guardar cambios" la deja como estaba
   if (editingId && name !== 'upload') clearUpload();
   // Al salir de una bandeja ya terminada, su resumen ya no hace falta
-  if (name !== 'upload' && !batch.items.length && (batch.saved.length || batch.discarded)) { batch = emptyBatch(); saveBatch(); }
+  if (name !== 'upload' && !batch.items.length && (batch.saved.length || batch.discarded || batch.copies)) { batch = emptyBatch(); saveBatch(); }
   ['dashboard','upload','report','annual','backup','glossary'].forEach(v => {
     document.getElementById('view-' + v).classList.toggle('hidden', v !== name);
   });
@@ -1526,6 +1527,13 @@ async function handleFile(file) {
   readInfo = null;
   try {
     const f = await readNominaFile(file);
+    // v2.14.0: un PDF de varias páginas va a la bandeja, ya separado (una página, una nómina)
+    if (f.type === 'application/pdf' && !batch.items.length && !batchAdding) {
+      document.getElementById('uploadError').innerHTML = `<div class="alert alert-info" style="margin-top:8px">${esc(tr('splitting', { name: f.name || 'PDF' }))}</div>`;
+      const parts = await splitPdfPages(f.base64);
+      document.getElementById('uploadError').innerHTML = '';
+      if (parts) { addToBatch([], [{ ...f, parts }]); return; }
+    }
     imageBase64 = f.base64;
     imageMediaType = f.type;
     pendingFileName = f.name;
@@ -2634,7 +2642,13 @@ let batchNote = null;        // lo que no se pudo añadir: { failed, repeated, s
 let batchAddQueue = [];      // archivos elegidos mientras se preparaban otros (entran justo después)
 let wakeLock = null;
 
-function emptyBatch() { return { items: [], saved: [], discarded: 0 }; }
+function emptyBatch() { return { items: [], saved: [], discarded: 0, copies: 0 }; }   // copies (v2.14.0): ejemplares repetidos quitados solos
+
+// De qué PDF y qué páginas viene un elemento separado (v2.14.0)
+function validBatchSrc(src) {
+  return !!src && typeof src === 'object' && typeof src.id === 'string' && src.id.length <= 80 && typeof src.name === 'string' &&
+    [src.from, src.to, src.total].every(n => Number.isInteger(n) && n >= 1 && n <= 999) && src.from <= src.to && src.to <= src.total;
+}
 
 function validBatchItem(it) {
   return !!it && typeof it === 'object' && typeof it.uid === 'string' && typeof it.docKey === 'string' &&
@@ -2647,8 +2661,10 @@ function loadBatch() {
     if (b && Array.isArray(b.items)) batch = {
       items: b.items.filter(validBatchItem),
       saved: Array.isArray(b.saved) ? b.saved.filter(x => typeof x === 'string') : [],
-      discarded: Math.max(0, parseInt(b.discarded, 10) || 0)
+      discarded: Math.max(0, parseInt(b.discarded, 10) || 0),
+      copies: Math.max(0, parseInt(b.copies, 10) || 0)
     };
+    batch.items.forEach(it => { if ('src' in it && !validBatchSrc(it.src)) delete it.src; });
   } catch { batch = emptyBatch(); }
   // Las ya leídas cuyo tipo no ha elegido la persona se vuelven a clasificar con las reglas actuales
   // (p. ej. la pista del nombre del archivo, v2.8.2). No se llama a Gemini: solo se recalcula.
@@ -2670,7 +2686,7 @@ function saveBatch() {
   updateBatchBadge();
 }
 
-function batchVisible() { return batch.items.length > 0 || batch.saved.length > 0 || batch.discarded > 0 || !!batchAdding; }
+function batchVisible() { return batch.items.length > 0 || batch.saved.length > 0 || batch.discarded > 0 || batch.copies > 0 || !!batchAdding; }
 function batchCount(st) { return batch.items.filter(it => it.status === st).length; }
 function batchStarted() { return batch.items.some(it => it.status !== 'waiting'); }
 function isBatchReading() { return batch.items.some(it => it.status === 'reading'); }
@@ -2688,7 +2704,7 @@ function handleFiles(fileList) {
   ['fileInput', 'cameraInput', 'pdfInput'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   if (!files.length) return;
   // Una bandeja ya terminada (solo queda el resumen) no cuenta: se empieza de cero
-  if (!batch.items.length && !batchAdding && (batch.saved.length || batch.discarded)) { batch = emptyBatch(); saveBatch(); renderUploadArea(); }
+  if (!batch.items.length && !batchAdding && (batch.saved.length || batch.discarded || batch.copies)) { batch = emptyBatch(); saveBatch(); renderUploadArea(); }
   if (files.length === 1 && !batch.items.length && !batchAdding) { handleFile(files[0]); return; }
   addToBatch(files);
 }
@@ -2701,12 +2717,15 @@ async function hashB64(b64) {
   } catch { return ''; }
 }
 
-async function addToBatch(files) {
-  if (batchAdding) { batchAddQueue.push(...files); return; }   // se añaden en cuanto terminen los anteriores
+// ready: archivos ya leídos ({ base64, type, name } y, si ya se ha separado, parts): p. ej. un PDF de varias páginas
+// que se eligió solo (handleFile lo manda aquí).
+async function addToBatch(files, ready = []) {
+  if (batchAdding) { batchAddQueue.push(...files); ready.forEach(r => batchAddQueue.push({ ready: r })); return; }   // se añaden en cuanto terminen los anteriores
   // Si había una nómina elegida y sin procesar, entra también en la bandeja
   const entries = [];
   if (imageBase64 && !extractedData && !editingId) entries.push({ ready: { base64: imageBase64, type: imageMediaType, name: pendingFileName } });
-  files.forEach(f => entries.push({ file: f }));
+  ready.forEach(r => entries.push({ ready: r }));
+  files.forEach(f => entries.push(f && f.ready ? f : { file: f }));
   clearUpload();
   if (!batch.items.length) batch = emptyBatch();   // una bandeja ya terminada empieza de cero
   const autoQueue = batchStarted();   // si la bandeja ya estaba leyendo, las nuevas entran en la cola sin preguntar
@@ -2727,6 +2746,26 @@ async function addToBatch(files) {
       catch { failed.push(label); continue; }
       const hash = await hashB64(f.base64);
       if (hash && hashes.has(hash)) { repeated.push(label); continue; }
+      // v2.14.0: un PDF de varias páginas se separa solo, una página por elemento (cada una, su propio original)
+      const parts = f.type === 'application/pdf' ? (f.parts || await splitPdfPages(f.base64, BATCH_MAX - batch.items.length, () => {
+        batchAdding = tr('splitting', { name: label }); renderBatchIfVisible();
+      })) : null;
+      if (parts) {
+        if (hash) hashes.add(hash);
+        const srcId = hash || `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;   // qué páginas vienen del mismo PDF
+        skipped += parts.total - parts.pages.length;
+        for (let p = 0; p < parts.pages.length; p++) {
+          const name = pageFileName(f.name, p + 1, p + 1);
+          let pm;
+          try { pm = await storeOriginal(parts.pages[p], 'application/pdf', name); }
+          catch (e) { failed.push(`${name} (${e.message || e})`); continue; }
+          batch.items.push({ uid: pm.key.slice(4), docKey: pm.key, name, type: 'application/pdf', size: pm.size,
+            hash, addedAt: pm.savedAt, seq: ++seq, status: autoQueue ? 'queued' : 'waiting',
+            src: { id: srcId, name: f.name || '', from: p + 1, to: p + 1, total: parts.total } });
+        }
+        saveBatch();
+        continue;
+      }
       let meta;
       try { meta = await storeOriginal(f.base64, f.type, f.name); }
       catch (e) { failed.push(`${label} (${e.message || e})`); continue; }
@@ -2790,6 +2829,7 @@ async function batchWorker() {
       if (!batch.items.includes(it)) continue;   // la quitaron de la bandeja mientras se leía
       Object.assign(it, { status: 'read', data: r.data, detection: r.detection, info: r.info, note: '' });
       batchErrorsInARow = 0;
+      await dropPageCopy(it);
     } catch (e) {
       if (!batch.items.includes(it)) continue;
       const kind = batchErrorKind(e);
@@ -2932,6 +2972,7 @@ function batchChips(it) {
   if (it.status === 'error') return [['err', 'Error']];
   const d = it.data, chips = [];
   if (!validPeriod(d)) chips.push(['err', 'Sin fecha']);
+  if (pageWithoutNet(it)) chips.push(['warn', tr('chipNoNet')]);
   if (batch.items.some(o => o !== it && o.status === 'read' && sameSlot(o.data, d))) chips.push(['warn', 'Repetida']);
   else if (batchTypeClashes(it).length) chips.push(['warn', 'Revisa el tipo']);
   const saved = validPeriod(d) ? payrolls.filter(p => monthKey(p) === monthKey(d) && payTypeOf(p) === payTypeOf(d)) : [];
@@ -2962,6 +3003,7 @@ function batchRowHtml(it) {
         <div class="batch-name">${validPeriod(d) ? esc(`${d.period.month} ${d.period.year}`) : 'Mes sin leer'}${payTypeOf(d) !== 'ordinaria' ? `<span class="type-badge">· ${esc(PAY_TYPES[payTypeOf(d)].label)}</span>` : ''}</div>
         <div class="batch-sub">Bruto ${fmt(d.totals?.grossTotal)} € · Neto ${fmt(d.totals?.netPay)} €</div>
         <div class="batch-file" title="${escAttr(file)}">${esc(file)}</div>
+        ${joinHtml(it)}
       </div>
       <div class="chips">${chips}</div>${del}
     </div>`;
@@ -2975,6 +3017,7 @@ function batchRowHtml(it) {
       <div class="batch-name">${esc(file)}</div>
       <div class="batch-sub">${sub}</div>
       ${it.status === 'error' ? `<div class="doc-actions"><button class="btn btn-secondary btn-sm" onclick="retryBatchItem(${jsArg(it.uid)})">🔁 Reintentar</button></div>` : ''}
+      ${joinHtml(it)}
     </div>
     <div class="chips">${chips}</div>${del}
   </div>`;
@@ -3004,6 +3047,7 @@ function renderBatch() {
         <div style="font-size:30px;margin-bottom:8px">✓</div>
         <div style="font-size:16px;font-weight:800;color:var(--success)">${n === 1 ? '1 nómina guardada' : `${n} nóminas guardadas`}</div>
         ${batch.discarded ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px">${batch.discarded === 1 ? '1 descartada' : `${batch.discarded} descartadas`}</div>` : ''}
+        ${batch.copies ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px" id="batchCopies">${esc(copiesText())}</div>` : ''}
         <p style="font-size:12px;color:var(--text-dim);margin:14px auto 0;max-width:420px;line-height:1.6">Están solo en este dispositivo. Cuando acabes, descarga el <strong style="color:var(--text)">backup completo</strong> y guárdalo en Drive.</p>
         <div class="btn-group">
           ${years.slice(-3).map(y => `<button class="btn btn-primary" onclick="currentYear=${jsArg(y)};showView('annual')">📊 Ver el año ${esc(y)}</button>`).join('')}
@@ -3033,7 +3077,7 @@ function renderBatch() {
       </div>
     </div>`;
   } else {
-    const total = batch.items.filter(it => it.status !== 'waiting').length + batch.saved.length + batch.discarded;
+    const total = batch.items.filter(it => it.status !== 'waiting').length + batch.saved.length + batch.discarded + (batch.copies || 0);
     const done = total - queued - reading;
     const active = (queued || reading) && !batchPause;
     const pct = total ? Math.round(done / total * 100) : 100;
@@ -3043,6 +3087,7 @@ function renderBatch() {
       <div class="batch-sub">${active
         ? (('wakeLock' in navigator) ? 'La pantalla se queda encendida mientras lee. ' : 'No cierres la app mientras lee. ') + 'Puedes ir revisando las que ya están.'
         : `${read === 1 ? 'Queda 1 por revisar' : `Quedan ${read} por revisar`}${batch.saved.length ? ` · ${batch.saved.length} guardada${batch.saved.length === 1 ? '' : 's'}` : ''}${errors ? ` · ${errors} con error` : ''}.`}</div>
+      ${batch.copies ? `<div class="batch-sub" id="batchCopies">${esc(copiesText())}</div>` : ''}
       ${batchPause && (queued || waiting) ? `<div class="batch-pause">⏸ <strong>Lectura en pausa.</strong> ${esc(batchPause.text)}
           ${batchPause.detail ? `<div class="batch-detail">${esc(batchPause.detail)}</div>` : ''}
           <div class="doc-actions"><button class="btn btn-primary btn-sm" id="batchResumeBtn" onclick="resumeBatch()">▶ Reanudar</button></div>
@@ -3249,6 +3294,46 @@ Object.assign(I18N.en, {
   "multiTitle": "This file contains {n} different payslips (nóminas), and the app reads one per file.",
   "multiPdf": "🔧 If it is a PDF: open it in a viewer → Print → Save as PDF, and under «Pages» choose only the ones for one payslip. Repeat for each one and upload them together.",
   "multiPhoto": "🔧 If it is a photo: take one photo per payslip."
+});
+// v2.14.0: un PDF con varias nóminas se separa solo
+Object.assign(I18N.es, {
+  "splitting": "📄 Separando las páginas de {name}…",
+  "pageOne": "pág. {n}",
+  "pageRange": "págs. {a}-{b}",
+  "chipNoNet": "Sin líquido",
+  "noNet": "Esta página no tiene líquido a percibir: puede ser parte de otra nómina del mismo PDF (las de dos páginas). Al unirlas se leen juntas otra vez.",
+  "joinHint": "Si esta página es parte de otra nómina del mismo PDF, únelas y se leen juntas.",
+  "joinOne": "🔗 Unir con la página {n}",
+  "joinRange": "🔗 Unir con las páginas {a}-{b}",
+  "joinFail": "No se han podido unir las páginas: {msg}",
+  "copies1": "🧾 1 copia de la misma nómina (los dos ejemplares de un PDF): se ha quitado y se queda la primera página.",
+  "copiesN": "🧾 {n} copias de la misma nómina (los dos ejemplares de un PDF): se han quitado y se queda la primera página de cada una."
+});
+Object.assign(I18N.ca, {
+  "splitting": "📄 Separant les pàgines de {name}…",
+  "pageOne": "pàg. {n}",
+  "pageRange": "pàg. {a}-{b}",
+  "chipNoNet": "Sense líquid",
+  "noNet": "Aquesta pàgina no té líquid a percebre: pot ser part d'una altra nòmina del mateix PDF (com ara una de dues pàgines). En unir-les es tornen a llegir juntes.",
+  "joinHint": "Si aquesta pàgina és part d'una altra nòmina del mateix PDF, uneix-les i es llegiran juntes.",
+  "joinOne": "🔗 Uneix amb la pàgina {n}",
+  "joinRange": "🔗 Uneix amb les pàgines {a}-{b}",
+  "joinFail": "No s'han pogut unir les pàgines: {msg}",
+  "copies1": "🧾 1 còpia de la mateixa nòmina (els dos exemplars d'un PDF): s'ha descartat i es conserva la primera pàgina.",
+  "copiesN": "🧾 {n} còpies de la mateixa nòmina (els dos exemplars d'un PDF): s'han descartat i es conserva la primera pàgina de cadascuna."
+});
+Object.assign(I18N.en, {
+  "splitting": "📄 Splitting the pages of {name}…",
+  "pageOne": "p. {n}",
+  "pageRange": "pp. {a}-{b}",
+  "chipNoNet": "No net pay",
+  "noNet": "This page has no net pay (líquido a percibir): it may be part of another payslip in the same PDF (two-page payslips). Joining them reads them together again.",
+  "joinHint": "If this page is part of another payslip in the same PDF, join them and they will be read together.",
+  "joinOne": "🔗 Join with page {n}",
+  "joinRange": "🔗 Join with pages {a}-{b}",
+  "joinFail": "The pages could not be joined: {msg}",
+  "copies1": "🧾 1 copy of the same payslip (the two copies in a PDF): removed, the first page is kept.",
+  "copiesN": "🧾 {n} copies of the same payslip (the two copies in a PDF): removed, the first page of each is kept."
 });
 // Textos fijos del HTML con data-tr="clave": se escriben con tr() al arrancar (v2.13.1)
 function trStatic(root = document) {
@@ -3657,6 +3742,155 @@ function loadPdfJs() {
     pdfjsPromise.catch(() => { pdfjsPromise = null; });
   }
   return pdfjsPromise;
+}
+
+// ═══════════ UN PDF CON VARIAS NÓMINAS (v2.14.0) ═══════════
+// Un PDF de varias páginas se separa solo: cada página entra en la bandeja como un PDF propio (su original) y Gemini la
+// lee aparte, con el prompt de siempre. pdf-lib (cdnjs, con huella SRI) solo se descarga si el PDF puede tener más de
+// una página. La «red»: una página sin líquido se puede unir con la de al lado; los dos ejemplares de la misma nómina
+// (trabajador y empresa) se quedan en uno. Diseño en docs/TECNICO.md §27.
+const PDFLIB_URL = 'https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js';
+const PDFLIB_SRI = 'sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI';
+const PDFLIB_TIMEOUT_MS = 15000;
+let pdfLibPromise = null;
+let batchJoining = false;
+
+function loadPdfLib() {
+  if (window.PDFLib?.PDFDocument) return Promise.resolve(window.PDFLib);
+  if (!pdfLibPromise) {
+    pdfLibPromise = loadScriptOnce(PDFLIB_URL, PDFLIB_SRI).then(() => {
+      if (!window.PDFLib?.PDFDocument) throw new Error('pdf-lib no disponible');
+      return window.PDFLib;
+    });
+    pdfLibPromise.catch(() => { pdfLibPromise = null; });
+  }
+  return pdfLibPromise;
+}
+
+// Sin librería: true solo si se ve con seguridad que tiene una página (un objeto de página a la vista, ningún /Count
+// mayor que 1 y sin objetos comprimidos, donde las páginas no se ven). Ante la duda, false: lo mira pdf-lib.
+function pdfSurelySinglePage(base64) {
+  let bin;
+  try { bin = atob(base64); } catch { return false; }
+  if (/\/ObjStm\b/.test(bin)) return false;
+  const pages = (bin.match(/\/Type\s*\/Page(?![A-Za-z])/g) || []).length;
+  return pages === 1 && [...bin.matchAll(/\/Count\s+(\d+)/g)].every(m => +m[1] <= 1);
+}
+
+// Un PDF por página: { pages: [base64…], total }. null si tiene una sola página o si no se puede separar (sin conexión
+// y sin la librería guardada, contraseña, PDF dañado): entonces se lee entero, como hasta la v2.13.1.
+async function splitPdfPages(base64, maxPages = BATCH_MAX, onStart) {
+  if (pdfSurelySinglePage(base64)) return null;
+  try {
+    if (onStart) onStart();
+    const { PDFDocument } = await Promise.race([loadPdfLib(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error('pdf-lib tarda demasiado')), PDFLIB_TIMEOUT_MS))]);
+    const src = await PDFDocument.load(b64ToArrayBuffer(base64), { updateMetadata: false });
+    const total = src.getPageCount();
+    if (total < 2) return null;
+    const pages = [];
+    for (let i = 0; i < Math.min(total, Math.max(0, maxPages)); i++) {
+      const doc = await PDFDocument.create({ updateMetadata: false });
+      const [pg] = await doc.copyPages(src, [i]);
+      doc.addPage(pg);
+      pages.push(await doc.saveAsBase64({ useObjectStreams: false }));   // sin objetos comprimidos: lo abre cualquier visor
+    }
+    return { pages, total };
+  } catch (e) { console.warn('No se ha podido separar el PDF:', e); return null; }
+}
+
+// Junta varios PDF (en ese orden) en uno
+async function mergePdfs(list) {
+  const { PDFDocument } = await loadPdfLib();
+  const doc = await PDFDocument.create({ updateMetadata: false });
+  for (const b of list) {
+    const src = await PDFDocument.load(b64ToArrayBuffer(b), { updateMetadata: false });
+    (await doc.copyPages(src, src.getPageIndices())).forEach(pg => doc.addPage(pg));
+  }
+  return doc.saveAsBase64({ useObjectStreams: false });
+}
+
+function pageFileName(name, from, to) {
+  const base = String(name || 'PDF').replace(/\.pdf$/i, '');
+  return `${base} (${from === to ? tr('pageOne', { n: from }) : tr('pageRange', { a: from, b: to })}).pdf`;
+}
+
+// Los dos ejemplares de la misma nómina en páginas del mismo PDF. Más estricto que singlePayroll: mismo periodo y tipo
+// y los tres totales (bruto, deducciones y líquido). Si Gemini lee distinto uno de los dos, no coinciden y se quedan los
+// dos (con la etiqueta «Revisa el tipo»): el error posible va hacia el lado seguro.
+function samePayrollCopy(a, b) {
+  return validPeriod(a) && validPeriod(b) && monthKey(a) === monthKey(b) && payTypeOf(a) === payTypeOf(b) && amt(a.totals?.netPay) > 0 &&
+    ['grossTotal', 'totalDeductions', 'netPay'].every(k => Math.abs(amt(a.totals?.[k]) - amt(b.totals?.[k])) < 0.005);
+}
+
+// Tras leer una página: si otra del mismo PDF ya leída es la misma nómina, se quita la de después (y su documento)
+async function dropPageCopy(it) {
+  if (!it.src) return false;
+  const twin = batch.items.find(o => o !== it && o.status === 'read' && o.src?.id === it.src.id && samePayrollCopy(o.data, it.data));
+  if (!twin) return false;
+  const drop = twin.src.from > it.src.from ? twin : it;
+  if (drop.uid === batchReviewUid) return false;   // la está revisando: no se toca
+  await removeBatchItem(drop);
+  batch.copies = (batch.copies || 0) + 1;
+  saveBatch();
+  return true;
+}
+
+function copiesText() {
+  return batch.copies === 1 ? tr('copies1') : tr('copiesN', { n: batch.copies });
+}
+
+// Página separada sin líquido a percibir: casi seguro, parte de una nómina de dos o más páginas
+function pageWithoutNet(it) {
+  return !!it.src && it.status === 'read' && !(amt(it.data?.totals?.netPay) > 0);
+}
+
+// Las páginas de al lado del mismo PDF que se pueden unir (no mientras se leen o esperan su turno)
+function batchNeighbors(it) {
+  if (!it.src) return [];
+  return batch.items.filter(o => o !== it && o.src?.id === it.src.id && !['reading', 'queued'].includes(o.status) &&
+    (o.src.to === it.src.from - 1 || o.src.from === it.src.to + 1)).sort((a, b) => a.src.from - b.src.from);
+}
+
+function joinHtml(it) {
+  if (!it.src || !(pageWithoutNet(it) || it.status === 'error')) return '';
+  const nb = batchNeighbors(it);
+  if (!nb.length) return '';
+  const label = o => o.src.from === o.src.to ? tr('joinOne', { n: o.src.from }) : tr('joinRange', { a: o.src.from, b: o.src.to });
+  return `<div class="batch-join">${esc(tr(pageWithoutNet(it) ? 'noNet' : 'joinHint'))}
+    <div class="doc-actions">${nb.map(o => `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();joinBatchPages(${jsArg(it.uid)}, ${jsArg(o.uid)})">${esc(label(o))}</button>`).join('')}</div></div>`;
+}
+
+// Une dos páginas de al lado en un solo PDF, que vuelve a la cola: se lee entero (una lectura más)
+async function joinBatchPages(uidA, uidB) {
+  if (batchJoining) return;
+  let a = batch.items.find(x => x.uid === uidA), b = batch.items.find(x => x.uid === uidB);
+  if (!a || !b || !a.src || !b.src || a.src.id !== b.src.id) return;
+  if ([a, b].some(x => x.status === 'reading' || x.status === 'queued')) return;
+  if (a.src.from > b.src.from) [a, b] = [b, a];
+  batchJoining = true;
+  try {
+    const [ra, rb] = await Promise.all([getDoc(a.docKey), getDoc(b.docKey)]);
+    if (!ra || !rb) throw new Error('El documento ya no está en este dispositivo.');
+    const merged = await mergePdfs([arrayBufferToB64(ra.data), arrayBufferToB64(rb.data)]);
+    const src = { ...a.src, to: b.src.to };
+    const name = pageFileName(src.name, src.from, src.to);
+    const meta = await storeOriginal(merged, 'application/pdf', name);
+    if (!batch.items.includes(a) || !batch.items.includes(b)) { await discardOriginal(meta); return; }
+    const started = batchStarted();
+    batch.items = batch.items.filter(x => x !== a && x !== b);
+    batch.items.push({ uid: meta.key.slice(4), docKey: meta.key, name, type: 'application/pdf', size: meta.size,
+      hash: a.hash, addedAt: meta.savedAt, seq: a.seq, status: started ? 'queued' : 'waiting', src });
+    saveBatch();
+    await discardOriginal({ key: a.docKey });
+    await discardOriginal({ key: b.docKey });
+    renderUploadArea();
+    if (started) runBatch();
+  } catch (e) {
+    alert(tr('joinFail', { msg: e.message || String(e) }));
+  } finally {
+    batchJoining = false;
+  }
 }
 
 // ═══════════ PDF DIGITAL (v2.12.0) ═══════════
