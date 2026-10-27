@@ -300,7 +300,11 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 .chk-title { font-size:13px;font-weight:800;margin-bottom:6px; }
 .chk-title.bad { color:var(--danger); } .chk-title.meh { color:var(--warning); } .chk-title.good { color:var(--success); }
 .chk { display:flex;gap:8px;align-items:flex-start;padding:4px 0;font-size:12px;line-height:1.45; }
-.chk.err { color:var(--danger); } .chk.warn { color:var(--warning); } .chk.ok, .chk.round { color:var(--text-dim); }
+.chk.err { color:var(--danger); } .chk.warn { color:var(--warning); } .chk.ok, .chk.round, .chk.info { color:var(--text-dim); }
+/* v2.14.1: lo que solo sirve en el ordenador (el QR para pasar la clave al móvil) */
+@media (max-width:700px), (hover:none) and (pointer:coarse) { .desktop-only { display:none !important; } }
+.pages-opt { display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);margin-top:6px;cursor:pointer; }
+.pages-opt input { accent-color:var(--accent);width:16px;height:16px; }
 .chk-hint { font-size:11px;color:var(--text-dim);margin-top:8px;line-height:1.5; }
 .read-info { font-size:12px;color:var(--text);background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:10px;line-height:1.5; }
 .editable.flag-err { color:var(--danger);border-bottom:2px solid var(--danger);background:var(--danger-bg);border-radius:2px; }
@@ -406,7 +410,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.14.0</span>
+    <span class="logo-badge">Forense v2.14.1</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -444,7 +448,6 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   </div>
   <div class="api-body" id="apiBody">
     <div class="api-row"><input type="password" id="apiKeyInput" placeholder="Pega aquí tu clave (o el enlace que te pasaron)" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" oninput="saveApiKey(this.value)" onpaste="onApiKeyPaste(event)" onkeydown="onApiKeyKeydown(event)" onchange="finalizeApiKey(true)"><button onclick="toggleKeyVis()" id="eyeBtn" type="button" aria-label="Mostrar u ocultar la clave" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">👁</button></div>
-    <button onclick="showApiQR()" type="button" title="Genera un QR para transferir la key al móvil sin teclear" style="background:var(--warning);color:#0f1117;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap">📱 Enviar al móvil</button>
     <span id="apiHelp" style="font-size:11px;color:var(--text-dim);line-height:1.4;max-width:300px">¿No tienes clave? Pídesela a quien te pasó la app, o <a href="https://github.com/Asesorian/nomina-auditor#-api-key-de-gemini-gratis-o-de-pago" target="_blank" rel="noopener">créala tú (guía) →</a></span>
     <span id="apiMsg" class="api-msg" role="status" aria-live="polite"></span>
   </div>
@@ -481,18 +484,16 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <!-- Upload phase -->
   <div id="uploadPhase">
     <div class="dropzone card" id="dropzone" onclick="document.getElementById('fileInput').click()">
+      <!-- v2.14.1: un solo botón. En Android los tres de antes (foto, archivos, PDF) abrían el mismo menú: Cámara, o
+           Fotos y vídeos → Archivos. Fotos y PDF, varios a la vez -->
       <input type="file" id="fileInput" accept="image/*,.avif,.heic,.heif,.pdf,application/pdf" multiple style="display:none" onchange="handleFiles(this.files)">
-      <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" onchange="handleFiles(this.files)">
-      <!-- v2.13.1: solo PDF. En Android, si se aceptan también imágenes, sale el selector de fotos y el PDF hay que buscarlo -->
-      <input type="file" id="pdfInput" accept="application/pdf,.pdf" multiple style="display:none" onchange="handleFiles(this.files)">
       <div id="dropContent">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         <p class="dropzone-text" style="margin-top:12px">Haz una foto de tu nómina o elige los archivos</p>
         <div class="upload-actions">
-          <button class="btn btn-primary" type="button" onclick="event.stopPropagation();document.getElementById('cameraInput').click()">📷 Hacer foto</button>
-          <button class="btn btn-secondary" type="button" onclick="event.stopPropagation();document.getElementById('fileInput').click()">📁 Elegir archivos</button>
-          <button class="btn btn-secondary" type="button" id="pdfBtn" data-tr="pdfBtn" onclick="event.stopPropagation();document.getElementById('pdfInput').click()">📄 Elegir PDF</button>
+          <button class="btn btn-primary" type="button" id="uploadBtn" data-tr="uploadBtn" onclick="event.stopPropagation();document.getElementById('fileInput').click()">📎 Subir nómina (foto o PDF)</button>
         </div>
+        <p class="dropzone-hint" id="uploadMenuHint" data-tr="uploadMenuHint">En el móvil se abre un menú: Cámara para hacer la foto, o Fotos y vídeos → Archivos para elegir un PDF.</p>
         <p class="dropzone-hint">Foto (JPG, PNG, HEIC…) o PDF · Puedes elegir varias a la vez: se leen solas y luego las revisas una a una · En el ordenador también puedes arrastrarlas aquí · El documento se guarda junto a la nómina, solo en este dispositivo</p>
       </div>
       <img id="previewImg" class="hidden" alt="Nómina">
@@ -573,6 +574,21 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
       Si alguna vez ves una versión antigua, fuerza la actualización: <strong>tus nóminas y tu API key no se borran</strong>.
     </p>
     <button class="btn btn-secondary btn-sm" onclick="forceAppUpdate()">🔄 Forzar actualización de la app</button>
+  </div>
+
+  <!-- v2.14.1: cuántas páginas ocupa cada nómina en un PDF (para todo este dispositivo) -->
+  <div class="card" id="pdfPagesCard" style="margin-bottom:14px">
+    <h3 style="margin:0 0 8px;font-size:14px;color:var(--accent)" data-tr="pagesTitle">📄 Nóminas en PDF</h3>
+    <p style="color:var(--text-dim);font-size:12px;line-height:1.6" data-tr="pagesText">Un PDF con varias nóminas se separa solo. Si cada nómina ocupa dos páginas, dilo aquí: se juntan de dos en dos y se gasta una lectura por nómina.</p>
+    <label class="pages-opt"><input type="radio" name="pdfPages" value="1" onchange="setPdfPages(1)"> <span data-tr="pagesOne">Cada nómina ocupa una página</span></label>
+    <label class="pages-opt"><input type="radio" name="pdfPages" value="2" onchange="setPdfPages(2)"> <span data-tr="pagesTwo">Cada nómina ocupa dos páginas</span></label>
+  </div>
+
+  <!-- v2.14.1: el QR de la clave, aquí y solo en el ordenador (antes, «📱 Enviar al móvil» en la barra de la clave) -->
+  <div class="card desktop-only" id="qrCard" style="margin-bottom:14px">
+    <h3 style="margin:0 0 8px;font-size:14px;color:var(--accent)" data-tr="qrTitle">📱 ¿Tienes la clave en el ordenador y quieres usar la app en tu móvil?</h3>
+    <p style="color:var(--text-dim);font-size:12px;line-height:1.6;margin-bottom:12px" data-tr="qrText">Escanea este código con la cámara del móvil y la clave pasa a la app sin teclearla. Solo para tu propio móvil: cada persona debe tener su clave.</p>
+    <button class="btn btn-secondary btn-sm" id="qrBtn" data-tr="qrBtn" onclick="showApiQR()">📱 Mostrar el código QR</button>
   </div>
 
   <!-- Export / Import -->
@@ -1416,7 +1432,7 @@ function toggleKeyVis() {
 
 function showApiQR() {
   var key = localStorage.getItem('nomina-auditor-apikey') || '';
-  if (!key) { alert('Primero guarda una API Key válida'); return; }
+  if (!key) { alert(tr('qrNoKey')); return; }
   var url = 'https://asesorian.github.io/nomina-auditor/#apikey=' + encodeURIComponent(key);
   
   // Crear o reutilizar modal
@@ -1530,7 +1546,7 @@ async function handleFile(file) {
     // v2.14.0: un PDF de varias páginas va a la bandeja, ya separado (una página, una nómina)
     if (f.type === 'application/pdf' && !batch.items.length && !batchAdding) {
       document.getElementById('uploadError').innerHTML = `<div class="alert alert-info" style="margin-top:8px">${esc(tr('splitting', { name: f.name || 'PDF' }))}</div>`;
-      const parts = await splitPdfPages(f.base64);
+      const parts = await splitPdfPages(f.base64, BATCH_MAX, null, pdfPagesPref());
       document.getElementById('uploadError').innerHTML = '';
       if (parts) { addToBatch([], [{ ...f, parts }]); return; }
     }
@@ -1568,8 +1584,6 @@ function clearUpload() {
   document.getElementById('dropContent').classList.remove('hidden');
   document.getElementById('uploadBtns').classList.add('hidden');
   document.getElementById('fileInput').value = '';
-  document.getElementById('cameraInput').value = '';
-  const pdfIn = document.getElementById('pdfInput'); if (pdfIn) pdfIn.value = '';
   document.getElementById('uploadError').innerHTML = '';
   renderUploadArea();
 }
@@ -2048,7 +2062,7 @@ function shortText(s, n) {
 }
 
 function renderChecks(d, checks, diffs = []) {
-  const real = realChecks(checks), rounds = checks.filter(c => c.level === 'round');   // v2.8.13
+  const real = realChecks(checks), rounds = checks.filter(softCheck);   // v2.8.13 (v2.14.1: y las informativas)
   const errs = real.filter(c => c.level === 'err'), warns = real.filter(c => c.level === 'warn');
   const state = errs.length ? 'bad' : warns.length ? 'meh' : 'good';
   const title = errs.length ? `✗ Las cuentas no cuadran (${errs.length} error${errs.length > 1 ? 'es' : ''}${warns.length ? ` y ${warns.length} aviso${warns.length > 1 ? 's' : ''}` : ''})`
@@ -2063,7 +2077,7 @@ function renderChecks(d, checks, diffs = []) {
       <div class="chk-title ${state}">${esc(title)}</div>
       ${real.length ? real.map(c => `<div class="chk ${c.level}">${chkIcon(c.level)} <span>${esc(c.text)}${sideMoveButtons(c)}</span></div>`).join('')
         : `<div class="chk ok">Devengos = bruto · deducciones = total a deducir · bruto − deducciones = líquido · IRPF y cotizaciones = base × %.</div>`}
-      ${rounds.map(c => `<div class="chk round">${chkIcon(c.level)} <span>${esc(c.text)}</span></div>`).join('')}
+      ${rounds.map(c => `<div class="chk ${c.level}">${chkIcon(c.level)} <span>${esc(c.text)}</span></div>`).join('')}
       ${real.length ? `<div class="chk-hint">Los valores marcados ${errs.length ? 'en rojo' : 'en ámbar'} son los sospechosos. Compáralos con el documento y toca el valor para corregirlo. La app no cambia ninguna cifra por su cuenta.</div>` : ''}
       ${readDiffHtml(diffs, real.length > 0)}
       ${doc ? `<div class="doc-actions">
@@ -2642,7 +2656,8 @@ let batchNote = null;        // lo que no se pudo añadir: { failed, repeated, s
 let batchAddQueue = [];      // archivos elegidos mientras se preparaban otros (entran justo después)
 let wakeLock = null;
 
-function emptyBatch() { return { items: [], saved: [], discarded: 0, copies: 0 }; }   // copies (v2.14.0): ejemplares repetidos quitados solos
+// copies (v2.14.0): ejemplares repetidos quitados solos; resplits (v2.14.1): pares de páginas vueltos a separar
+function emptyBatch() { return { items: [], saved: [], discarded: 0, copies: 0, resplits: 0 }; }
 
 // De qué PDF y qué páginas viene un elemento separado (v2.14.0)
 function validBatchSrc(src) {
@@ -2662,7 +2677,8 @@ function loadBatch() {
       items: b.items.filter(validBatchItem),
       saved: Array.isArray(b.saved) ? b.saved.filter(x => typeof x === 'string') : [],
       discarded: Math.max(0, parseInt(b.discarded, 10) || 0),
-      copies: Math.max(0, parseInt(b.copies, 10) || 0)
+      copies: Math.max(0, parseInt(b.copies, 10) || 0),
+      resplits: Math.max(0, parseInt(b.resplits, 10) || 0)
     };
     batch.items.forEach(it => { if ('src' in it && !validBatchSrc(it.src)) delete it.src; });
   } catch { batch = emptyBatch(); }
@@ -2701,7 +2717,7 @@ function updateBatchBadge() {
 // varias, o cualquiera si ya hay bandeja, van a la bandeja.
 function handleFiles(fileList) {
   const files = [...(fileList || [])].filter(Boolean);
-  ['fileInput', 'cameraInput', 'pdfInput'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  const fileIn = document.getElementById('fileInput'); if (fileIn) fileIn.value = '';   // v2.14.1: un solo botón
   if (!files.length) return;
   // Una bandeja ya terminada (solo queda el resumen) no cuenta: se empieza de cero
   if (!batch.items.length && !batchAdding && (batch.saved.length || batch.discarded || batch.copies)) { batch = emptyBatch(); saveBatch(); renderUploadArea(); }
@@ -2749,19 +2765,21 @@ async function addToBatch(files, ready = []) {
       // v2.14.0: un PDF de varias páginas se separa solo, una página por elemento (cada una, su propio original)
       const parts = f.type === 'application/pdf' ? (f.parts || await splitPdfPages(f.base64, BATCH_MAX - batch.items.length, () => {
         batchAdding = tr('splitting', { name: label }); renderBatchIfVisible();
-      })) : null;
+      }, pdfPagesPref())) : null;
       if (parts) {
         if (hash) hashes.add(hash);
         const srcId = hash || `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;   // qué páginas vienen del mismo PDF
-        skipped += parts.total - parts.pages.length;
+        const ranges = parts.ranges || parts.pages.map((_, p) => [p + 1, p + 1]);
+        skipped += Math.ceil((parts.total - (ranges.length ? ranges[ranges.length - 1][1] : 0)) / (parts.group || 1));
         for (let p = 0; p < parts.pages.length; p++) {
-          const name = pageFileName(f.name, p + 1, p + 1);
+          const [from, to] = ranges[p];
+          const name = pageFileName(f.name, from, to);
           let pm;
           try { pm = await storeOriginal(parts.pages[p], 'application/pdf', name); }
           catch (e) { failed.push(`${name} (${e.message || e})`); continue; }
           batch.items.push({ uid: pm.key.slice(4), docKey: pm.key, name, type: 'application/pdf', size: pm.size,
             hash, addedAt: pm.savedAt, seq: ++seq, status: autoQueue ? 'queued' : 'waiting',
-            src: { id: srcId, name: f.name || '', from: p + 1, to: p + 1, total: parts.total } });
+            src: { id: srcId, name: f.name || '', from, to, total: parts.total, auto: to > from } });   // auto (v2.14.1): par de la preferencia
         }
         saveBatch();
         continue;
@@ -2829,9 +2847,12 @@ async function batchWorker() {
       if (!batch.items.includes(it)) continue;   // la quitaron de la bandeja mientras se leía
       Object.assign(it, { status: 'read', data: r.data, detection: r.detection, info: r.info, note: '' });
       batchErrorsInARow = 0;
+      if (autoPair(it) && !(amt(r.data?.totals?.netPay) > 0) && await resplitBatchItem(it)) continue;   // v2.14.1
       await dropPageCopy(it);
     } catch (e) {
       if (!batch.items.includes(it)) continue;
+      // v2.14.1: un par de páginas juntado por la preferencia que trae dos nóminas distintas: página a página
+      if (e?.kind === 'multi' && autoPair(it) && await resplitBatchItem(it)) { batchErrorsInARow = 0; saveBatch(); batchTick(); continue; }
       const kind = batchErrorKind(e);
       if (kind) { it.status = 'queued'; it.note = ''; pauseBatch(kind, e); }
       else {
@@ -3028,14 +3049,13 @@ function renderBatch() {
   if (!el) return;
   updateBatchBadge();
   const items = batchOrdered();
-  const noteHtml = batchNote ? `<div class="alert alert-info"><div style="flex:1">
+  const noteHtml = pagesAskHtml() + (batchNote ? `<div class="alert alert-info"><div style="flex:1">
       ${batchNote.repeated.length ? `<div>↺ ${batchNote.repeated.length === 1 ? 'Un archivo ya estaba' : `${batchNote.repeated.length} archivos ya estaban`} en la bandeja y no se ha${batchNote.repeated.length === 1 ? '' : 'n'} añadido otra vez: ${esc(batchNote.repeated.join(', '))}.</div>` : ''}
       ${batchNote.failed.length ? `<div>✗ No se ha${batchNote.failed.length === 1 ? '' : 'n'} podido abrir: ${esc(batchNote.failed.join(', '))}. Prueba con JPG, PNG o PDF.</div>` : ''}
       ${batchNote.skipped ? `<div>La bandeja admite ${BATCH_MAX} documentos a la vez: se ${batchNote.skipped === 1 ? 'ha quedado fuera 1' : `han quedado fuera ${batchNote.skipped}`}. Añádelos cuando termines con estos.</div>` : ''}
-    </div><button class="icon-btn" aria-label="Cerrar aviso" onclick="batchNote=null;renderBatch()">✕</button></div>` : '';
+    </div><button class="icon-btn" aria-label="Cerrar aviso" onclick="batchNote=null;renderBatch()">✕</button></div>` : '');
   const addBtns = `<div class="doc-actions">
-      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('cameraInput').click()">📷 Hacer foto</button>
-      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('fileInput').click()">📁 Añadir archivos</button>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('fileInput').click()">${esc(tr('addBtn'))}</button>
     </div>`;
 
   // Terminada: resumen y a dónde ir
@@ -3048,6 +3068,7 @@ function renderBatch() {
         <div style="font-size:16px;font-weight:800;color:var(--success)">${n === 1 ? '1 nómina guardada' : `${n} nóminas guardadas`}</div>
         ${batch.discarded ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px">${batch.discarded === 1 ? '1 descartada' : `${batch.discarded} descartadas`}</div>` : ''}
         ${batch.copies ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px" id="batchCopies">${esc(copiesText())}</div>` : ''}
+        ${batch.resplits ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px" id="batchResplits">${esc(resplitsText())}</div>` : ''}
         <p style="font-size:12px;color:var(--text-dim);margin:14px auto 0;max-width:420px;line-height:1.6">Están solo en este dispositivo. Cuando acabes, descarga el <strong style="color:var(--text)">backup completo</strong> y guárdalo en Drive.</p>
         <div class="btn-group">
           ${years.slice(-3).map(y => `<button class="btn btn-primary" onclick="currentYear=${jsArg(y)};showView('annual')">📊 Ver el año ${esc(y)}</button>`).join('')}
@@ -3088,6 +3109,7 @@ function renderBatch() {
         ? (('wakeLock' in navigator) ? 'La pantalla se queda encendida mientras lee. ' : 'No cierres la app mientras lee. ') + 'Puedes ir revisando las que ya están.'
         : `${read === 1 ? 'Queda 1 por revisar' : `Quedan ${read} por revisar`}${batch.saved.length ? ` · ${batch.saved.length} guardada${batch.saved.length === 1 ? '' : 's'}` : ''}${errors ? ` · ${errors} con error` : ''}.`}</div>
       ${batch.copies ? `<div class="batch-sub" id="batchCopies">${esc(copiesText())}</div>` : ''}
+      ${batch.resplits ? `<div class="batch-sub" id="batchResplits">${esc(resplitsText())}</div>` : ''}
       ${batchPause && (queued || waiting) ? `<div class="batch-pause">⏸ <strong>Lectura en pausa.</strong> ${esc(batchPause.text)}
           ${batchPause.detail ? `<div class="batch-detail">${esc(batchPause.detail)}</div>` : ''}
           <div class="doc-actions"><button class="btn btn-primary btn-sm" id="batchResumeBtn" onclick="resumeBatch()">▶ Reanudar</button></div>
@@ -3272,7 +3294,6 @@ Object.assign(I18N.es, {
   "keySaved": "✓ Clave guardada: {mask}",
   "keyOdd": "⚠ Esto no parece una clave de Gemini. Bórrala entera y pega solo el enlace que te pasaron (o solo la clave).",
   "keyOddShort": "⚠ Revisa la clave",
-  "pdfBtn": "📄 Elegir PDF",
   "multiTitle": "Este archivo trae {n} nóminas distintas, y la app lee una por archivo.",
   "multiPdf": "🔧 Si es un PDF: ábrelo con el visor → Imprimir → Guardar como PDF, y en «Páginas» elige solo las de una nómina. Repite con cada una y súbelas juntas.",
   "multiPhoto": "🔧 Si es una foto: haz una foto de cada nómina."
@@ -3281,7 +3302,6 @@ Object.assign(I18N.ca, {
   "keySaved": "✓ Clau desada: {mask}",
   "keyOdd": "⚠ Això no sembla una clau de Gemini. Esborra-la tota i enganxa només l'enllaç que et van enviar (o només la clau).",
   "keyOddShort": "⚠ Revisa la clau",
-  "pdfBtn": "📄 Tria un PDF",
   "multiTitle": "Aquest fitxer conté {n} nòmines diferents, i l'app en llegeix una per fitxer.",
   "multiPdf": "🔧 Si és un PDF: obre'l amb el visor → Imprimeix (Imprimir) → Desa com a PDF (Guardar como PDF), i a «Pàgines» («Páginas») tria només les d'una nòmina. Repeteix-ho amb cadascuna i puja-les juntes.",
   "multiPhoto": "🔧 Si és una foto: fes una foto de cada nòmina per separat."
@@ -3290,7 +3310,6 @@ Object.assign(I18N.en, {
   "keySaved": "✓ Key saved: {mask}",
   "keyOdd": "⚠ This does not look like a Gemini key. Delete it all and paste only the link you were sent (or only the key).",
   "keyOddShort": "⚠ Check the key",
-  "pdfBtn": "📄 Choose PDF",
   "multiTitle": "This file contains {n} different payslips (nóminas), and the app reads one per file.",
   "multiPdf": "🔧 If it is a PDF: open it in a viewer → Print → Save as PDF, and under «Pages» choose only the ones for one payslip. Repeat for each one and upload them together.",
   "multiPhoto": "🔧 If it is a photo: take one photo per payslip."
@@ -3334,6 +3353,67 @@ Object.assign(I18N.en, {
   "joinFail": "The pages could not be joined: {msg}",
   "copies1": "🧾 1 copy of the same payslip (the two copies in a PDF): removed, the first page is kept.",
   "copiesN": "🧾 {n} copies of the same payslip (the two copies in a PDF): removed, the first page of each is kept."
+});
+// v2.14.1: un solo botón para subir, el QR en Datos, nóminas de dos páginas y líneas informativas
+Object.assign(I18N.es, {
+  "uploadBtn": "📎 Subir nómina (foto o PDF)",
+  "uploadMenuHint": "En el móvil se abre un menú: Cámara para hacer la foto, o Fotos y vídeos → Archivos para elegir un PDF.",
+  "addBtn": "📎 Añadir nómina (foto o PDF)",
+  "pagesTitle": "📄 Nóminas en PDF",
+  "pagesText": "Un PDF con varias nóminas se separa solo. Si cada nómina ocupa dos páginas, dilo aquí: se juntan de dos en dos y se gasta una lectura por nómina.",
+  "pagesOne": "Cada nómina ocupa una página",
+  "pagesTwo": "Cada nómina ocupa dos páginas",
+  "askPages": "¿Tus nóminas suelen ocupar dos páginas? Así, la próxima vez se juntarán de dos en dos sin gastar lecturas de más.",
+  "askPagesYes": "Sí, de dos en dos",
+  "askPagesNo": "No, solo esta vez",
+  "pagesSaved": "Hecho: en los próximos PDF las páginas se juntarán de dos en dos. Lo puedes cambiar en «Datos».",
+  "resplit1": "🔀 Un par de páginas no era una nómina de dos páginas: se ha vuelto a separar y cada página se lee por su cuenta.",
+  "resplitN": "🔀 {n} pares de páginas no eran nóminas de dos páginas: se han vuelto a separar y cada página se lee por su cuenta.",
+  "qrTitle": "📱 ¿Tienes la clave en el ordenador y quieres usar la app en tu móvil?",
+  "qrText": "Escanea este código con la cámara del móvil y la clave pasa a la app sin teclearla. Solo para tu propio móvil: cada persona debe tener su clave.",
+  "qrBtn": "📱 Mostrar el código QR",
+  "qrNoKey": "Primero guarda tu clave de Gemini en la barra de arriba.",
+  "upInfo": "«{concept}»: {units} × {price} = {exp} €, sin importe en la nómina. Las sumas cuadran sin ella: es una línea informativa (por ejemplo, una previsión de la empresa) y no se cobra este mes."
+});
+Object.assign(I18N.ca, {
+  "uploadBtn": "📎 Puja la nòmina (foto o PDF)",
+  "uploadMenuHint": "Al mòbil s'obre un menú: Càmera per fer la foto, o Fotos i vídeos → Fitxers (Archivos) per triar un PDF.",
+  "addBtn": "📎 Afegeix una nòmina (foto o PDF)",
+  "pagesTitle": "📄 Nòmines en PDF",
+  "pagesText": "Un PDF amb diverses nòmines se separa sol. Si cada nòmina ocupa dues pàgines, indica-ho aquí: s'ajunten de dues en dues i es consumeix una sola lectura per nòmina.",
+  "pagesOne": "Cada nòmina ocupa una pàgina",
+  "pagesTwo": "Cada nòmina ocupa dues pàgines",
+  "askPages": "Les teves nòmines solen ocupar dues pàgines? Així la propera vegada s'ajuntaran de dues en dues sense gastar lectures de més.",
+  "askPagesYes": "Sí, de dues en dues",
+  "askPagesNo": "No, només aquesta vegada",
+  "pagesSaved": "Fet: als propers PDF les pàgines s'ajuntaran de dues en dues. Ho pots canviar a «Datos».",
+  "resplit1": "🔀 Un parell de pàgines no era una nòmina de dues pàgines: s'ha tornat a dividir i cada pàgina es llegeix per separat.",
+  "resplitN": "🔀 {n} parells de pàgines no eren nòmines de dues pàgines: s'han tornat a dividir i cada pàgina es llegeix per separat.",
+  "qrTitle": "📱 Tens la clau a l'ordinador i vols fer servir l'app al mòbil?",
+  "qrText": "Escaneja aquest codi amb la càmera del mòbil i la clau passarà a l'app sense haver-la d'escriure. Només per al teu mòbil: cada persona ha de tenir la seva pròpia clau.",
+  "qrBtn": "📱 Mostra el codi QR",
+  "qrNoKey": "Primer desa la teva clau de Gemini a la barra de dalt.",
+  "upInfo": "«{concept}»: {units} × {price} = {exp} €, sense import a la nòmina. Les sumes quadren sense aquesta línia: és una línia informativa (per exemple, una previsió de l'empresa) i no es cobra aquest mes."
+});
+Object.assign(I18N.en, {
+  "uploadBtn": "📎 Upload payslip (photo or PDF)",
+  "uploadMenuHint": "On a phone a menu opens: Camera to take the photo, or Photos & videos → Files to choose a PDF.",
+  "addBtn": "📎 Add payslip (photo or PDF)",
+  "pagesTitle": "📄 Payslips in PDF",
+  "pagesText": "A PDF with several payslips (nóminas) is split automatically. If each payslip takes two pages, say so here: they are joined two by two and each payslip uses one reading.",
+  "pagesOne": "Each payslip takes one page",
+  "pagesTwo": "Each payslip takes two pages",
+  "askPages": "Do your payslips usually take two pages? Then next time they will be joined two by two without using extra readings.",
+  "askPagesYes": "Yes, two by two",
+  "askPagesNo": "No, just this once",
+  "pagesSaved": "Done: in the next PDFs the pages will be joined two by two. You can change it in «Datos».",
+  "resplit1": "🔀 A pair of pages was not a two-page payslip: it has been split again and each page is read on its own.",
+  "resplitN": "🔀 {n} pairs of pages were not two-page payslips: they have been split again and each page is read on its own.",
+  "qrTitle": "📱 Do you have the key on your computer and want to use the app on your phone?",
+  "qrText": "Scan this code with your phone's camera and the key goes into the app without typing it. Only for your own phone: each person should have their own key.",
+  "qrBtn": "📱 Show the QR code",
+  "qrNoKey": "First save your Gemini key in the bar at the top.",
+  "upInfo": "«{concept}»: {units} × {price} = {exp} €, with no amount on the payslip. The totals add up without it: it is an informational line (for example, a company provision) and is not paid this month."
 });
 // Textos fijos del HTML con data-tr="clave": se escriben con tr() al arrancar (v2.13.1)
 function trStatic(root = document) {
@@ -3535,7 +3615,7 @@ Revisar con el documento original antes de usar estos datos.
 
 5. ${real.length ? 'AVISOS DE LA COMPROBACIÓN AUTOMÁTICA' : 'REDONDEOS DE LA EMPRESA (LAS SUMAS CUADRAN)'}
 ------------------------------------------------------------
-${[...real, ...checks.filter(c => c.level === 'round')].map(c => chkIcon(c.level) + ' ' + c.text).join('\n')}
+${[...real, ...checks.filter(softCheck)].map(c => chkIcon(c.level) + ' ' + c.text).join('\n')}
 ------------------------------------------------------------` : '';
   // v2.9.0: cambios del precio por unidad frente a las mensuales anteriores (solo si los hay; detrás de los avisos)
   const pr = priceReport(p);
@@ -3585,7 +3665,7 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Comprobación de las cuentas</div>
       <div class="chk-title ${state}">${errs.length ? '✗ Las cuentas no cuadran: Gemini leyó mal alguna línea' : real.length ? '⚠ Las sumas cuadran, pero hay algo que mirar' : '✓ Las cuentas cuadran'}</div>
       ${docSealHtml(p)}
-      ${[...real, ...checks.filter(c => c.level === 'round')].map(c => `<div class="chk ${c.level}">${chkIcon(c.level)} <span>${esc(c.text)}</span></div>`).join('')}
+      ${[...real, ...checks.filter(softCheck)].map(c => `<div class="chk ${c.level}">${chkIcon(c.level)} <span>${esc(c.text)}</span></div>`).join('')}
       <div class="doc-actions">
         <button class="btn ${errs.length ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="editPayroll(${jsArg(p.id)})">✏ Corregir datos</button>
         ${real.length && hasOriginal(p) ? `<button class="btn btn-secondary btn-sm" onclick="editAndReread(${jsArg(p.id)})">🔁 Releer con Gemini</button>` : ''}
@@ -3777,9 +3857,11 @@ function pdfSurelySinglePage(base64) {
   return pages === 1 && [...bin.matchAll(/\/Count\s+(\d+)/g)].every(m => +m[1] <= 1);
 }
 
-// Un PDF por página: { pages: [base64…], total }. null si tiene una sola página o si no se puede separar (sin conexión
-// y sin la librería guardada, contraseña, PDF dañado): entonces se lee entero, como hasta la v2.13.1.
-async function splitPdfPages(base64, maxPages = BATCH_MAX, onStart) {
+// Un PDF por página: { pages: [base64…], ranges: [[desde, hasta]…], total }. null si tiene una sola página (o un solo
+// grupo) o si no se puede separar (sin conexión y sin la librería guardada, contraseña, PDF dañado): entonces se lee
+// entero, como hasta la v2.13.1. v2.14.1: group = 2 junta las páginas de dos en dos (nóminas de dos páginas; la última
+// puede quedar sola si son impares). maxPages es el número de elementos que caben (de grupos, no de páginas).
+async function splitPdfPages(base64, maxPages = BATCH_MAX, onStart, group = 1) {
   if (pdfSurelySinglePage(base64)) return null;
   try {
     if (onStart) onStart();
@@ -3787,15 +3869,17 @@ async function splitPdfPages(base64, maxPages = BATCH_MAX, onStart) {
       new Promise((_, rej) => setTimeout(() => rej(new Error('pdf-lib tarda demasiado')), PDFLIB_TIMEOUT_MS))]);
     const src = await PDFDocument.load(b64ToArrayBuffer(base64), { updateMetadata: false });
     const total = src.getPageCount();
-    if (total < 2) return null;
-    const pages = [];
-    for (let i = 0; i < Math.min(total, Math.max(0, maxPages)); i++) {
+    const g = group === 2 ? 2 : 1;
+    if (Math.ceil(total / g) < 2) return null;
+    const pages = [], ranges = [];
+    for (let i = 0; i < total && pages.length < Math.max(0, maxPages); i += g) {
+      const idx = [i, i + 1].slice(0, g).filter(j => j < total);
       const doc = await PDFDocument.create({ updateMetadata: false });
-      const [pg] = await doc.copyPages(src, [i]);
-      doc.addPage(pg);
+      (await doc.copyPages(src, idx)).forEach(pg => doc.addPage(pg));
       pages.push(await doc.saveAsBase64({ useObjectStreams: false }));   // sin objetos comprimidos: lo abre cualquier visor
+      ranges.push([idx[0] + 1, idx[idx.length - 1] + 1]);
     }
-    return { pages, total };
+    return { pages, ranges, total, group: g };
   } catch (e) { console.warn('No se ha podido separar el PDF:', e); return null; }
 }
 
@@ -3873,7 +3957,7 @@ async function joinBatchPages(uidA, uidB) {
     const [ra, rb] = await Promise.all([getDoc(a.docKey), getDoc(b.docKey)]);
     if (!ra || !rb) throw new Error('El documento ya no está en este dispositivo.');
     const merged = await mergePdfs([arrayBufferToB64(ra.data), arrayBufferToB64(rb.data)]);
-    const src = { ...a.src, to: b.src.to };
+    const src = { ...a.src, to: b.src.to, auto: false };   // unido a mano: la red de resplitBatchItem no lo deshace
     const name = pageFileName(src.name, src.from, src.to);
     const meta = await storeOriginal(merged, 'application/pdf', name);
     if (!batch.items.includes(a) || !batch.items.includes(b)) { await discardOriginal(meta); return; }
@@ -3884,6 +3968,7 @@ async function joinBatchPages(uidA, uidB) {
     saveBatch();
     await discardOriginal({ key: a.docKey });
     await discardOriginal({ key: b.docKey });
+    if (!pdfPagesAsked() && pdfPagesPref() === 1) batchAskPages = true;   // v2.14.1: la primera vez que se une
     renderUploadArea();
     if (started) runBatch();
   } catch (e) {
@@ -3891,6 +3976,74 @@ async function joinBatchPages(uidA, uidB) {
   } finally {
     batchJoining = false;
   }
+}
+
+// ── Nóminas de dos páginas (v2.14.1) ──
+// Preferencia para todo el dispositivo: 1 (por defecto, cada página una nómina) o 2 (se juntan de dos en dos al separar
+// el PDF: una lectura por nómina). Se pregunta una sola vez, la primera vez que alguien pulsa «🔗 Unir»; se cambia en Datos.
+const PDF_PAGES_KEY = 'nomina-auditor-pdf-pages', PDF_PAGES_ASKED_KEY = 'nomina-auditor-pdf-pages-asked';
+let batchAskPages = false;
+function pdfPagesPref() {
+  try { return localStorage.getItem(PDF_PAGES_KEY) === '2' ? 2 : 1; } catch { return 1; }
+}
+function pdfPagesAsked() {
+  try { return localStorage.getItem(PDF_PAGES_ASKED_KEY) === '1' || localStorage.getItem(PDF_PAGES_KEY) !== null; } catch { return true; }
+}
+function setPdfPages(n, fromAsk) {
+  try { localStorage.setItem(PDF_PAGES_KEY, n === 2 ? '2' : '1'); localStorage.setItem(PDF_PAGES_ASKED_KEY, '1'); } catch {}
+  batchAskPages = fromAsk && n === 2 ? 'saved' : false;
+  renderPdfPagesCard();
+  if (fromAsk) renderBatchIfVisible();
+}
+function dismissAskPages() {
+  try { localStorage.setItem(PDF_PAGES_ASKED_KEY, '1'); } catch {}
+  batchAskPages = false;
+  renderBatchIfVisible();
+}
+function renderPdfPagesCard() {
+  const n = String(pdfPagesPref());
+  document.querySelectorAll('input[name="pdfPages"]').forEach(r => { r.checked = r.value === n; });
+}
+function pagesAskHtml() {
+  if (batchAskPages === 'saved') return `<div class="alert alert-info" id="pagesAsk"><div style="flex:1">${esc(tr('pagesSaved'))}</div>
+    <button class="icon-btn" aria-label="Cerrar aviso" onclick="batchAskPages=false;renderBatch()">✕</button></div>`;
+  if (!batchAskPages) return '';
+  return `<div class="alert alert-info" id="pagesAsk"><div style="flex:1">${esc(tr('askPages'))}
+    <div class="doc-actions"><button class="btn btn-primary btn-sm" id="pagesAskYes" onclick="setPdfPages(2, true)">${esc(tr('askPagesYes'))}</button>
+    <button class="btn btn-secondary btn-sm" id="pagesAskNo" onclick="dismissAskPages()">${esc(tr('askPagesNo'))}</button></div></div></div>`;
+}
+function resplitsText() {
+  return batch.resplits === 1 ? tr('resplit1') : tr('resplitN', { n: batch.resplits });
+}
+
+// Un par de páginas juntado por la preferencia (no unido a mano)
+function autoPair(it) { return !!(it.src && it.src.auto === true && it.src.to > it.src.from); }
+
+// La red: un par que trae dos nóminas distintas (o ningún líquido: el PDF no empieza en una nómina de dos páginas)
+// se vuelve a separar, página a página, y cada una entra en la cola. true si se ha separado; false si no se puede
+// (sin pdf-lib, documento perdido): entonces se queda como estaba, con su error o su lectura.
+async function resplitBatchItem(it) {
+  try {
+    const rec = await getDoc(it.docKey);
+    if (!rec) return false;
+    const parts = await splitPdfPages(arrayBufferToB64(rec.data), BATCH_MAX, null, 1);
+    if (!parts || !batch.items.includes(it)) return false;
+    const fresh = [];
+    for (let p = 0; p < parts.pages.length; p++) {
+      const from = it.src.from + p;
+      const name = pageFileName(it.src.name, from, from);
+      const pm = await storeOriginal(parts.pages[p], 'application/pdf', name);
+      fresh.push({ uid: pm.key.slice(4), docKey: pm.key, name, type: 'application/pdf', size: pm.size, hash: it.hash,
+        addedAt: pm.savedAt, seq: (+it.seq || 0) + p / 10, status: 'queued', src: { ...it.src, from, to: from, auto: false } });
+    }
+    if (!batch.items.includes(it)) { for (const f of fresh) await discardOriginal({ key: f.docKey }); return false; }
+    batch.items = batch.items.filter(x => x !== it).concat(fresh);
+    batch.resplits = (batch.resplits || 0) + 1;
+    saveBatch();
+    await discardOriginal({ key: it.docKey });
+    renderBatchIfVisible();
+    return true;
+  } catch (e) { console.warn('No se ha podido volver a separar el par de páginas:', e); return false; }
 }
 
 // ═══════════ PDF DIGITAL (v2.12.0) ═══════════
@@ -5339,7 +5492,10 @@ function checkPayroll(p, opts = {}) {
       const expected = round2(u * pr);
       if (Math.abs(expected - a) <= upTolLine(l, u, pr, a)) return;     // v2.10.2: margen por los decimales
       const shifted = lines.some((o, j) => { const x = num(o.amount); return j !== i && Number.isFinite(x) && x > 0 && Math.abs(x - expected) <= tol(x); });
-      out.push({ level: shifted ? 'warn' : 'err', key: `up-${side}${i}`, paths: [shifted ? `${side}.${i}.price` : `${side}.${i}.amount`],
+      // v2.14.1: importe 0 con unidades y precio = quizá una línea informativa (una previsión que la empresa no paga ese
+      //     mes). Se decide al final: si las tres sumas cuadran, pasa a 'info' (gris, no cuenta como aviso).
+      const info = a === 0 && !shifted ? { concept: l.concept, units: String(l.units), price: fmtPrice(pr), exp: fmt(expected) } : null;
+      out.push({ level: shifted ? 'warn' : 'err', key: `up-${side}${i}`, paths: [shifted ? `${side}.${i}.price` : `${side}.${i}.amount`], info,
         // v2.8.7: el precio con todos sus decimales (con fmt() salía «× 7,13» y la cuenta parecía mal hecha)
         text: `«${l.concept}»: ${String(l.units)} × ${fmtPrice(pr)} = ${fmt(expected)} €, pero el importe leído es ${fmt(a)} €.` +
           (shifted ? ' Ese resultado es el importe de otra línea: parece que los precios están corridos de fila.' : ' Mira en el documento el importe, el precio y las unidades.') });
@@ -5426,6 +5582,8 @@ function checkPayroll(p, opts = {}) {
   //     v2.12.3: con el lado (más o menos) y, si hay varias deducciones con céntimos de diferencia, el neto. Solo
   //     documenta: con el % impreso redondeado, la app no puede saber cuál de las dos cifras es la exacta.
   for (const c of out) {
+    if (c.info && sumsOk) { c.level = 'info'; c.text = tr('upInfo', c.info); c.paths = []; }   // v2.14.1
+    delete c.info;
     if (c.rtext && sumsOk && c.diff <= ROUND_TOL + 1e-9) {
       c.level = 'round';
       c.text = `${c.rtext}: ${c.ded ? descontado(c.sdiff) : baseLado(c.sdiff)}. Redondeo de la empresa: las sumas cuadran, así que la cifra está bien leída.`;
@@ -5471,9 +5629,11 @@ function taxIdValid(raw) {
 function cts(s) { const n = Math.abs(Math.round(s * 100)); return `${n} céntimo${n === 1 ? '' : 's'}`; }
 function descontado(s) { return `te han descontado ${cts(s)} ${s > 0 ? 'más' : 'menos'} de lo que sale de la cuenta`; }
 function baseLado(s) { return `la base C.C. es ${cts(s)} ${s > 0 ? 'mayor' : 'menor'} que la suma`; }
-function chkIcon(level) { return level === 'err' ? '✗' : level === 'round' ? '≈' : '⚠'; }
+function chkIcon(level) { return level === 'err' ? '✗' : level === 'round' ? '≈' : level === 'info' ? 'ℹ' : '⚠'; }   // v2.14.1: ℹ línea informativa
 // Lo que hay que mirar: todo menos los redondeos (v2.8.13)
-function realChecks(checks) { return checks.filter(c => c.level !== 'round'); }
+function realChecks(checks) { return checks.filter(c => !softCheck(c)); }
+// Lo que se enseña en gris y no cuenta como aviso: redondeos (v2.8.13) y líneas informativas (v2.14.1)
+function softCheck(c) { return c.level === 'round' || c.level === 'info'; }
 
 // ── Línea en el lado equivocado (v2.8.8) ──
 // Pasó con una nómina escaneada: las dos lecturas de Gemini pusieron en devengos una línea de deducciones. A los
@@ -6127,6 +6287,7 @@ if (SW_SUPPORTED) {
 
 // ═══════════ INIT ═══════════
 trStatic();
+renderPdfPagesCard();
 loadData();
 loadBatch();
 renderDashboard();
