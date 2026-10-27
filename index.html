@@ -68,6 +68,10 @@ nav { display:flex; gap:4px; margin-left:auto; }
 .api-row { display:flex; gap:6px; align-items:center; flex:1; min-width:220px; }
 .api-row input { min-width:0; }
 .api-bar.collapsed .api-body { display:none; }
+.api-msg { flex-basis:100%; font-size:12px; line-height:1.4; }
+.api-msg:empty { display:none; }
+.api-msg.ok { color:var(--success); }
+.api-msg.bad { color:var(--danger); }
 .api-bar.no-key .api-toggle { display:none; }
 .api-bar label { font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.5px; white-space:nowrap; }
 .api-bar input { flex:1; background:var(--card); border:1px solid var(--border); color:var(--text); padding:6px 12px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:12px; }
@@ -401,7 +405,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.13.0</span>
+    <span class="logo-badge">Forense v2.13.1</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -438,9 +442,10 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
     </span>
   </div>
   <div class="api-body" id="apiBody">
-    <div class="api-row"><input type="password" id="apiKeyInput" placeholder="Pega aquí tu clave (o el enlace que te pasaron)" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" oninput="saveApiKey(this.value)"><button onclick="toggleKeyVis()" id="eyeBtn" type="button" aria-label="Mostrar u ocultar la clave" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">👁</button></div>
+    <div class="api-row"><input type="password" id="apiKeyInput" placeholder="Pega aquí tu clave (o el enlace que te pasaron)" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" oninput="saveApiKey(this.value)" onpaste="onApiKeyPaste(event)" onkeydown="onApiKeyKeydown(event)" onchange="finalizeApiKey(true)"><button onclick="toggleKeyVis()" id="eyeBtn" type="button" aria-label="Mostrar u ocultar la clave" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">👁</button></div>
     <button onclick="showApiQR()" type="button" title="Genera un QR para transferir la key al móvil sin teclear" style="background:var(--warning);color:#0f1117;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap">📱 Enviar al móvil</button>
     <span id="apiHelp" style="font-size:11px;color:var(--text-dim);line-height:1.4;max-width:300px">¿No tienes clave? Pídesela a quien te pasó la app, o <a href="https://github.com/Asesorian/nomina-auditor#-api-key-de-gemini-gratis-o-de-pago" target="_blank" rel="noopener">créala tú (guía) →</a></span>
+    <span id="apiMsg" class="api-msg" role="status" aria-live="polite"></span>
   </div>
 </div>
 
@@ -477,12 +482,15 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
     <div class="dropzone card" id="dropzone" onclick="document.getElementById('fileInput').click()">
       <input type="file" id="fileInput" accept="image/*,.avif,.heic,.heif,.pdf,application/pdf" multiple style="display:none" onchange="handleFiles(this.files)">
       <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none" onchange="handleFiles(this.files)">
+      <!-- v2.13.1: solo PDF. En Android, si se aceptan también imágenes, sale el selector de fotos y el PDF hay que buscarlo -->
+      <input type="file" id="pdfInput" accept="application/pdf,.pdf" multiple style="display:none" onchange="handleFiles(this.files)">
       <div id="dropContent">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         <p class="dropzone-text" style="margin-top:12px">Haz una foto de tu nómina o elige los archivos</p>
         <div class="upload-actions">
           <button class="btn btn-primary" type="button" onclick="event.stopPropagation();document.getElementById('cameraInput').click()">📷 Hacer foto</button>
           <button class="btn btn-secondary" type="button" onclick="event.stopPropagation();document.getElementById('fileInput').click()">📁 Elegir archivos</button>
+          <button class="btn btn-secondary" type="button" id="pdfBtn" data-tr="pdfBtn" onclick="event.stopPropagation();document.getElementById('pdfInput').click()">📄 Elegir PDF</button>
         </div>
         <p class="dropzone-hint">Foto (JPG, PNG, HEIC…) o PDF · Puedes elegir varias a la vez: se leen solas y luego las revisas una a una · En el ordenador también puedes arrastrarlas aquí · El documento se guarda junto a la nómina, solo en este dispositivo</p>
       </div>
@@ -774,7 +782,8 @@ function renderApiBar() {
   const bar = document.getElementById('apiBar');
   if (!bar) return;
   const key = hasApiKey();
-  const open = !key || apiBarOpen === true;
+  // v2.13.1: con una clave que no parece una clave, desplegada (salvo que la persona la pliegue)
+  const open = !key || apiBarOpen === true || (apiBarOpen === null && keyLooksOdd(getApiKey()));
   bar.classList.toggle('collapsed', !open);
   bar.classList.toggle('no-key', !key);
   const t = document.getElementById('apiToggle');
@@ -796,11 +805,28 @@ function saveData() {
 
 // Acepta la clave sola o el enlace entero que se pasa por WhatsApp (…/#apikey=…):
 // en iPhone la app instalada no ve lo que se abrió en Safari, así que se pega el enlace en la casilla.
+// v2.13.1: lo que se copia de WhatsApp puede traer caracteres invisibles: se quitan siempre.
+const KEY_INVISIBLE_RE = /[\u00AD\u200B-\u200F\u202A-\u202E\u2060-\u2064\uFEFF]/g;
 function extractApiKey(text) {
-  const t = String(text ?? '').trim();
+  const t = String(text ?? '').replace(KEY_INVISIBLE_RE, '').trim();
   const m = t.match(/(?:^|[#?&])apikey=([^&#\s]+)/i);
   if (!m) return t;
   try { return decodeURIComponent(m[1]).trim(); } catch { return m[1].trim(); }
+}
+
+// Limpieza final, al pegar, con Intro o al salir de la casilla (escribiendo no: un «.» puede ser lo siguiente que se
+// teclea). Quita espacios y saltos de línea de dentro y las comillas o el punto de la frase pegados a los lados.
+function cleanApiKey(text) {
+  return extractApiKey(text).replace(/\s+/g, '')
+    .replace(/^[«"'“‘(\[<]+/, '').replace(/[.,;:!?»"'”’)\]>]+$/, '');
+}
+
+// Solo avisa (no bloquea: Google ya cambió una vez el formato). Raro = dos claves juntas, un trozo de enlace o un
+// principio que no es el de las claves de Google («AIza…» o, desde 2026, «AQ.…»).
+function keyLooksOdd(k) {
+  k = String(k || '');
+  if (!k) return false;
+  return (k.match(/AIza|AQ\./g) || []).length !== 1 || !/^(AIza|AQ\.)/.test(k) || /[\/:]|apikey/i.test(k);
 }
 
 function maskKey(k) {
@@ -817,14 +843,52 @@ function saveApiKey(value) {
   updateApiStatus(key);
 }
 
+// Pegar SUSTITUYE lo que hubiera en la casilla. Antes se insertaba donde estaba el cursor: con la casilla en
+// puntitos no se veía que la clave anterior seguía delante y se guardaban las dos juntas (26-10, móvil de un probador).
+function onApiKeyPaste(e) {
+  const t = e.clipboardData ? e.clipboardData.getData('text') : '';
+  if (!t) return;
+  e.preventDefault();
+  e.target.value = t;
+  apiBarOpen = true;
+  finalizeApiKey();
+}
+
+// Intro: guarda (ya estaba guardada al pegar), cierra el teclado y dice qué clave ha quedado
+function onApiKeyKeydown(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  finalizeApiKey();
+  e.target.blur();
+}
+
+function finalizeApiKey(quiet = false) {
+  const input = document.getElementById('apiKeyInput');
+  if (!input) return;
+  const key = cleanApiKey(input.value);
+  if (input.value !== key) input.value = key;
+  localStorage.setItem('nomina-auditor-apikey', key);
+  updateApiStatus(key);
+  if (!quiet) showApiMsg(key);
+}
+
+function showApiMsg(key) {
+  const el = document.getElementById('apiMsg');
+  if (!el) return;
+  const odd = keyLooksOdd(key);
+  el.textContent = !key ? '' : odd ? tr('keyOdd') : tr('keySaved', { mask: maskKey(key) });
+  el.className = 'api-msg' + (key ? (odd ? ' bad' : ' ok') : '');
+}
+
 function getApiKey() {
   return (localStorage.getItem('nomina-auditor-apikey') || '').trim();
 }
 
 function updateApiStatus(key) {
   const el = document.getElementById('apiStatus');
-  if (key && key.length > 10) { el.textContent = '✓ Configurada'; el.className = 'status ok'; }
-  else { el.textContent = 'Sin Key'; el.className = 'status no'; }
+  if (key && key.length > 10 && keyLooksOdd(key)) { el.textContent = tr('keyOddShort'); el.className = 'status no'; el.title = tr('keyOdd'); }
+  else if (key && key.length > 10) { el.textContent = '✓ Configurada'; el.className = 'status ok'; el.title = ''; }
+  else { el.textContent = 'Sin Key'; el.className = 'status no'; el.title = ''; }
   renderApiBar();
 }
 
@@ -1164,6 +1228,43 @@ function stripJsonComments(s) {
   return out;
 }
 
+// Reparaciones de errores típicos, solo si el JSON tal cual no vale
+function repairJSON(t) {
+  return stripJsonComments(t)
+    .replace(/,\s*([}\]])/g, '$1')                                          // coma antes de } o ]
+    .replace(/("(?:[^"\\]|\\.)*"|\d|true|false|null|[}\]])[ \t]*\n(\s*["{])/g, '$1,\n$2') // falta la coma entre líneas
+    .replace(/:\s*(NaN|undefined)\b/g, ': 0');                              // valores que no existen en JSON
+}
+
+// v2.13.1: los objetos JSON de primer nivel que vienen seguidos («{…}{…}», «{…},{…}»), respetando las comillas.
+// Un solo objeto (o JSON roto) devuelve uno o ninguno, y se sigue como siempre.
+function splitTopLevelJSON(t) {
+  const parts = [];
+  let depth = 0, start = -1, inStr = false, escaped = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (inStr) { if (escaped) escaped = false; else if (c === '\\') escaped = true; else if (c === '"') inStr = false; continue; }
+    if (c === '"') inStr = true;
+    else if (c === '{') { if (depth === 0) start = i; depth++; }
+    else if (c === '}' && depth > 0 && --depth === 0) parts.push(t.slice(start, i + 1));
+  }
+  return parts;
+}
+
+// Una respuesta con varias nóminas: si son copias de la misma (mismo periodo, tipo y totales: los dos ejemplares que
+// traen muchos PDF), vale la primera. Si son distintas, la app no elige ninguna: avisa (kind 'multi').
+function singlePayroll(objs) {
+  const sig = o => JSON.stringify([o?.period?.month, o?.period?.year, o?.payType, o?.totals?.grossTotal, o?.totals?.netPay]);
+  if (objs.length === 1 || objs.every(o => sig(o) === sig(objs[0]))) return objs[0];
+  return multiPayrollError(new Set(objs.map(sig)).size);
+}
+
+function multiPayrollError(n) {
+  const e = new Error([tr('multiTitle', { n }), '', tr('multiPdf'), tr('multiPhoto')].join('\n'));
+  e.kind = 'multi';
+  throw e;
+}
+
 // Convierte la respuesta de Gemini en datos. SOLO como JSON: nunca se ejecuta como código.
 // Si no es JSON válido ni tras las reparaciones habituales, lanza un error y callGemini prueba el modelo siguiente.
 function parseGeminiJSON(text) {
@@ -1173,11 +1274,13 @@ function parseGeminiJSON(text) {
   if (firstBrace === -1 || lastBrace <= firstBrace) throw new Error('Gemini no devolvió un JSON válido. Intenta con otra foto más nítida.');
   clean = clean.substring(firstBrace, lastBrace + 1);
   try { return JSON.parse(clean); } catch {}
-  // Reparaciones de errores típicos, solo si el JSON tal cual no vale
-  const repaired = stripJsonComments(clean)
-    .replace(/,\s*([}\]])/g, '$1')                                          // coma antes de } o ]
-    .replace(/("(?:[^"\\]|\\.)*"|\d|true|false|null|[}\]])[ \t]*\n(\s*["{])/g, '$1,\n$2') // falta la coma entre líneas
-    .replace(/:\s*(NaN|undefined)\b/g, ': 0');                              // valores que no existen en JSON
+  // v2.13.1: varias nóminas seguidas ({…}{…}): un PDF con varios meses, o los dos ejemplares de la misma nómina
+  const parts = splitTopLevelJSON(clean);
+  if (parts.length > 1) {
+    const objs = parts.map(t => { try { return JSON.parse(t); } catch { try { return JSON.parse(repairJSON(t)); } catch { return null; } } });
+    if (objs.every(o => o && typeof o === 'object' && !Array.isArray(o))) return singlePayroll(objs);
+  }
+  const repaired = repairJSON(clean);
   try { return JSON.parse(repaired); }
   catch (e) { throw new Error(`Error leyendo la respuesta de Gemini (no es JSON válido): ${e.message}\n\nRespuesta recibida (primeros 500 caracteres):\n${String(text).substring(0, 500)}`); }
 }
@@ -1230,12 +1333,14 @@ async function callGemini(base64, mediaType, extra, onStatus = updateProcessStat
 
       const data = await res.json();
       const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-      const parsed = parseGeminiJSON(text);   // si no es JSON válido, lanza error → siguiente modelo
+      let parsed = parseGeminiJSON(text);   // si no es JSON válido, lanza error → siguiente modelo
+      if (Array.isArray(parsed) && parsed.length && parsed.every(o => o && typeof o === 'object' && !Array.isArray(o))) parsed = singlePayroll(parsed);
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Gemini no devolvió los datos de la nómina en el formato esperado.');
       onStatus(`✓ Extraído con ${model}`);
       return parsed;
     } catch (e) {
       if (e?.kind === 'credit') throw e;
+      if (e?.kind === 'multi') throw e;   // v2.13.1: el archivo trae varias nóminas; otro modelo leería lo mismo
       lastError = e;
       allErrors.push(`❌ ${model}: ${e.message?.split("\n")[0]}`);
       onStatus(`${model} error, probando siguiente...`);
@@ -1456,6 +1561,7 @@ function clearUpload() {
   document.getElementById('uploadBtns').classList.add('hidden');
   document.getElementById('fileInput').value = '';
   document.getElementById('cameraInput').value = '';
+  const pdfIn = document.getElementById('pdfInput'); if (pdfIn) pdfIn.value = '';
   document.getElementById('uploadError').innerHTML = '';
   renderUploadArea();
 }
@@ -2579,7 +2685,7 @@ function updateBatchBadge() {
 // varias, o cualquiera si ya hay bandeja, van a la bandeja.
 function handleFiles(fileList) {
   const files = [...(fileList || [])].filter(Boolean);
-  ['fileInput', 'cameraInput'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['fileInput', 'cameraInput', 'pdfInput'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   if (!files.length) return;
   // Una bandeja ya terminada (solo queda el resumen) no cuenta: se empieza de cero
   if (!batch.items.length && !batchAdding && (batch.saved.length || batch.discarded)) { batch = emptyBatch(); saveBatch(); renderUploadArea(); }
@@ -3116,6 +3222,38 @@ function glossLang() {
   try { const l = localStorage.getItem('nomina-auditor-gloss-lang'); return LANGS[l] ? l : 'es'; } catch { return 'es'; }
 }
 // Texto de la interfaz en un idioma, con {variables}. Si falta en ese idioma, el español.
+// v2.13.1: la casilla de la clave, el botón de PDF y el aviso de un archivo con varias nóminas
+Object.assign(I18N.es, {
+  "keySaved": "✓ Clave guardada: {mask}",
+  "keyOdd": "⚠ Esto no parece una clave de Gemini. Bórrala entera y pega solo el enlace que te pasaron (o solo la clave).",
+  "keyOddShort": "⚠ Revisa la clave",
+  "pdfBtn": "📄 Elegir PDF",
+  "multiTitle": "Este archivo trae {n} nóminas distintas, y la app lee una por archivo.",
+  "multiPdf": "🔧 Si es un PDF: ábrelo con el visor → Imprimir → Guardar como PDF, y en «Páginas» elige solo las de una nómina. Repite con cada una y súbelas juntas.",
+  "multiPhoto": "🔧 Si es una foto: haz una foto de cada nómina."
+});
+Object.assign(I18N.ca, {
+  "keySaved": "✓ Clau desada: {mask}",
+  "keyOdd": "⚠ Això no sembla una clau de Gemini. Esborra-la tota i enganxa només l'enllaç que et van enviar (o només la clau).",
+  "keyOddShort": "⚠ Revisa la clau",
+  "pdfBtn": "📄 Tria un PDF",
+  "multiTitle": "Aquest fitxer conté {n} nòmines diferents, i l'app en llegeix una per fitxer.",
+  "multiPdf": "🔧 Si és un PDF: obre'l amb el visor → Imprimeix (Imprimir) → Desa com a PDF (Guardar como PDF), i a «Pàgines» («Páginas») tria només les d'una nòmina. Repeteix-ho amb cadascuna i puja-les juntes.",
+  "multiPhoto": "🔧 Si és una foto: fes una foto de cada nòmina per separat."
+});
+Object.assign(I18N.en, {
+  "keySaved": "✓ Key saved: {mask}",
+  "keyOdd": "⚠ This does not look like a Gemini key. Delete it all and paste only the link you were sent (or only the key).",
+  "keyOddShort": "⚠ Check the key",
+  "pdfBtn": "📄 Choose PDF",
+  "multiTitle": "This file contains {n} different payslips (nóminas), and the app reads one per file.",
+  "multiPdf": "🔧 If it is a PDF: open it in a viewer → Print → Save as PDF, and under «Pages» choose only the ones for one payslip. Repeat for each one and upload them together.",
+  "multiPhoto": "🔧 If it is a photo: take one photo per payslip."
+});
+// Textos fijos del HTML con data-tr="clave": se escriben con tr() al arrancar (v2.13.1)
+function trStatic(root = document) {
+  root.querySelectorAll('[data-tr]').forEach(el => { el.textContent = tr(el.getAttribute('data-tr')); });
+}
 function tr(key, vars = {}, lang = 'es') {
   const t = (I18N[lang] && I18N[lang][key]) ?? I18N.es[key] ?? key;
   return t.replace(/\{(\w+)\}/g, (m, k) => vars[k] ?? m);
@@ -5754,6 +5892,7 @@ if (SW_SUPPORTED) {
 }
 
 // ═══════════ INIT ═══════════
+trStatic();
 loadData();
 loadBatch();
 renderDashboard();

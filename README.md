@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.13.0)
+## 🆕 Novedades (v2.3 – v2.13.1)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -697,6 +697,12 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.13.1 (Octubre 2026)
+- **Pegar la clave sustituye la anterior:** al pegar el enlace o la clave en la casilla, lo que hubiera se borra. Antes se insertaba donde estaba el cursor y, como la casilla va en puntitos, la clave anterior podía quedarse delante sin que se viera (y Google respondía «API key not valid»). También se quitan los caracteres invisibles, los saltos de línea y el punto o las comillas que se cuelan al copiar de un mensaje
+- **Intro guarda y lo dice:** al pulsar Intro se cierra el teclado y sale «✓ Clave guardada: AQ.Ab12…wxyz» (el principio y el final), para ver que es la nueva. Si lo pegado no parece una clave (dos claves juntas, un trozo del enlace…), avisa «⚠ Revisa la clave» y la barra se queda abierta
+- **Un archivo con varias nóminas:** si un PDF trae varios meses, la app ya no da un error técnico: dice cuántas nóminas hay y cómo separarlas. Si son los dos ejemplares de la misma nómina (trabajador y empresa), lee una sin preguntar
+- **Botón «📄 Elegir PDF»:** en Android, «Elegir archivos» abre el selector de fotos y el PDF hay que buscarlo; este botón abre directamente el explorador de archivos
 
 ### v2.13.0 (Octubre 2026)
 - **Glosario en tu idioma:** español, català o English, elegido en la tarjeta «¿Qué es cada concepto?» o en la página del glosario, y recordado. La nómina puede estar en un idioma y las explicaciones en otro: los conceptos se muestran como vienen en el papel. El resto de la app sigue en español por ahora
