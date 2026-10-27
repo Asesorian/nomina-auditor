@@ -410,7 +410,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.14.1</span>
+    <span class="logo-badge">Forense v2.14.2</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -1718,7 +1718,7 @@ function feedbackFor(d) {
   // v2.8.8: la sugerencia de pasar una línea al otro lado no se le dice: la pasaría para que cuadre, sin mirar el papel
   // v2.8.13: los redondeos de la empresa tampoco (la cifra está bien leída)
   // v2.9.1: ni el CIF no válido (podría inventarse uno que lo parezca)
-  const issues = realChecks(checkPayroll(d)).filter(c => c.key !== 'side' && c.key !== 'cif' && !String(c.key).startsWith('lado-')).slice(0, 10).map(c => '- ' + c.text);
+  const issues = realChecks(checkPayroll(d)).filter(c => c.key !== 'side' && c.key !== 'cif' && !String(c.key).startsWith('lado-')).slice(0, 10).map(c => '- ' + (c.gtext || c.text));   // v2.14.2: sin las pistas
   const tpl = codeTemplate(d);
   const ref = ['earnings', 'deductions'].map(side => Object.entries(tpl[side]).map(([c, t]) => `${c} ${t}`).join(' · ')).filter(Boolean);
   return `ATENCIÓN: es la SEGUNDA lectura de esta misma nómina. El programa ha comprobado la primera lectura y estas cuentas NO cuadran:
@@ -1825,9 +1825,12 @@ function altReading(d) {
   return { earnings: lines(d.earnings), deductions: lines(d.deductions), totals: { ...(d.totals || {}) }, bases: { ...(d.bases || {}) } };
 }
 
+// v2.14.2: los códigos de relleno («-», «N/L», «N/A»…) no son códigos: Gemini los pone cuando la línea no tiene. Antes
+// la plantilla tomaba «N/L» como el código del IRPF y avisaba de «filas corridas» en todas las cotizaciones.
+const FILLER_CODE_RE = /^(?:-+|—|N\/?[LA]|S\/?C)$/i;
 function lineCode(l) {
   const c = String(l?.code ?? '').trim();
-  return c && c !== '-' && c.toUpperCase() !== 'N/L' ? c : '';
+  return c && !FILLER_CODE_RE.test(c) ? c : '';
 }
 
 // Empareja las líneas de las dos lecturas: primero por código (si es único en las dos); después, lo que quede,
@@ -3373,6 +3376,11 @@ Object.assign(I18N.es, {
   "qrText": "Escanea este código con la cámara del móvil y la clave pasa a la app sin teclearla. Solo para tu propio móvil: cada persona debe tener su clave.",
   "qrBtn": "📱 Mostrar el código QR",
   "qrNoKey": "Primero guarda tu clave de Gemini en la barra de arriba.",
+  "upInfoPending": "Si en el papel esta línea no tiene importe, es informativa: saldrá en gris en cuanto cuadren las sumas. Corrige primero lo demás.",
+  "sumHintExtra1": "Pista: {line} vale justo {amount} €. Mira en el papel si esa línea está en esta columna o si se ha leído de más.",
+  "sumHintExtraN": "Pista: {list} valen justo {amount} €. Mira en el papel si una de ellas se ha leído de más.",
+  "sumHintCol1": "Pista: {line} tiene el importe a 0 y {amount} € en otra columna (unidades, % o precio): seguramente es su importe, leído en la columna equivocada. Compruébalo en el papel.",
+  "sumHintColN": "Pista: {list} tienen el importe a 0 y {amount} € en otra columna: en una de ellas el importe se ha leído en la columna equivocada. Compruébalo en el papel.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, sin importe en la nómina. Las sumas cuadran sin ella: es una línea informativa (por ejemplo, una previsión de la empresa) y no se cobra este mes."
 });
 Object.assign(I18N.ca, {
@@ -3393,6 +3401,11 @@ Object.assign(I18N.ca, {
   "qrText": "Escaneja aquest codi amb la càmera del mòbil i la clau passarà a l'app sense haver-la d'escriure. Només per al teu mòbil: cada persona ha de tenir la seva pròpia clau.",
   "qrBtn": "📱 Mostra el codi QR",
   "qrNoKey": "Primer desa la teva clau de Gemini a la barra de dalt.",
+  "upInfoPending": "Si al paper aquesta línia no té import, és informativa: sortirà en gris quan quadrin les sumes. Corregeix primer la resta.",
+  "sumHintExtra1": "Pista: {line} val just {amount} €. Mira al paper si aquesta línia és en aquesta columna o si s'ha llegit de més.",
+  "sumHintExtraN": "Pista: {list} valen just {amount} €. Mira al paper si alguna s'ha llegit de més.",
+  "sumHintCol1": "Pista: {line} té l'import a 0 i {amount} € en una altra columna (unitats, % o preu): segurament és el seu import, llegit a la columna equivocada. Comprova-ho al paper.",
+  "sumHintColN": "Pista: {list} tenen l'import a 0 i {amount} € en una altra columna: en alguna l'import s'ha llegit a la columna equivocada. Comprova-ho al paper.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, sense import a la nòmina. Les sumes quadren sense aquesta línia: és una línia informativa (per exemple, una previsió de l'empresa) i no es cobra aquest mes."
 });
 Object.assign(I18N.en, {
@@ -3413,6 +3426,11 @@ Object.assign(I18N.en, {
   "qrText": "Scan this code with your phone's camera and the key goes into the app without typing it. Only for your own phone: each person should have their own key.",
   "qrBtn": "📱 Show the QR code",
   "qrNoKey": "First save your Gemini key in the bar at the top.",
+  "upInfoPending": "If this line has no amount on the paper, it is informational: it will turn grey as soon as the totals add up. Fix the rest first.",
+  "sumHintExtra1": "Hint: {line} is exactly {amount} €. Check on the paper whether that line is in this column or was read by mistake.",
+  "sumHintExtraN": "Hint: {list} are exactly {amount} €. Check on the paper whether one of them was read by mistake.",
+  "sumHintCol1": "Hint: {line} has a 0 amount and {amount} € in another column (units, % or price): it is probably its amount, read in the wrong column. Check it on the paper.",
+  "sumHintColN": "Hint: {list} have a 0 amount and {amount} € in another column: in one of them the amount was read in the wrong column. Check it on the paper.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, with no amount on the payslip. The totals add up without it: it is an informational line (for example, a company provision) and is not paid this month."
 });
 // Textos fijos del HTML con data-tr="clave": se escriben con tr() al arrancar (v2.13.1)
@@ -5400,12 +5418,12 @@ function codeTemplate(p) {
     if (checkSums(q).length) continue;
     for (const side of ['earnings', 'deductions']) {
       for (const l of q[side] || []) {
-        const code = String(l.code ?? '').trim();
-        if (code && code !== '-') tpl[side][code] = String(l.concept || '');   // la más reciente manda
+        const code = lineCode(l);                                                // v2.14.2: sin «N/L» ni «-»
+        if (code) tpl[side][code] = String(l.concept || '');   // la más reciente manda
       }
       // v2.10.2: en cuántas nóminas va cada código en este lado (las líneas a 0 € no cuentan: no mueven nada)
-      for (const code of new Set((q[side] || []).filter(l => amt(l.amount) !== 0).map(l => String(l.code ?? '').trim())))
-        if (code && code !== '-') tpl.n[side][code] = (tpl.n[side][code] || 0) + 1;
+      for (const code of new Set((q[side] || []).filter(l => amt(l.amount) !== 0).map(lineCode)))
+        if (code) tpl.n[side][code] = (tpl.n[side][code] || 0) + 1;
     }
   }
   return tpl;
@@ -5419,16 +5437,44 @@ function checkSums(p) {
   const sumE = round2(earn.reduce((s, e) => s + amt(e.amount), 0));
   const sumD = round2(ded.reduce((s, d) => s + amt(d.amount), 0));
   if (Number.isFinite(gross) && earn.length && Math.abs(sumE - gross) > CHECK_TOL)
-    out.push({ level: 'err', key: 'sumE', paths: ['totals.grossTotal', ...earn.map((_, i) => `earnings.${i}.amount`)],
-      text: `Los devengos suman ${fmt(sumE)} € pero el total bruto es ${fmt(gross)} € (diferencia: ${fmt(Math.abs(sumE - gross))} €). Falta una línea, hay un importe mal leído o el total bruto está mal leído: compáralo también con el papel.` });
+    out.push(withSumHint({ level: 'err', key: 'sumE', paths: ['totals.grossTotal', ...earn.map((_, i) => `earnings.${i}.amount`)],
+      text: `Los devengos suman ${fmt(sumE)} € pero el total bruto es ${fmt(gross)} € (diferencia: ${fmt(Math.abs(sumE - gross))} €). Falta una línea, hay un importe mal leído o el total bruto está mal leído: compáralo también con el papel.` },
+      earn, round2(sumE - gross)));
   if (Number.isFinite(totDed) && ded.length && Math.abs(sumD - totDed) > CHECK_TOL)
-    out.push({ level: 'err', key: 'sumD', paths: ['totals.totalDeductions', ...ded.map((_, i) => `deductions.${i}.amount`)],
-      text: `Las deducciones suman ${fmt(sumD)} € pero el total a deducir es ${fmt(totDed)} € (diferencia: ${fmt(Math.abs(sumD - totDed))} €). Falta una línea, hay un importe mal leído o el total a deducir está mal leído: compáralo también con el papel.` });
+    out.push(withSumHint({ level: 'err', key: 'sumD', paths: ['totals.totalDeductions', ...ded.map((_, i) => `deductions.${i}.amount`)],
+      text: `Las deducciones suman ${fmt(sumD)} € pero el total a deducir es ${fmt(totDed)} € (diferencia: ${fmt(Math.abs(sumD - totDed))} €). Falta una línea, hay un importe mal leído o el total a deducir está mal leído: compáralo también con el papel.` },
+      ded, round2(sumD - totDed)));
   if (Number.isFinite(gross) && Number.isFinite(totDed) && Number.isFinite(net) && Math.abs(round2(gross - totDed) - net) > CHECK_TOL)
     out.push({ level: 'err', key: 'net', paths: ['totals.grossTotal', 'totals.totalDeductions', 'totals.netPay'],
       text: `Bruto − deducciones = ${fmt(round2(gross - totDed))} € pero el líquido leído es ${fmt(net)} €.` });
   return out;
 }
+
+// v2.14.2: pista de la causa de una suma que no cuadra. Solo señala dónde mirar; no cambia ninguna cifra.
+//   - Sobra dinero (s > 0): las líneas cuyo importe es justo la diferencia (una línea de más o duplicada).
+//   - Falta dinero (s < 0): las líneas con el importe a 0 y la diferencia en otra columna (unidades, % o precio):
+//     el importe se ha leído en la columna equivocada (pasó con el MEI: la cuota en la columna del %).
+//   Si hay más de 3 candidatas no dice nada (no ayudaría). La pista no se le pasa a Gemini (feedbackFor usa gtext):
+//   movería cifras para que cuadre sin mirar el papel.
+function sumHintText(lines, s) {
+  const d = Math.abs(s), near = x => Number.isFinite(x) && Math.abs(x - d) <= CHECK_TOL;
+  const name = l => `«${l.concept || lineCode(l) || '?'}»`;
+  if (s > 0) {
+    const c = lines.filter(l => near(num(l.amount)));
+    if (!c.length || c.length > 3) return '';
+    return tr(c.length === 1 ? 'sumHintExtra1' : 'sumHintExtraN', { line: name(c[0]), list: joinOr(c.map(name)), amount: fmt(d) });
+  }
+  const c = lines.filter(l => amt(l.amount) === 0 && ['units', 'price'].some(k => near(num(l[k]))));
+  if (!c.length || c.length > 3) return '';
+  return tr(c.length === 1 ? 'sumHintCol1' : 'sumHintColN', { line: name(c[0]), list: joinOr(c.map(name)), amount: fmt(d) });
+}
+function withSumHint(c, lines, s) {
+  const h = sumHintText(lines, s);
+  if (h) { c.gtext = c.text; c.text += ' ' + h; c.hint = true; }
+  return c;
+}
+// v2.14.2: orden de los mensajes: primero las sumas (la causa), después los errores y al final los avisos.
+function checkRank(c) { return SUM_KEYS.includes(c.key) ? 0 : c.level === 'err' ? 1 : c.level === 'warn' ? 2 : 3; }
 
 function checkPayroll(p, opts = {}) {
   const out = checkSums(p);
@@ -5517,7 +5563,7 @@ function checkPayroll(p, opts = {}) {
   if (tpl) {
     for (const side of ['earnings', 'deductions']) {
       (p[side] || []).forEach((l, i) => {
-        const code = String(l.code ?? '').trim();
+        const code = lineCode(l);                                                // v2.14.2
         const before = tpl[side][code];
         if (code && before !== undefined && conceptSimilarity(before, l.concept) < 0.6)
           out.push({ level: 'warn', key: `tpl-${side}${i}`, paths: [`${side}.${i}.code`, `${side}.${i}.concept`],
@@ -5548,8 +5594,8 @@ function checkPayroll(p, opts = {}) {
     for (const side of ['earnings', 'deductions']) {
       const other = otherSide(side);
       (p[side] || []).forEach((l, i) => {
-        const code = String(l.code ?? '').trim();
-        if (!code || code === '-' || amt(l.amount) === 0) return;
+        const code = lineCode(l);                                                // v2.14.2
+        if (!code || amt(l.amount) === 0) return;
         const here = tpl.n[side][code] || 0, there = tpl.n[other][code] || 0;
         if (here || there < 2) return;
         out.push({ level: 'warn', key: `lado-${side}${i}`, paths: [`${side}.${i}.concept`],
@@ -5583,6 +5629,7 @@ function checkPayroll(p, opts = {}) {
   //     documenta: con el % impreso redondeado, la app no puede saber cuál de las dos cifras es la exacta.
   for (const c of out) {
     if (c.info && sumsOk) { c.level = 'info'; c.text = tr('upInfo', c.info); c.paths = []; }   // v2.14.1
+    else if (c.info) { c.gtext = c.text; c.text += ' ' + tr('upInfoPending'); }               // v2.14.2: puede ser informativa
     delete c.info;
     if (c.rtext && sumsOk && c.diff <= ROUND_TOL + 1e-9) {
       c.level = 'round';
@@ -5598,7 +5645,7 @@ function checkPayroll(p, opts = {}) {
         ? `En total, los céntimos de diferencia de las ${conCts.length} deducciones se compensan: te han descontado lo mismo que sale de las cuentas.`
         : `En total, sumando las ${conCts.length} deducciones con céntimos de diferencia, ${descontado(neto / 100)}.` });
   }
-  return out;
+  return out.map((c, i) => [c, i]).sort((a, b) => checkRank(a[0]) - checkRank(b[0]) || a[1] - b[1]).map(x => x[0]);   // v2.14.2
 }
 // (v2.9.1) CIF, NIF o NIE válido: true / false; null si no hay (vacío o N/L). Admite el prefijo ES, puntos y guiones.
 //   NIF: 8 cifras + letra (resto de dividir entre 23). NIE: X, Y o Z (0, 1, 2) + 7 cifras + letra.

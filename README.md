@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.14.1-blue)
+![Version](https://img.shields.io/badge/version-2.14.2-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.14.1)
+## 🆕 Novedades (v2.3 – v2.14.2)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 🧭 **Avisos más claros cuando no cuadra (v2.14.2)** | Si una suma no cuadra, la app da una **pista** de dónde mirar: la línea que vale justo la diferencia, o la que tiene el importe a 0 y esa cifra en otra columna. Primero sale la suma (la causa) y después lo demás. Los códigos de relleno («N/L», «-») ya no dan avisos falsos de «filas corridas» | Revisión, *Ver* |
 | 📎 **Un solo botón para subir y nóminas de dos páginas (v2.14.1)** | **📎 Subir nómina (foto o PDF)**: en el móvil abre el menú del sistema (*Cámara*, o *Fotos y vídeos → Archivos* para un PDF). Si tus nóminas ocupan **dos páginas**, la app lo pregunta la primera vez que unes dos y, desde entonces, junta las páginas de dos en dos (una lectura por nómina; se cambia en *Datos*). Una línea con unidades y precio pero **sin importe** (una previsión de la empresa) sale en gris como *línea informativa* si las sumas cuadran sin ella. El código QR para pasar la clave al móvil está ahora en *Datos* (solo en el ordenador) | Subir · Bandeja · Datos |
 | 📑 **Un PDF con varias nóminas (v2.14.0)** | Si te mandan **varios meses en un solo PDF** (habitual cuando lo envía una gestoría), súbelo tal cual: la app **lo separa sola**, una página por nómina, y cada una entra en la bandeja con su propio original. Si el PDF trae **los dos ejemplares** de cada nómina (trabajador y empresa), se queda con uno. Si una página no tiene líquido (una nómina de dos páginas), te ofrece **🔗 Unirla** con la de al lado | Subir · Bandeja |
 | 📄 **PDF digital (v2.12.0)** | Si subes la nómina en el **PDF que genera el programa de nóminas** (no un escaneo), la app saca sus números del propio PDF, **sin IA**, y comprueba que **cada cifra que ha leído Gemini está en el documento**. Pilla una cifra mal leída aunque las sumas cuadren. No tienes que hacer nada: sale el sello «📄 PDF digital: N de N cifras comprobadas» | En la revisión y en *Ver* |
@@ -702,6 +703,12 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.14.2 (Octubre 2026)
+- **Pista cuando una suma no cuadra:** si sobra dinero y una línea vale justo la diferencia, la app la nombra («Mira en el papel si se ha leído de más»). Si falta y una línea tiene el importe a 0 con esa cifra en otra columna (unidades, % o precio), dice que seguramente es su importe leído en la columna equivocada. Solo señala dónde mirar: no cambia ninguna cifra, y la pista no se le pasa a Gemini en la segunda lectura
+- **Orden de los mensajes:** primero las sumas que no cuadran (la causa), después los errores y al final los avisos
+- **Línea que puede ser informativa:** si una línea tiene unidades y precio pero no importe y las sumas aún no cuadran, el mensaje explica que, si en el papel no tiene importe, saldrá en gris en cuanto cuadren las sumas
+- **Códigos de relleno:** «N/L», «N/A», «-»… (lo que pone Gemini cuando una línea no tiene código) ya no entran en la plantilla de códigos. Antes, si el IRPF venía sin código, todas las cotizaciones sin código salían como «filas corridas»
 
 ### v2.14.1 (Octubre 2026)
 - **Un solo botón para subir:** «📎 Subir nómina (foto o PDF)» sustituye a «Hacer foto», «Elegir archivos» y «Elegir PDF». En Android los tres abrían el mismo menú; ahora la ayuda dice dónde está cada cosa (*Cámara*, o *Fotos y vídeos → Archivos* para un PDF). En la bandeja, «📎 Añadir nómina (foto o PDF)»
