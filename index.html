@@ -373,6 +373,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 .batch-main { flex:1; min-width:0; }
 .batch-name { font-size:13px; font-weight:700; color:var(--text); overflow-wrap:anywhere; }
 .batch-name .type-badge { display:inline; margin:0 0 0 4px; color:var(--warning); }
+.type-ask { display:block; color:var(--warning); font-weight:600; font-size:12px; line-height:1.5; }   /* v2.15.0 */
 .batch-sub { font-size:11px; color:var(--text-dim); margin-top:2px; overflow-wrap:anywhere; line-height:1.45; }
 .batch-sub .spinner { width:10px; height:10px; vertical-align:-1px; margin-right:4px; }
 .batch-join { font-size:11px; color:var(--text-dim); margin-top:6px; line-height:1.5; }
@@ -410,7 +411,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.14.2</span>
+    <span class="logo-badge">Forense v2.15.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -672,7 +673,10 @@ const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto
 const PAY_TYPES = {
   ordinaria: { label: 'Mensual',    icon: '📄' },
   extra:     { label: 'Paga extra', icon: '💰' },
-  atrasos:   { label: 'Atrasos',    icon: '📎' }
+  atrasos:   { label: 'Atrasos',    icon: '📎' },
+  // v2.15.0: bonus, objetivos, participación en beneficios… Una paga aparte que no es de convenio: no cuenta como paga
+  // extra (si contara, un bonus de noviembre taparía que falta la extra de Navidad) ni como atrasos.
+  bonus:     { get label() { return tr('typeBonus'); }, icon: '🎯' }
 };
 let typeDetection = null; // { type, reason, manual } de la nómina que se está verificando
 
@@ -691,7 +695,7 @@ function payTypeOf(p) { return PAY_TYPES[p?.payType] ? p.payType : 'ordinaria'; 
 function payLabelOf(p) {
   const t = payTypeOf(p);
   if (t === 'ordinaria') return '';
-  const n = String(p.id || '').match(/-(?:extra|atrasos)-(\d+)$/);
+  const n = String(p.id || '').match(/-(?:extra|atrasos|bonus)-(\d+)$/);
   return PAY_TYPES[t].label + (n ? ' ' + n[1] : '');
 }
 
@@ -736,6 +740,25 @@ const EXTRA_RE    = /\bpaga\s*extra|\bp\.?\s*extra|\bpagas?\s*extraordin[aà]ri|
 const PRORRATA_RE = /prorr|p\.\s*p\.|parte\s*proporcional|partes\s*proporcionales|parts?\s*proporcionals?/i;
 const ATRASOS_RE  = /atrasos|endarrer|diferencias?\s*(de\s*)?convenio|difer[eè]ncies?\s*(de\s*)?conveni|regularizaci[oó]n\s*salarial|regularitzaci[oó]\s*salarial|revisi[oó]n?\s*salarial/i;
 
+// v2.15.0: bonus, objetivos, incentivo anual, participación en beneficios (también en catalán). «Paga de beneficios»
+// sigue siendo paga extra (EXTRA_RE): en muchos convenios es una tercera paga extra. «Incentivos» a secas, no: en
+// muchas nóminas es un concepto mensual.
+const BONUS_RE = /\bbonus\b|\bbonos?\s*(anual|de\s*objetivos)|\bobjetivos\b|\bobjectius\b|incentivos?\s*anual|incentius?\s*anual|participaci[oó]n?\s*(en\s*)?(los\s*|els\s*)?benefici/i;
+// v2.15.0: lo que pone en el PERIODO, sin cifras (para «BONUS 2025» y «BONUS 2024»); '' si es una fecha o no hay nada
+function periodLabelKey(text) { return compactText(String(text ?? '').replace(/\d+/g, ' ')); }
+// v2.15.0: el tipo que tienen tus nóminas guardadas de la misma empresa con el mismo texto en el PERIODO
+// (sin cifras), si todas dicen lo mismo y no es mensual. Así, lo que eliges una vez se recuerda.
+function rememberedType(d) {
+  const key = periodLabelKey(d?.period?.text);
+  if (!key || key.length < 3) return null;
+  const cif = compactText(d.company?.cif);
+  const types = new Set(payrolls.filter(q => q !== d && (!cif || !compactText(q.company?.cif) || compactText(q.company?.cif) === cif) &&
+    periodLabelKey(q.period?.text) === key).map(payTypeOf));
+  if (types.size !== 1) return null;
+  const t = [...types][0];
+  return t === 'ordinaria' ? null : t;
+}
+
 // Pista del nombre del archivo (v2.8.2): «0624 Nómina Junio Atrasos.pdf», «Paga extra julio.jpg»…
 // Lo ha escrito la persona, así que manda sobre la pista de Gemini (pero no sobre unos conceptos claros).
 function fileNameHint(name) {
@@ -754,15 +777,21 @@ function classifyPayroll(d, fileName = '') {
   const share = re => gross > 0 ? earnings.filter(e => re.test(e.c) && !PRORRATA_RE.test(e.c)).reduce((s, e) => s + e.a, 0) / gross : 0;
   const extraShare = share(EXTRA_RE);
   const atrasosShare = share(ATRASOS_RE);
+  const bonusShare = share(BONUS_RE);   // v2.15.0
   const hint = String(d.payType || '').toLowerCase().trim();
 
   if (extraShare >= 0.6) return { type: 'extra', reason: `los conceptos de paga extra son el ${Math.round(extraShare * 100)}% del bruto` };
   if (atrasosShare >= 0.6) return { type: 'atrasos', reason: `los conceptos de atrasos son el ${Math.round(atrasosShare * 100)}% del bruto` };
+  if (bonusShare >= 0.6) return { type: 'bonus', reason: tr('whyBonusConcepts', { pct: Math.round(bonusShare * 100) }) };   // v2.15.0
   // v2.8.2: el campo PERIODO de la cabecera («ATRASOS», «PAGA EXTRA…») y los días del periodo (una mensual no pasa de 31)
   const periodText = String(d.period?.text || '');
   if (ATRASOS_RE.test(periodText)) return { type: 'atrasos', reason: `en el periodo pone «${periodText.trim().slice(0, 40)}»` };
   if ((EXTRA_RE.test(periodText) || /\bextra\b|\bgratif/i.test(periodText)) && !PRORRATA_RE.test(periodText))
     return { type: 'extra', reason: `en el periodo pone «${periodText.trim().slice(0, 40)}»` };
+  if (BONUS_RE.test(periodText)) return { type: 'bonus', reason: `en el periodo pone «${periodText.trim().slice(0, 40)}»` };   // v2.15.0
+  // v2.15.0: lo que elegiste para otras nóminas de esta empresa con el mismo texto en el periodo
+  const remembered = rememberedType(d);
+  if (remembered) return { type: remembered, reason: tr('whyRemembered', { text: periodText.trim().slice(0, 40), type: PAY_TYPES[remembered].label.toLowerCase() }) };
   const fromName = fileNameHint(fileName);
   if (fromName) return { type: fromName, reason: `el nombre del archivo dice «${fromName === 'extra' ? 'paga extra' : 'atrasos'}»` };
   // Los días solo cuentan si el periodo no tiene pinta de mes normal («MENS…», «01 JUN 24 a 30 JUN 24»): así una
@@ -770,8 +799,12 @@ function classifyPayroll(d, fileName = '') {
   const looksMonthly = /\bmens|\b\d{1,2}[\s/.-]*[a-z]{3,}[\s/.-]*\d{2,4}\s+(a|al|-)\s+\d{1,2}/i.test(periodText);
   const days = num(d.period?.days);
   if (Number.isFinite(days) && days > 31 && !looksMonthly) {
-    const t = hint === 'extra' || extraShare > 0 ? 'extra' : 'atrasos';
-    return { type: t, reason: `el periodo es de ${Math.round(days)} días (una nómina mensual no pasa de 31)` };
+    // v2.15.0: solo se sabe que no es mensual. Si nada dice qué es (ni un concepto ni la lectura de Gemini), se propone,
+    // pero se pregunta (unsure). Con alguna pista, como hasta ahora (la simulación con un backup real lo pidió: pagas
+    // extra de julio que solo reconocía Gemini habrían pasado a preguntar).
+    const t = hint === 'extra' || extraShare > 0 ? 'extra' : bonusShare > 0 ? 'bonus' : 'atrasos';
+    const clue = ['extra', 'atrasos', 'bonus'].includes(hint) || extraShare > 0 || bonusShare > 0 || atrasosShare > 0;
+    return { type: t, ...(clue ? {} : { unsure: true }), reason: `el periodo es de ${Math.round(days)} días (una nómina mensual no pasa de 31)` };
   }
   if (hint === 'extra') return { type: 'extra', reason: 'el documento se identifica como paga extraordinaria' };
   if (hint === 'atrasos') return { type: 'atrasos', reason: 'el documento se identifica como nómina de atrasos' };
@@ -1734,6 +1767,7 @@ Vuelve a leer el documento entero, fila por fila, con cuidado:
 
 function setPayType(t) {
   if (!extractedData || !PAY_TYPES[t]) return;
+  if (typeDetection && typeDetection.unsure) typeDetection.manual = true;   // v2.15.0: elegir el que proponía también cuenta
   if (payTypeOf(extractedData) !== t) {
     extractedData.payType = t;
     if (typeDetection) typeDetection.manual = true;
@@ -1748,6 +1782,8 @@ function renderTypeCard(d) {
     info = typeDetection.manual
       ? `✋ Cambiado por ti (estaba guardada como ${esc(PAY_TYPES[typeDetection.type].label.toLowerCase())}).`
       : `📌 Guardada como <strong>${esc(PAY_TYPES[typeDetection.type].label.toLowerCase())}</strong>. Si no es así, cámbialo.`;
+  } else if (typeDetection?.unsure && !typeDetection.manual) {
+    info = `<span class="type-ask">❓ ${esc(tr('typeAsk', { why: typeDetection.reason }))}</span>`;   // v2.15.0
   } else if (typeDetection) {
     const det = PAY_TYPES[typeDetection.type].label.toLowerCase();
     info = typeDetection.manual
@@ -1755,17 +1791,20 @@ function renderTypeCard(d) {
       : `🔎 Detectada como <strong>${det}</strong>: ${esc(typeDetection.reason)}. Si no es así, cámbialo.`;
   }
   return `
-    <div class="card" style="${t !== 'ordinaria' ? 'border-color:var(--warning)' : ''}">
+    <div class="card" id="typeCard" style="${t !== 'ordinaria' || typeNeedsChoice() ? 'border-color:var(--warning)' : ''}">
       <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">TIPO DE NÓMINA</h3>
       <div class="type-picker">
         ${Object.entries(PAY_TYPES).map(([k, v]) =>
-          `<button class="type-opt ${k === t ? 'active' : ''}" onclick="setPayType('${k}')">${v.icon} ${v.label}</button>`).join('')}
+          `<button class="type-opt ${k === t && !typeNeedsChoice() ? 'active' : ''}" onclick="setPayType('${k}')">${v.icon} ${v.label}</button>`).join('')}
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.5">${info}</div>
       ${typeClashHtml(d)}
-      <div style="font-size:12px;color:var(--text-dim);margin-top:8px">Se guardará como: <strong style="color:var(--text)">${esc(payName(d))}</strong></div>
+      ${validPeriod(d) ? `<div style="font-size:12px;color:var(--text-dim);margin-top:8px">Se guardará como: <strong style="color:var(--text)">${esc(payName(d))}</strong></div>`
+        : `<div class="type-ask" style="margin-top:8px">⚠ ${esc(tr('noPeriod'))}</div>`}
     </div>`;
 }
+// v2.15.0: la app no sabe qué tipo es y la persona aún no ha elegido
+function typeNeedsChoice() { return !!(typeDetection && typeDetection.unsure && !typeDetection.manual && !typeDetection.saved); }
 
 // En la bandeja: si hay otra «mensual» del mismo mes con otros importes, se avisa aquí, donde se cambia el tipo
 function typeClashHtml(d) {
@@ -2158,9 +2197,11 @@ function renderVerification() {
         <tbody>
           ${adminFields.map(([label, path]) => {
             const val = getNestedVal(d, path);
+            // v2.15.0: el mes y el año sin leer, en rojo (sin ellos no se puede guardar)
+            const bad = (path === 'period.month' && !normalizeMonth(val)) || (path === 'period.year' && !/^\d{4}$/.test(String(val ?? '').trim()));
             return `<tr>
               <td class="dim" style="width:140px">${label}</td>
-              <td><span class="editable" onclick="editField(this,'${path}',${path==='period.days'?'true':'false'})">${esc(val ?? 'N/L')}</span></td>
+              <td><span class="editable${bad ? ' flag-err' : ''}" onclick="editField(this,'${path}',${path==='period.days'?'true':'false'})">${esc(val ?? 'N/L')}</span></td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -2439,6 +2480,11 @@ function confirmAndSave(force) {
     alert(`No puedo guardarla: el periodo "${extractedData.period?.month ?? ''} ${extractedData.period?.year ?? ''}" no es válido.\n\nCorrige el Mes (ej: Julio) y el Año (ej: 2026) en la Zona 1 tocando sobre el valor.`);
     return;
   }
+  if (typeNeedsChoice()) {   // v2.15.0: primero, qué tipo de nómina es
+    alert(tr('typeAskSave'));
+    document.getElementById('typeCard')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
   extractedData.period.month = month;
   extractedData.period.year = year;
 
@@ -2509,8 +2555,9 @@ function openDupModal(draft, existing) {
   if (t === 'ordinaria') {
     btns.push(`<button class="btn ${same ? 'btn-secondary' : 'btn-primary'}" onclick="saveAsType('extra')">💰 Es una paga extra → guardarla aparte</button>`);
     btns.push(`<button class="btn btn-secondary" onclick="saveAsType('atrasos')">📎 Son atrasos → guardarlos aparte</button>`);
+    btns.push(`<button class="btn btn-secondary" onclick="saveAsType('bonus')">${esc(tr('dupBonus'))}</button>`);   // v2.15.0
   } else {
-    btns.push(`<button class="btn ${same ? 'btn-secondary' : 'btn-primary'}" onclick="saveAsType('${t}')">➕ ${t === 'extra' ? 'Es otra paga extra distinta → guardarla aparte' : 'Son otros atrasos distintos → guardarlos aparte'}</button>`);
+    btns.push(`<button class="btn ${same ? 'btn-secondary' : 'btn-primary'}" onclick="saveAsType('${t}')">➕ ${t === 'extra' ? 'Es otra paga extra distinta → guardarla aparte' : t === 'bonus' ? esc(tr('dupBonusOther')) : 'Son otros atrasos distintos → guardarlos aparte'}</button>`);
   }
   btns.push(`<button class="btn btn-warn" onclick="confirmOverwrite()">♻ Sustituir la guardada (se pierde)</button>`);
   if (batchReviewUid && same) btns.push(`<button class="btn btn-primary" onclick="closeDupModal();discardBatchItem(true)">Descartar esta — ya la tengo</button>`);
@@ -2946,7 +2993,7 @@ async function keepScreenOn(on) {
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') batchTick(); });
 
 // ── Orden, estado y repetidas ──
-const TYPE_ORDER = { ordinaria: 0, atrasos: 1, extra: 2 };
+const TYPE_ORDER = { ordinaria: 0, atrasos: 1, extra: 2, bonus: 3 };
 
 function validPeriod(d) {
   return !!normalizeMonth(d?.period?.month) && /^\d{4}$/.test(String(d?.period?.year ?? '').trim());
@@ -3376,6 +3423,14 @@ Object.assign(I18N.es, {
   "qrText": "Escanea este código con la cámara del móvil y la clave pasa a la app sin teclearla. Solo para tu propio móvil: cada persona debe tener su clave.",
   "qrBtn": "📱 Mostrar el código QR",
   "qrNoKey": "Primero guarda tu clave de Gemini en la barra de arriba.",
+  "typeBonus": "Bonus",
+  "whyBonusConcepts": "los conceptos de bonus u objetivos son el {pct} % del bruto",
+  "whyRemembered": "en tus otras nóminas de esta empresa con «{text}» en el periodo elegiste {type}",
+  "typeAsk": "No está claro qué tipo de nómina es ({why}). Elige uno: Paga extra (julio, Navidad…), Bonus (objetivos, beneficios de la empresa…) o Atrasos. La próxima vez que salga lo mismo en el periodo, la app lo recordará.",
+  "typeAskSave": "Antes de guardarla, elige en «Tipo de nómina» qué es: Mensual, Paga extra, Atrasos o Bonus.",
+  "noPeriod": "Falta el mes o el año (en rojo, en la Zona 1). Tócalos y escribe los del papel: en una nómina sin periodo, usa el mes de la fecha de pago.",
+  "dupBonus": "🎯 Es un bonus → guardarlo aparte",
+  "dupBonusOther": "Es otro bonus distinto → guardarlo aparte",
   "upInfoPending": "Si en el papel esta línea no tiene importe, es informativa: saldrá en gris en cuanto cuadren las sumas. Corrige primero lo demás.",
   "sumHintExtra1": "Pista: {line} vale justo {amount} €. Mira en el papel si esa línea está en esta columna o si se ha leído de más.",
   "sumHintExtraN": "Pista: {list} valen justo {amount} €. Mira en el papel si una de ellas se ha leído de más.",
@@ -3401,6 +3456,14 @@ Object.assign(I18N.ca, {
   "qrText": "Escaneja aquest codi amb la càmera del mòbil i la clau passarà a l'app sense haver-la d'escriure. Només per al teu mòbil: cada persona ha de tenir la seva pròpia clau.",
   "qrBtn": "📱 Mostra el codi QR",
   "qrNoKey": "Primer desa la teva clau de Gemini a la barra de dalt.",
+  "typeBonus": "Bonus",
+  "whyBonusConcepts": "els conceptes de bonus o objectius són el {pct} % del brut",
+  "whyRemembered": "a les teves altres nòmines d'aquesta empresa amb «{text}» al període vas triar {type}",
+  "typeAsk": "No està clar quin tipus de nòmina és ({why}). Tria'n un: Paga extra (juliol, Nadal…), Bonus (objectius, beneficis de l'empresa…) o Atrasos. La propera vegada que surti el mateix al període, l'app ho recordarà.",
+  "typeAskSave": "Abans de desar-la, tria a «Tipo de nómina» què és: Mensual, Paga extra, Atrasos o Bonus.",
+  "noPeriod": "Falta el mes o l'any (en vermell, a la Zona 1). Toca'ls i escriu els del paper: en una nòmina sense període, fes servir el mes de la data de pagament.",
+  "dupBonus": "🎯 És un bonus → desa'l a part",
+  "dupBonusOther": "És un altre bonus → desa'l a part",
   "upInfoPending": "Si al paper aquesta línia no té import, és informativa: sortirà en gris quan quadrin les sumes. Corregeix primer la resta.",
   "sumHintExtra1": "Pista: {line} val just {amount} €. Mira al paper si aquesta línia és en aquesta columna o si s'ha llegit de més.",
   "sumHintExtraN": "Pista: {list} valen just {amount} €. Mira al paper si alguna s'ha llegit de més.",
@@ -3426,6 +3489,14 @@ Object.assign(I18N.en, {
   "qrText": "Scan this code with your phone's camera and the key goes into the app without typing it. Only for your own phone: each person should have their own key.",
   "qrBtn": "📱 Show the QR code",
   "qrNoKey": "First save your Gemini key in the bar at the top.",
+  "typeBonus": "Bonus",
+  "whyBonusConcepts": "bonus or target items are {pct}% of the gross pay",
+  "whyRemembered": "on your other payslips from this company with «{text}» in the period you chose {type}",
+  "typeAsk": "It is not clear what kind of payslip this is ({why}). Choose one: Paga extra (July, Christmas…), Bonus (targets, company profit-sharing…) or Atrasos (back pay). Next time the same appears in the period, the app will remember.",
+  "typeAskSave": "Before saving it, choose in «Tipo de nómina» what it is: Mensual, Paga extra, Atrasos or Bonus.",
+  "noPeriod": "The month or year is missing (in red, in Zona 1). Tap them and type the ones on the paper: on a payslip with no period, use the month of the payment date.",
+  "dupBonus": "🎯 It's a bonus → save it separately",
+  "dupBonusOther": "It's a different bonus → save it separately",
   "upInfoPending": "If this line has no amount on the paper, it is informational: it will turn grey as soon as the totals add up. Fix the rest first.",
   "sumHintExtra1": "Hint: {line} is exactly {amount} €. Check on the paper whether that line is in this column or was read by mistake.",
   "sumHintExtraN": "Hint: {list} are exactly {amount} €. Check on the paper whether one of them was read by mistake.",
@@ -5192,7 +5263,7 @@ function generateAnnualText(fp, totals, year, obs) {
     const irpfDed = findIRPFDeduction(p);
     const ssTotal = calcSSTotal(p);
     const t = payTypeOf(p);
-    const name = (p.period?.month || '?') + (t === 'extra' ? ' EXTRA' : t === 'atrasos' ? ' ATRASOS' : '');
+    const name = (p.period?.month || '?') + (t === 'extra' ? ' EXTRA' : t === 'atrasos' ? ' ATRASOS' : t === 'bonus' ? ' BONUS' : '');
     return `${name.padEnd(17)}| Bruto: ${fmt(p.totals?.grossTotal).padStart(10)} € | IRPF: ${fmt(irpfDed).padStart(8)} € | S.S.: ${fmt(ssTotal).padStart(8)} € | Neto: ${fmt(p.totals?.netPay).padStart(10)} €`;
   }).join('\n');
 
