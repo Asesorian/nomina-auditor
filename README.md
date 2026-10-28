@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.15.0-blue)
+![Version](https://img.shields.io/badge/version-2.15.1-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.15.0)
+## 🆕 Novedades (v2.3 – v2.15.1)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 🛡️ **PDF más seguros (v2.15.1)** | Un PDF manipulado no puede ejecutar código en tu navegador: todos los PDF se abren por una sola puerta con la protección activada y, además, la página ya no admite ejecutar texto como código. No cambia nada de lo que ves ni de tus datos | Visor de PDF, lectura de PDF |
 | 🎯 **Bonus (v2.15.0)** | Un tipo de nómina nuevo, **Bonus** (objetivos, participación en beneficios…), aparte de la paga extra: no tapa una paga extra que falte. Si la app no sabe qué tipo es una nómina, **te lo pregunta** y lo **recuerda** para las siguientes de esa empresa con el mismo texto en el periodo. El mes sin leer sale en rojo | Revisión, *Ver*, Anual |
 | 🧭 **Avisos más claros cuando no cuadra (v2.14.2)** | Si una suma no cuadra, la app da una **pista** de dónde mirar: la línea que vale justo la diferencia, o la que tiene el importe a 0 y esa cifra en otra columna. Primero sale la suma (la causa) y después lo demás. Los códigos de relleno («N/L», «-») ya no dan avisos falsos de «filas corridas» | Revisión, *Ver* |
 | 📎 **Un solo botón para subir y nóminas de dos páginas (v2.14.1)** | **📎 Subir nómina (foto o PDF)**: en el móvil abre el menú del sistema (*Cámara*, o *Fotos y vídeos → Archivos* para un PDF). Si tus nóminas ocupan **dos páginas**, la app lo pregunta la primera vez que unes dos y, desde entonces, junta las páginas de dos en dos (una lectura por nómina; se cambia en *Datos*). Una línea con unidades y precio pero **sin importe** (una previsión de la empresa) sale en gris como *línea informativa* si las sumas cuadran sin ella. El código QR para pasar la clave al móvil está ahora en *Datos* (solo en el ordenador) | Subir · Bandeja · Datos |
@@ -704,6 +705,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.15.1 (Octubre 2026)
+- **Una sola puerta para abrir PDF:** el visor y la lectura del texto del PDF usan la misma función, con la protección de PDF.js contra PDF manipulados siempre activada
+- **Segunda barrera (política de seguridad de contenido):** solo se ejecutan los scripts de la propia página y de cdnjs, y el navegador no ejecuta texto como código. Si algún día fallara la primera protección, el navegador seguiría frenando ese tipo de ataque
+- Sin cambios en lo que ves ni en los datos
 
 ### v2.15.0 (Octubre 2026)
 - **Tipo de nómina «Bonus»:** bonus, objetivos, incentivo anual o participación en beneficios, en el periodo o en los conceptos. No cuenta como paga extra (un bonus de noviembre ya no tapa que falte la extra de Navidad) ni como atrasos. «Paga de beneficios» sigue siendo paga extra: en muchos convenios es la tercera

@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- v2.15.1: segunda barrera. Solo se ejecutan los scripts de la propia página y de cdnjs, y el navegador no ejecuta texto como código (sin eval). -->
+<meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com">
 <meta name="theme-color" content="#0a0b10">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -411,7 +413,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.15.0</span>
+    <span class="logo-badge">Forense v2.15.1</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -3913,6 +3915,13 @@ function loadPdfJs() {
   return pdfjsPromise;
 }
 
+// v2.15.1: ÚNICA puerta para abrir un PDF con pdf.js. Con isEvalSupported:false pdf.js no compila en JavaScript las
+// fuentes de un PDF (así se explotaba un PDF manipulado en las versiones hasta la 4.1.392). Ningún otro sitio de la app
+// llama a getDocument: una prueba lo vigila.
+function openPdf(lib, data) {
+  return lib.getDocument({ data, isEvalSupported: false });
+}
+
 // ═══════════ UN PDF CON VARIAS NÓMINAS (v2.14.0) ═══════════
 // Un PDF de varias páginas se separa solo: cada página entra en la bandeja como un PDF propio (su original) y Gemini la
 // lee aparte, con el prompt de siempre. pdf-lib (cdnjs, con huella SRI) solo se descarga si el PDF puede tener más de
@@ -4161,7 +4170,7 @@ async function pdfDocNumbers(base64) {
   let pdf = null;
   try {
     const lib = await loadPdfJs();
-    const task = lib.getDocument({ data: new Uint8Array(b64ToArrayBuffer(base64)), isEvalSupported: false });
+    const task = openPdf(lib, new Uint8Array(b64ToArrayBuffer(base64)));
     task.onPassword = update => update(new Error('PDF con contraseña'));
     pdf = await task.promise;
     const lines = [];
@@ -4297,7 +4306,7 @@ async function renderPdfInto(m, file) {
     stage = 'doc';
     setStatus('Abriendo el PDF…');
     const data = new Uint8Array(await file.arrayBuffer());
-    const task = pdfjsLib.getDocument({ data, isEvalSupported: false });
+    const task = openPdf(pdfjsLib, data);
     m._task = task;
     task.onPassword = (updatePassword, reason) => {
       const wrong = reason === pdfjsLib.PasswordResponses.INCORRECT_PASSWORD;
