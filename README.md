@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.15.1)
+## 🆕 Novedades (v2.3 – v2.16.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 🧭 **Dónde corregir y paga de beneficios (v2.16.0)** | Cada aviso de suma señala la **celda sospechosa** y, si basta con mover una cifra a «Importe», lo hace un botón; con horas extra, la pista dice si la base C.C. se confundió con la de desempleo/AT; los códigos de relleno salen como «-»; las previsiones son informativas. El tipo **Bonus** pasa a llamarse **Beneficios** («Paga de beneficios o bonus» en los botones), la ayuda explica las 14 pagas (12 + 2 o 12 prorrateadas) y, en el Anual, por cada empresa preguntas si paga esa paga (se guarda en tu dispositivo y en el backup) y avisa si falta. | Ver, Anual |
 | 🛡️ **PDF más seguros (v2.15.1)** | Un PDF manipulado no puede ejecutar código en tu navegador: todos los PDF se abren por una sola puerta con la protección activada y, además, la página ya no admite ejecutar texto como código. No cambia nada de lo que ves ni de tus datos | Visor de PDF, lectura de PDF |
 | 🎯 **Bonus (v2.15.0)** | Un tipo de nómina nuevo, **Bonus** (objetivos, participación en beneficios…), aparte de la paga extra: no tapa una paga extra que falte. Si la app no sabe qué tipo es una nómina, **te lo pregunta** y lo **recuerda** para las siguientes de esa empresa con el mismo texto en el periodo. El mes sin leer sale en rojo | Revisión, *Ver*, Anual |
 | 🧭 **Avisos más claros cuando no cuadra (v2.14.2)** | Si una suma no cuadra, la app da una **pista** de dónde mirar: la línea que vale justo la diferencia, o la que tiene el importe a 0 y esa cifra en otra columna. Primero sale la suma (la causa) y después lo demás. Los códigos de relleno («N/L», «-») ya no dan avisos falsos de «filas corridas» | Revisión, *Ver* |
@@ -705,6 +706,13 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.16.0 (Octubre 2026)
+- **Dónde corregir:** el aviso de una suma que no cuadra marca solo las celdas candidatas; si la cifra está en la columna equivocada, un botón la pasa a «Importe». Con horas extra, la pista de la base C.C. dice si la cuota sale de la base de desempleo/AT.
+- **Códigos de relleno** («N/L» y similares) se muestran como «-»; las líneas de previsión/provisión son informativas.
+- **Beneficios:** el tipo Bonus se muestra como «Beneficios» (botones: «Paga de beneficios o bonus») y la ayuda explica las 14 pagas.
+- **Anual:** pregunta por empresa si paga esa paga y avisa si falta en un año cerrado. Va en el backup.
+- Textos en es, ca y en.
 
 ### v2.15.1 (Octubre 2026)
 - **Una sola puerta para abrir PDF:** el visor y la lectura del texto del PDF usan la misma función, con la protección de PDF.js contra PDF manipulados siempre activada

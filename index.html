@@ -413,7 +413,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.15.1</span>
+    <span class="logo-badge">Forense v2.16.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -678,7 +678,7 @@ const PAY_TYPES = {
   atrasos:   { label: 'Atrasos',    icon: '📎' },
   // v2.15.0: bonus, objetivos, participación en beneficios… Una paga aparte que no es de convenio: no cuenta como paga
   // extra (si contara, un bonus de noviembre taparía que falta la extra de Navidad) ni como atrasos.
-  bonus:     { get label() { return tr('typeBonus'); }, icon: '🎯' }
+  bonus:     { get label() { return tr('typeBonus'); }, get long() { return tr('typeBonusLong'); }, icon: '🎯' }   // v2.16.0: «Beneficios» (insignias, Anual, nombres); «Paga de beneficios o bonus» (botones)
 };
 let typeDetection = null; // { type, reason, manual } de la nómina que se está verificando
 
@@ -818,6 +818,7 @@ function classifyPayroll(d, fileName = '') {
 function loadData() {
   try { payrolls = JSON.parse(localStorage.getItem('nomina-auditor-data') || '[]'); } catch { payrolls = []; }
   loadHacienda();   // v2.10.0
+  loadPayAnswers(); // v2.16.0
   const key = localStorage.getItem('nomina-auditor-apikey') || '';
   document.getElementById('apiKeyInput').value = key;
   updateApiStatus(key);
@@ -1797,9 +1798,10 @@ function renderTypeCard(d) {
       <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">TIPO DE NÓMINA</h3>
       <div class="type-picker">
         ${Object.entries(PAY_TYPES).map(([k, v]) =>
-          `<button class="type-opt ${k === t && !typeNeedsChoice() ? 'active' : ''}" onclick="setPayType('${k}')">${v.icon} ${v.label}</button>`).join('')}
+          `<button class="type-opt ${k === t && !typeNeedsChoice() ? 'active' : ''}" onclick="setPayType('${k}')">${v.icon} ${v.long || v.label}</button>`).join('')}
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.5">${info}</div>
+      ${t !== 'ordinaria' || typeNeedsChoice() ? `<div style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5">💡 ${esc(tr('payHelp'))}</div>` : ''}
       ${typeClashHtml(d)}
       ${validPeriod(d) ? `<div style="font-size:12px;color:var(--text-dim);margin-top:8px">Se guardará como: <strong style="color:var(--text)">${esc(payName(d))}</strong></div>`
         : `<div class="type-ask" style="margin-top:8px">⚠ ${esc(tr('noPeriod'))}</div>`}
@@ -1868,6 +1870,8 @@ function altReading(d) {
 
 // v2.14.2: los códigos de relleno («-», «N/L», «N/A»…) no son códigos: Gemini los pone cuando la línea no tiene. Antes
 // la plantilla tomaba «N/L» como el código del IRPF y avisaba de «filas corridas» en todas las cotizaciones.
+// v2.16.0: «PREVISIÓN VACACIONES», «PROVISIÓ PAGA»…: líneas informativas por su nombre (importe 0 y precio × unidades).
+const PROVISION_RE = /\bprevisi[oó]n?|\bprovisi[oó]n?/i;
 const FILLER_CODE_RE = /^(?:-+|—|N\/?[LA]|S\/?C)$/i;
 function lineCode(l) {
   const c = String(l?.code ?? '').trim();
@@ -2089,6 +2093,10 @@ function docAvailable() {
 // v2.8.8: los botones ⇄ del aviso «línea en el lado equivocado». Solo en la revisión (en Ver y en la copia para el
 // abogado sale el texto). Con varias líneas posibles, un botón por línea.
 function sideMoveButtons(c) {
+  if (c?.colMove && extractedData) {                              // v2.16.0: la cifra está en otra columna: pasarla al importe
+    const m = c.colMove;
+    return ` <button class="link-btn" onmousedown="event.preventDefault()" onclick="moveToAmount(${jsArg(m.side)}, ${m.i}, ${jsArg(m.col)})">${esc(tr('moveToAmount', { amount: fmt(num(m.value)) }))}</button>`;
+  }
   const mv = c?.key === 'side' ? c.move : null;
   if (!mv || !extractedData) return '';
   const one = mv.lines.length === 1;
@@ -2161,9 +2169,9 @@ function renderVerification() {
         <thead><tr><th>Cód.</th><th>Concepto</th><th class="r">Uds.</th>${showPrice ? '<th class="r">Precio</th>' : ''}<th class="r">Importe</th></tr></thead>
         <tbody>
           ${(d[side]||[]).map((e,i) => `<tr>
-            <td class="c-code" style="width:60px"><span class="editable${fl(`${side}.${i}.code`)}" onclick="editField(this,'${side}.${i}.code')">${esc(e.code||'-')}</span></td>
+            <td class="c-code" style="width:60px"><span class="editable${fl(`${side}.${i}.code`)}" onclick="editField(this,'${side}.${i}.code')">${esc(lineCode(e)||'-')}</span></td>
             <td class="c-concept"><span class="editable${fl(`${side}.${i}.concept`)}" onclick="editField(this,'${side}.${i}.concept')">${esc(e.concept)}</span></td>
-            <td class="r c-units"><span class="editable" onclick="editField(this,'${side}.${i}.units')">${esc(e.units||'')}</span></td>
+            <td class="r c-units"><span class="editable${fl(`${side}.${i}.units`)}" onclick="editField(this,'${side}.${i}.units')">${esc(e.units||'')}</span></td>
             ${showPrice ? `<td class="r c-price"><span class="editable${fl(`${side}.${i}.price`)}" onclick="editField(this,'${side}.${i}.price',true)">${Number.isFinite(num(e.price)) ? esc(String(e.price).replace('.', ',')) : ''}</span></td>` : ''}
             <td class="r c-amount"><span class="editable${fl(`${side}.${i}.amount`)}" onclick="editField(this,'${side}.${i}.amount',true)">${fmt(e.amount)}</span></td>
           </tr>`).join('')}
@@ -2324,6 +2332,16 @@ function removeLine(side) {
 }
 
 // ⇄ Pasar una línea… (v2.8.8): la que elijas pasa al otro lado
+function moveToAmount(side, i, col) {
+  if (!extractedData || !SIDE_NAME[side] || !['units', 'price'].includes(col)) return;
+  const open = document.querySelector('#verifyPhase .edit-input');
+  if (open) open.blur();                                        // primero se guarda lo que se estaba escribiendo
+  const l = Array.isArray(extractedData?.[side]) ? extractedData[side][i] : null;
+  const v = l ? num(l[col]) : NaN;
+  if (!Number.isFinite(v)) return;
+  l.amount = round2(v); l[col] = '';                            // el importe en su sitio; la columna de la que viene, vacía
+  renderVerification();
+}
 function moveLineAsk(side) {
   const lines = extractedData?.[side] || [];
   if (!lines.length) return;
@@ -3425,19 +3443,32 @@ Object.assign(I18N.es, {
   "qrText": "Escanea este código con la cámara del móvil y la clave pasa a la app sin teclearla. Solo para tu propio móvil: cada persona debe tener su clave.",
   "qrBtn": "📱 Mostrar el código QR",
   "qrNoKey": "Primero guarda tu clave de Gemini en la barra de arriba.",
-  "typeBonus": "Bonus",
+  "typeBonus": "Beneficios",
+  "typeBonusLong": "Paga de beneficios o bonus",
+  "payQ": "¿{company} paga una paga de beneficios o un bonus aparte de las mensuales y las extras?",
+  "payYesBtn": "Sí",
+  "payNoBtn": "No",
+  "payIsYes": "Has dicho que {company} paga una paga de beneficios o un bonus.",
+  "payIsNo": "Has dicho que {company} no paga una paga de beneficios ni un bonus.",
+  "payChange": "cambiar",
+  "payMissing": "⚠ Falta la paga de beneficios o el bonus de {year} de {company}: dijiste que la paga. Si la cobraste, súbela; si ya no la paga, cámbialo.",
+  "payHelp": "Lo normal son 14 pagas al año: las 12 mensuales más 2 extras, o las 12 con las extras prorrateadas dentro de cada mes. Algunas empresas añaden otra paga: la de beneficios o un bonus.",
   "whyBonusConcepts": "los conceptos de bonus u objetivos son el {pct} % del bruto",
   "whyRemembered": "en tus otras nóminas de esta empresa con «{text}» en el periodo elegiste {type}",
-  "typeAsk": "No está claro qué tipo de nómina es ({why}). Elige uno: Paga extra (julio, Navidad…), Bonus (objetivos, beneficios de la empresa…) o Atrasos. La próxima vez que salga lo mismo en el periodo, la app lo recordará.",
-  "typeAskSave": "Antes de guardarla, elige en «Tipo de nómina» qué es: Mensual, Paga extra, Atrasos o Bonus.",
+  "typeAsk": "No está claro qué tipo de nómina es ({why}). Elige uno: Paga extra (julio, Navidad…), Paga de beneficios o bonus (objetivos, beneficios de la empresa…) o Atrasos. La próxima vez que salga lo mismo en el periodo, la app lo recordará.",
+  "typeAskSave": "Antes de guardarla, elige en «Tipo de nómina» qué es: Mensual, Paga extra, Atrasos o Beneficios.",
   "noPeriod": "Falta el mes o el año (en rojo, en la Zona 1). Tócalos y escribe los del papel: en una nómina sin periodo, usa el mes de la fecha de pago.",
-  "dupBonus": "🎯 Es un bonus → guardarlo aparte",
-  "dupBonusOther": "Es otro bonus distinto → guardarlo aparte",
+  "dupBonus": "🎯 Es una paga de beneficios o bonus → guardarla aparte",
+  "dupBonusOther": "Es otra paga de beneficios o bonus distinta → guardarla aparte",
   "upInfoPending": "Si en el papel esta línea no tiene importe, es informativa: saldrá en gris en cuanto cuadren las sumas. Corrige primero lo demás.",
+  "moveToAmount": "⇄ Pasar {amount} a Importe",
+  "ssViaRem": "Con la remuneración + prorrata ({base} €) sí cuadra: revisa «Base C.C.», puede que sea la base de desempleo/AT (la que lleva las horas extra).",
+  "bccOvertime": "La diferencia ({ot} €) es justo lo que suman las horas extra: parece que «Base C.C.» tiene la base de desempleo/AT. La de contingencias comunes sería {base} €.",
   "sumHintExtra1": "Pista: {line} vale justo {amount} €. Mira en el papel si esa línea está en esta columna o si se ha leído de más.",
   "sumHintExtraN": "Pista: {list} valen justo {amount} €. Mira en el papel si una de ellas se ha leído de más.",
   "sumHintCol1": "Pista: {line} tiene el importe a 0 y {amount} € en otra columna (unidades, % o precio): seguramente es su importe, leído en la columna equivocada. Compruébalo en el papel.",
   "sumHintColN": "Pista: {list} tienen el importe a 0 y {amount} € en otra columna: en una de ellas el importe se ha leído en la columna equivocada. Compruébalo en el papel.",
+  "upInfoName": "«{concept}»: {units} × {price} = {exp} €, sin importe en la nómina. Por su nombre es una previsión o provisión de la empresa: es informativa, no se cobra este mes y no cuenta en las sumas.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, sin importe en la nómina. Las sumas cuadran sin ella: es una línea informativa (por ejemplo, una previsión de la empresa) y no se cobra este mes."
 });
 Object.assign(I18N.ca, {
@@ -3458,19 +3489,32 @@ Object.assign(I18N.ca, {
   "qrText": "Escaneja aquest codi amb la càmera del mòbil i la clau passarà a l'app sense haver-la d'escriure. Només per al teu mòbil: cada persona ha de tenir la seva pròpia clau.",
   "qrBtn": "📱 Mostra el codi QR",
   "qrNoKey": "Primer desa la teva clau de Gemini a la barra de dalt.",
-  "typeBonus": "Bonus",
+  "typeBonus": "Beneficios",
+  "typeBonusLong": "Paga de beneficios o bonus",
+  "payQ": "{company} abona una paga de beneficis o un bonus a part de les mensuals i les extres?",
+  "payYesBtn": "Sí",
+  "payNoBtn": "No",
+  "payIsYes": "Has indicat que {company} abona una paga de beneficis o un bonus.",
+  "payIsNo": "Has indicat que {company} no abona cap paga de beneficis ni cap bonus.",
+  "payChange": "canvia",
+  "payMissing": "⚠ Falta la paga de beneficis o el bonus del {year} de {company}: vas indicar que en paga. Si la vas cobrar, puja-la; si ja no en paga, canvia-ho.",
+  "payHelp": "El més habitual són 14 pagues l'any: les 12 mensuals més 2 d'extres, o les 12 amb les extres prorratejades dins de cada mes. Algunes empreses n'afegeixen una altra: la de beneficis o un bonus.",
   "whyBonusConcepts": "els conceptes de bonus o objectius són el {pct} % del brut",
   "whyRemembered": "a les teves altres nòmines d'aquesta empresa amb «{text}» al període vas triar {type}",
-  "typeAsk": "No està clar quin tipus de nòmina és ({why}). Tria'n un: Paga extra (juliol, Nadal…), Bonus (objectius, beneficis de l'empresa…) o Atrasos. La propera vegada que surti el mateix al període, l'app ho recordarà.",
-  "typeAskSave": "Abans de desar-la, tria a «Tipo de nómina» què és: Mensual, Paga extra, Atrasos o Bonus.",
+  "typeAsk": "No està clar quin tipus de nòmina és ({why}). Tria'n un: Paga extra (juliol, Nadal…), Paga de beneficios o bonus (objectius, beneficis de l'empresa…) o Atrasos. La propera vegada que surti el mateix al període, l'app ho recordarà.",
+  "typeAskSave": "Abans de desar-la, tria a «Tipo de nómina» què és: Mensual, Paga extra, Atrasos o Beneficios.",
   "noPeriod": "Falta el mes o l'any (en vermell, a la Zona 1). Toca'ls i escriu els del paper: en una nòmina sense període, fes servir el mes de la data de pagament.",
-  "dupBonus": "🎯 És un bonus → desa'l a part",
-  "dupBonusOther": "És un altre bonus → desa'l a part",
+  "dupBonus": "🎯 És una paga de beneficis o bonus → desa-la a part",
+  "dupBonusOther": "És una altra paga de beneficis o bonus → desa-la a part",
   "upInfoPending": "Si al paper aquesta línia no té import, és informativa: sortirà en gris quan quadrin les sumes. Corregeix primer la resta.",
+  "moveToAmount": "⇄ Passa {amount} a «Importe»",
+  "ssViaRem": "Amb la remuneració + prorrata ({base} €) sí que quadra: revisa «Base C.C.», pot ser la base d'atur/AT (la que inclou les hores extraordinàries).",
+  "bccOvertime": "La diferència ({ot} €) és just el que sumen les hores extraordinàries: sembla que «Base C.C.» té la base d'atur/AT. La de contingències comunes seria {base} €.",
   "sumHintExtra1": "Pista: {line} val just {amount} €. Mira al paper si aquesta línia és en aquesta columna o si s'ha llegit de més.",
   "sumHintExtraN": "Pista: {list} valen just {amount} €. Mira al paper si alguna s'ha llegit de més.",
   "sumHintCol1": "Pista: {line} té l'import a 0 i {amount} € en una altra columna (unitats, % o preu): segurament és el seu import, llegit a la columna equivocada. Comprova-ho al paper.",
   "sumHintColN": "Pista: {list} tenen l'import a 0 i {amount} € en una altra columna: en alguna l'import s'ha llegit a la columna equivocada. Comprova-ho al paper.",
+  "upInfoName": "«{concept}»: {units} × {price} = {exp} €, sense import a la nòmina. Pel seu nom és una previsió o provisió de l'empresa: és informativa, no es cobra aquest mes i no compta a les sumes.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, sense import a la nòmina. Les sumes quadren sense aquesta línia: és una línia informativa (per exemple, una previsió de l'empresa) i no es cobra aquest mes."
 });
 Object.assign(I18N.en, {
@@ -3491,19 +3535,32 @@ Object.assign(I18N.en, {
   "qrText": "Scan this code with your phone's camera and the key goes into the app without typing it. Only for your own phone: each person should have their own key.",
   "qrBtn": "📱 Show the QR code",
   "qrNoKey": "First save your Gemini key in the bar at the top.",
-  "typeBonus": "Bonus",
+  "typeBonus": "Beneficios",
+  "typeBonusLong": "Paga de beneficios o bonus",
+  "payQ": "Does {company} pay a profit-sharing payment (paga de beneficios) or a bonus on top of the monthly and extra payments?",
+  "payYesBtn": "Yes",
+  "payNoBtn": "No",
+  "payIsYes": "You said {company} pays a profit-sharing payment (paga de beneficios) or a bonus.",
+  "payIsNo": "You said {company} does not pay a profit-sharing payment (paga de beneficios) or a bonus.",
+  "payChange": "change",
+  "payMissing": "⚠ The profit-sharing payment (paga de beneficios) or bonus of {year} from {company} is missing: you said they pay it. If you received it, upload it; if they no longer pay it, change your answer.",
+  "payHelp": "Normally there are 14 payments a year: the 12 monthly ones plus 2 extras (pagas extra), or the 12 with the extras spread across each month (prorrata). Some companies add one more: the profit-sharing payment (paga de beneficios) or a bonus.",
   "whyBonusConcepts": "bonus or target items are {pct}% of the gross pay",
   "whyRemembered": "on your other payslips from this company with «{text}» in the period you chose {type}",
-  "typeAsk": "It is not clear what kind of payslip this is ({why}). Choose one: Paga extra (July, Christmas…), Bonus (targets, company profit-sharing…) or Atrasos (back pay). Next time the same appears in the period, the app will remember.",
-  "typeAskSave": "Before saving it, choose in «Tipo de nómina» what it is: Mensual, Paga extra, Atrasos or Bonus.",
+  "typeAsk": "It is not clear what kind of payslip this is ({why}). Choose one: Paga extra (July, Christmas…), Paga de beneficios or bonus (targets, company profit-sharing…) or Atrasos (back pay). Next time the same appears in the period, the app will remember.",
+  "typeAskSave": "Before saving it, choose in «Tipo de nómina» what it is: Mensual, Paga extra, Atrasos or Beneficios.",
   "noPeriod": "The month or year is missing (in red, in Zona 1). Tap them and type the ones on the paper: on a payslip with no period, use the month of the payment date.",
-  "dupBonus": "🎯 It's a bonus → save it separately",
-  "dupBonusOther": "It's a different bonus → save it separately",
+  "dupBonus": "🎯 It's a paga de beneficios or bonus → save it separately",
+  "dupBonusOther": "It's a different paga de beneficios or bonus → save it separately",
   "upInfoPending": "If this line has no amount on the paper, it is informational: it will turn grey as soon as the totals add up. Fix the rest first.",
+  "moveToAmount": "⇄ Move {amount} to the Importe (amount) column",
+  "ssViaRem": "With remuneration + prorrata ({base} €) it does add up: check «Base C.C.», it may be the unemployment/AT base (the one that includes overtime).",
+  "bccOvertime": "The difference ({ot} €) is exactly what the overtime adds up to: «Base C.C.» seems to hold the unemployment/AT base. The common-contingencies one would be {base} €.",
   "sumHintExtra1": "Hint: {line} is exactly {amount} €. Check on the paper whether that line is in this column or was read by mistake.",
   "sumHintExtraN": "Hint: {list} are exactly {amount} €. Check on the paper whether one of them was read by mistake.",
   "sumHintCol1": "Hint: {line} has a 0 amount and {amount} € in another column (units, % or price): it is probably its amount, read in the wrong column. Check it on the paper.",
   "sumHintColN": "Hint: {list} have a 0 amount and {amount} € in another column: in one of them the amount was read in the wrong column. Check it on the paper.",
+  "upInfoName": "«{concept}»: {units} × {price} = {exp} €, with no amount on the payslip. By its name it is a company provision (previsión): it is informational, is not paid this month and does not count in the totals.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, with no amount on the payslip. The totals add up without it: it is an informational line (for example, a company provision) and is not paid this month."
 });
 // Textos fijos del HTML con data-tr="clave": se escriben con tr() al arrancar (v2.13.1)
@@ -3772,7 +3829,7 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Tipo de nómina</div>
       <div class="type-picker">
         ${Object.entries(PAY_TYPES).map(([k, v]) =>
-          `<button class="type-opt ${k === pt ? 'active' : ''}" onclick="reclassifyPayroll(${jsArg(p.id)},'${k}')">${v.icon} ${v.label}</button>`).join('')}
+          `<button class="type-opt ${k === pt ? 'active' : ''}" onclick="reclassifyPayroll(${jsArg(p.id)},'${k}')">${v.icon} ${v.long || v.label}</button>`).join('')}
       </div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5">Si esta nómina es una paga extra o unos atrasos y se guardó como mensual (o al revés), cámbiala aquí sin volver a procesarla.</div>
     </div>
@@ -4695,6 +4752,7 @@ function yearCompleteness(year) {
     aside: payers.flatMap(b => b.list).filter(p => payTypeOf(p) !== 'ordinaria').sort((a, b) => a.id.localeCompare(b.id))
       .map(p => `${p.period?.month} (${payLabelOf(p)})`),
     hac: hacYearStatus(String(year), payers) };
+  out.pays = payers.map(b => ({ key: b.key, name: b.name, answer: payAnswers[b.key] || null, has: hasBeneficiosPay(b.list) }));   // v2.16.0
   for (let m = 0; m <= last; m++) if (!months.has(m)) out.missing.push(MONTHS[m]);
   for (const b of payers) {
     const ord = ordOf(b.list), ms = new Set(ord.map(mi));
@@ -4721,10 +4779,42 @@ function yearCompleteness(year) {
   return out;
 }
 
+// ── v2.16.0: ¿la empresa paga una paga de beneficios o un bonus? (docs/TECNICO.md §32) ──
+// Se pregunta en la tarjeta «¿Está completo el año?» de los años cerrados, una vez por empresa (clave de yearPayers), y la
+// respuesta se guarda en el dispositivo y en el backup. Con «sí», si en ese año no hay una nómina de ese tipo, el Anual avisa.
+// Con «no» o sin respuesta, no cambia nada: la app nunca da por perdida una paga que la persona no ha dicho que existe.
+const PAYANS_KEY = 'nomina-auditor-pagas';
+const PAYANS_KEY_RE = /^(cif:[a-z0-9]{1,20}|ccc:\d{9,20}|sin)$/;
+let payAnswers = {};     // { clave de empresa: 'si' | 'no' }
+function sanitizePayAnswers(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  for (const [k, v] of Object.entries(raw).slice(0, 30)) if (PAYANS_KEY_RE.test(k) && (v === 'si' || v === 'no')) out[k] = v;
+  return out;
+}
+function loadPayAnswers() { try { payAnswers = sanitizePayAnswers(JSON.parse(localStorage.getItem(PAYANS_KEY) || '{}')); } catch { payAnswers = {}; } }
+function savePayAnswers() {
+  localStorage.setItem(PAYANS_KEY, JSON.stringify(payAnswers));
+  try { localStorage.setItem('nomina-auditor-lastchange', new Date().toISOString()); } catch {}   // cuenta para el aviso de backup
+}
+function answerPay(key, v) {
+  if (!PAYANS_KEY_RE.test(String(key))) return;
+  if (v === 'si' || v === 'no') payAnswers[key] = v; else if (v == null) delete payAnswers[key]; else return;
+  savePayAnswers();
+  renderAnnual();
+}
+// Hay una paga de beneficios o un bonus en esas nóminas: una nómina de tipo bonus, o una línea de beneficios/bonus/objetivos
+// (también dentro de una mensual o de una extra). La prorrata no cuenta.
+const BENEF_RE = /benefici|bonus|objectiu|objetivo/i;
+function hasBeneficiosPay(list) {
+  return list.some(p => payTypeOf(p) === 'bonus' ||
+    (p.earnings || []).some(e => amt(e.amount) > 0 && BENEF_RE.test(String(e.concept || '')) && !PRORRATA_RE.test(String(e.concept || ''))));
+}
+
 function completenessAskText(year, aside = []) {
   if (aside.length) return `Ya tienes ${aside.length === 1 ? '1 nómina aparte' : aside.length + ' nóminas aparte'} de ${year}: ${aside.join(', ')}. ` +
-    '¿Te pagaron alguna otra (bonus, atrasos o finiquito) además de las mensuales? Si es así, súbela: si no, el Anual se queda corto. Para salir de dudas, compara con Hacienda.';
-  return `¿Te pagaron en ${year} algún bonus, atrasos o finiquito en una nómina aparte, además de las mensuales? Si es así, súbela: si no, el Anual se queda corto. Para salir de dudas, compara con Hacienda.`;
+    '¿Te pagaron alguna otra (paga de beneficios o bonus, atrasos o finiquito) además de las mensuales? Si es así, súbela: si no, el Anual se queda corto. Para salir de dudas, compara con Hacienda.';
+  return `¿Te pagaron en ${year} alguna paga de beneficios o bonus, atrasos o finiquito en una nómina aparte, además de las mensuales? Si es así, súbela: si no, el Anual se queda corto. Para salir de dudas, compara con Hacienda.`;
 }
 
 // v2.10.1: lo que dice la comparación con Hacienda de todo el año.
@@ -4755,10 +4845,18 @@ function completenessObs(c) {
   else if (c.last >= 0) obs.push({ level: 'ok', text: `✓ Nóminas mensuales completas de Enero a ${upTo}` });
   for (const g of c.companyGaps) obs.push({ level: 'warn', text: `⚠ ${g.name}: sin nómina mensual de ${g.months.join(', ')}` });
   for (const e of c.extras) obs.push({ level: 'warn', text: `⚠ Falta la paga extra de ${e.month}${c.many ? ` de ${e.name}` : ''}: el año anterior hubo una` });
+  if (c.closed) for (const q of c.pays || []) if (q.answer === 'si' && !q.has) obs.push({ level: 'warn', text: tr('payMissing', { year: c.year, company: q.name }) });   // v2.16.0
   if (c.hac === 'ok') obs.push({ level: 'ok', text: '✓ Coincide con lo que declaró la empresa a Hacienda: no falta ninguna nómina aparte' });
   else if (c.hac === 'falta') obs.push({ level: 'warn', text: '⚠ Según las cifras de Hacienda que has escrito, parece que falta una nómina (o un pagador): míralo en «Comparar con Hacienda»' });
   else if (c.ask) obs.push({ level: 'info', text: 'ℹ ' + completenessAskText(c.year, c.aside) });
   return obs;
+}
+
+function payAskRow(q) {   // v2.16.0
+  const k = jsArg(q.key);
+  return q.answer
+    ? `<div class="obs-item info pay-q">🎯 ${esc(tr(q.answer === 'si' ? 'payIsYes' : 'payIsNo', { company: q.name }))} <button class="link-btn" onmousedown="event.preventDefault()" onclick="answerPay(${k}, null)">${esc(tr('payChange'))}</button></div>`
+    : `<div class="obs-item info pay-q">🎯 ${esc(tr('payQ', { company: q.name }))} <button class="link-btn" onmousedown="event.preventDefault()" onclick="answerPay(${k}, 'si')">${esc(tr('payYesBtn'))}</button> · <button class="link-btn" onmousedown="event.preventDefault()" onclick="answerPay(${k}, 'no')">${esc(tr('payNoBtn'))}</button></div>`;
 }
 
 function completenessCardHtml(c) {
@@ -4768,6 +4866,8 @@ function completenessCardHtml(c) {
   return `<div class="card" id="completeCard">
     <h3 style="margin:0 0 8px;font-size:13px;color:var(--accent)">${bad ? '⚠' : '✓'} ¿Está completo el año?</h3>
     ${obs.map(o => `<div class="obs-item ${o.level}">${esc(o.text)}</div>`).join('')}
+    ${c.ask ? (c.pays || []).map(payAskRow).join('') : ''}
+    ${c.ask ? `<div class="obs-item info">💡 ${esc(tr('payHelp'))}</div>` : ''}
   </div>`;
 }
 
@@ -4862,7 +4962,7 @@ function hacResultHtml(r, year) {
         ${w.ssKnown && w.irpfKnown ? `<tr><td><strong>Líquido</strong></td><td class="r"><strong>≈ ${esc(fmt(w.liquido))} €</strong></td></tr>` : ''}
       </table>
       ${r.ssFits ? '<div style="margin-top:6px">La Seguridad Social encaja con una nómina normal (el trabajador cotiza alrededor del 6,5 %).</div>' : ''}
-      <div style="margin-top:6px">${w.ssKnown && w.irpfKnown ? `Búscala en el banco por un ingreso de unos ${esc(fmt(w.liquido))} € y` : 'Búscala en el banco y'} pídesela a la empresa. Suele ser un bonus, unos atrasos o un finiquito en una nómina aparte: cuando la subas, esto debería coincidir.</div>`);
+      <div style="margin-top:6px">${w.ssKnown && w.irpfKnown ? `Búscala en el banco por un ingreso de unos ${esc(fmt(w.liquido))} € y` : 'Búscala en el banco y'} pídesela a la empresa. Suele ser una paga de beneficios o un bonus, unos atrasos o un finiquito en una nómina aparte: cuando la subas, esto debería coincidir.</div>`);
   } else if (r.kind === 'haciendaMas') html = box('warn', `⚠ <strong>Hacienda tiene más</strong> que tus nóminas (${esc(diffs())}). Escribe también el íntegro para ver cómo sería la nómina que falta.`);
   else if (r.kind === 'appMas') html = box('warn', `⚠ <strong>Tus nóminas suman más</strong> que lo que declaró la empresa (${esc(diffs())}). Causas posibles, sin saber cuál: la nómina de diciembre cobrada en enero (la empresa puede haberla declarado en el otro año), atrasos de otro año, una cifra mal leída (revisa las nóminas con ⚠) o una nómina repetida.`);
   else html = box('warn', `⚠ <strong>No coincide</strong> (${esc(diffs())}): unas cifras son mayores en Hacienda y otras en tus nóminas. Revisa las nóminas con ⚠ y compáralas con el papel.`);
@@ -5272,7 +5372,7 @@ function generateAnnualText(fp, totals, year, obs) {
     const irpfDed = findIRPFDeduction(p);
     const ssTotal = calcSSTotal(p);
     const t = payTypeOf(p);
-    const name = (p.period?.month || '?') + (t === 'extra' ? ' EXTRA' : t === 'atrasos' ? ' ATRASOS' : t === 'bonus' ? ' BONUS' : '');
+    const name = (p.period?.month || '?') + (t === 'extra' ? ' EXTRA' : t === 'atrasos' ? ' ATRASOS' : t === 'bonus' ? ' BENEFICIOS' : '');
     return `${name.padEnd(17)}| Bruto: ${fmt(p.totals?.grossTotal).padStart(10)} € | IRPF: ${fmt(irpfDed).padStart(8)} € | S.S.: ${fmt(ssTotal).padStart(8)} € | Neto: ${fmt(p.totals?.netPay).padStart(10)} €`;
   }).join('\n');
 
@@ -5519,11 +5619,11 @@ function checkSums(p) {
   if (Number.isFinite(gross) && earn.length && Math.abs(sumE - gross) > CHECK_TOL)
     out.push(withSumHint({ level: 'err', key: 'sumE', paths: ['totals.grossTotal', ...earn.map((_, i) => `earnings.${i}.amount`)],
       text: `Los devengos suman ${fmt(sumE)} € pero el total bruto es ${fmt(gross)} € (diferencia: ${fmt(Math.abs(sumE - gross))} €). Falta una línea, hay un importe mal leído o el total bruto está mal leído: compáralo también con el papel.` },
-      earn, round2(sumE - gross)));
+      earn, round2(sumE - gross), 'earnings'));
   if (Number.isFinite(totDed) && ded.length && Math.abs(sumD - totDed) > CHECK_TOL)
     out.push(withSumHint({ level: 'err', key: 'sumD', paths: ['totals.totalDeductions', ...ded.map((_, i) => `deductions.${i}.amount`)],
       text: `Las deducciones suman ${fmt(sumD)} € pero el total a deducir es ${fmt(totDed)} € (diferencia: ${fmt(Math.abs(sumD - totDed))} €). Falta una línea, hay un importe mal leído o el total a deducir está mal leído: compáralo también con el papel.` },
-      ded, round2(sumD - totDed)));
+      ded, round2(sumD - totDed), 'deductions'));
   if (Number.isFinite(gross) && Number.isFinite(totDed) && Number.isFinite(net) && Math.abs(round2(gross - totDed) - net) > CHECK_TOL)
     out.push({ level: 'err', key: 'net', paths: ['totals.grossTotal', 'totals.totalDeductions', 'totals.netPay'],
       text: `Bruto − deducciones = ${fmt(round2(gross - totDed))} € pero el líquido leído es ${fmt(net)} €.` });
@@ -5536,21 +5636,29 @@ function checkSums(p) {
 //     el importe se ha leído en la columna equivocada (pasó con el MEI: la cuota en la columna del %).
 //   Si hay más de 3 candidatas no dice nada (no ayudaría). La pista no se le pasa a Gemini (feedbackFor usa gtext):
 //   movería cifras para que cuadre sin mirar el papel.
-function sumHintText(lines, s) {
+function sumHintInfo(lines, s) {
   const d = Math.abs(s), near = x => Number.isFinite(x) && Math.abs(x - d) <= CHECK_TOL;
   const name = l => `«${l.concept || lineCode(l) || '?'}»`;
+  const find = test => lines.map((l, i) => i).filter(i => test(lines[i]));
   if (s > 0) {
-    const c = lines.filter(l => near(num(l.amount)));
-    if (!c.length || c.length > 3) return '';
-    return tr(c.length === 1 ? 'sumHintExtra1' : 'sumHintExtraN', { line: name(c[0]), list: joinOr(c.map(name)), amount: fmt(d) });
+    const idx = find(l => near(num(l.amount))), c = idx.map(i => lines[i]);
+    if (!idx.length || idx.length > 3) return null;
+    return { kind: 'extra', idx, text: tr(c.length === 1 ? 'sumHintExtra1' : 'sumHintExtraN', { line: name(c[0]), list: joinOr(c.map(name)), amount: fmt(d) }) };
   }
-  const c = lines.filter(l => amt(l.amount) === 0 && ['units', 'price'].some(k => near(num(l[k]))));
-  if (!c.length || c.length > 3) return '';
-  return tr(c.length === 1 ? 'sumHintCol1' : 'sumHintColN', { line: name(c[0]), list: joinOr(c.map(name)), amount: fmt(d) });
+  const idx = find(l => amt(l.amount) === 0 && ['units', 'price'].some(k => near(num(l[k])))), c = idx.map(i => lines[i]);
+  if (!idx.length || idx.length > 3) return null;
+  return { kind: 'col', idx, col: ['units', 'price'].find(k => near(num(lines[idx[0]][k]))),
+    text: tr(c.length === 1 ? 'sumHintCol1' : 'sumHintColN', { line: name(c[0]), list: joinOr(c.map(name)), amount: fmt(d) }) };
 }
-function withSumHint(c, lines, s) {
-  const h = sumHintText(lines, s);
-  if (h) { c.gtext = c.text; c.text += ' ' + h; c.hint = true; }
+// v2.16.0: con la pista, solo se marcan las celdas sospechosas (no todos los importes de la columna) y, si la cifra está en
+// otra columna de una sola línea, un botón la pasa al importe (move). La app sigue sin cambiar nada sola.
+function withSumHint(c, lines, s, side) {
+  const h = sumHintInfo(lines, s);
+  if (h) {
+    c.gtext = c.text; c.text += ' ' + h.text; c.hint = true;
+    c.paths = h.idx.flatMap(i => h.kind === 'col' ? [`${side}.${i}.${h.col}`, `${side}.${i}.amount`] : [`${side}.${i}.amount`]);
+    if (h.kind === 'col' && h.idx.length === 1) c.colMove = { side, i: h.idx[0], col: h.col, value: lines[h.idx[0]][h.col] };
+  }
   return c;
 }
 // v2.14.2: orden de los mensajes: primero las sumas (la causa), después los errores y al final los avisos.
@@ -5585,6 +5693,7 @@ function checkPayroll(p, opts = {}) {
   //    Vale si cuadra con cualquiera de ellas: así no hay falsas alarmas con nóminas que reparten distinto.
   const baseCC = amt(bases.baseCC), baseAT = amt(bases.baseAT) || baseCC;
   const overtime = round2(earn.filter(e => /hor\w*\s*ext/i.test(String(e.concept || ''))).reduce((s, e) => s + amt(e.amount), 0));
+  const remBase = round2(amt(bases.totalRemuneration) + amt(bases.extraPayProrata));   // v2.16.0: la base C.C. «de verdad»
   ded.forEach((d, i) => {
     const k = deductionKind(d);
     if (!isSSKind(k) || d === irpfLine) return;
@@ -5598,10 +5707,16 @@ function checkPayroll(p, opts = {}) {
     sdl.push(round2(amt(d.amount) - near.e));
     if (Math.abs(amt(d.amount) - near.e) <= CHECK_TOL) return;
     const base = candidates[0], expected = round2(base * pct / 100);
-    out.push({ level: 'warn', key: 'ss' + i, paths: [`deductions.${i}.amount`],
+    const c = { level: 'warn', key: 'ss' + i, paths: [`deductions.${i}.amount`],
       diff: round2(Math.abs(amt(d.amount) - near.e)), sdiff: round2(amt(d.amount) - near.e), ded: true,
       rtext: `«${d.concept}»: ${fmt(d.amount)} € en la nómina y ${fmt(near.b)} € × ${fmtPct(pct)} = ${fmt(near.e)} €`,
-      text: `«${d.concept}»: leído ${fmt(d.amount)} €, pero ${fmt(base)} € × ${fmtPct(pct)} = ${fmt(expected)} €.` });
+      text: `«${d.concept}»: leído ${fmt(d.amount)} €, pero ${fmt(base)} € × ${fmtPct(pct)} = ${fmt(expected)} €.` };
+    // v2.16.0: con remuneración + prorrata sí cuadra → lo que falla es «Base C.C.» (suele ser la de desempleo/AT, con las horas
+    //     extra). La pista señala ese campo; a Gemini no se le pasa (feedbackFor usa gtext).
+    if (!(k === 'fp' || k === 'desempleo') && remBase > 0 && baseCC > 0 && Math.abs(remBase - baseCC) > CHECK_TOL && Math.abs(amt(d.amount) - round2(remBase * pct / 100)) <= CHECK_TOL) {
+      c.gtext = c.text; c.text += ' ' + tr('ssViaRem', { base: fmt(remBase) }); c.paths = [...c.paths, 'bases.baseCC']; c.hint = true;
+    }
+    out.push(c);
   });
 
   // 6. Unidades × precio = importe en los devengos (cuando Gemini ha leído el precio aparte).
@@ -5620,7 +5735,8 @@ function checkPayroll(p, opts = {}) {
       const shifted = lines.some((o, j) => { const x = num(o.amount); return j !== i && Number.isFinite(x) && x > 0 && Math.abs(x - expected) <= tol(x); });
       // v2.14.1: importe 0 con unidades y precio = quizá una línea informativa (una previsión que la empresa no paga ese
       //     mes). Se decide al final: si las tres sumas cuadran, pasa a 'info' (gris, no cuenta como aviso).
-      const info = a === 0 && !shifted ? { concept: l.concept, units: String(l.units), price: fmtPrice(pr), exp: fmt(expected) } : null;
+      const byName = a === 0 && PROVISION_RE.test(String(l.concept || ''));   // v2.16.0
+      const info = a === 0 && (!shifted || byName) ? { concept: l.concept, units: String(l.units), price: fmtPrice(pr), exp: fmt(expected), byName } : null;
       out.push({ level: shifted ? 'warn' : 'err', key: `up-${side}${i}`, paths: [shifted ? `${side}.${i}.price` : `${side}.${i}.amount`], info,
         // v2.8.7: el precio con todos sus decimales (con fmt() salía «× 7,13» y la cuenta parecía mal hecha)
         text: `«${l.concept}»: ${String(l.units)} × ${fmtPrice(pr)} = ${fmt(expected)} €, pero el importe leído es ${fmt(a)} €.` +
@@ -5631,11 +5747,17 @@ function checkPayroll(p, opts = {}) {
   // 7. Remuneración + prorrata = base C.C. (solo mensual ordinaria)
   if (payTypeOf(p) === 'ordinaria' && baseCC > 0) {
     const rem = amt(bases.totalRemuneration), pro = amt(bases.extraPayProrata);
-    if (rem > 0 && Math.abs(rem + pro - baseCC) > CHECK_TOL)
-      out.push({ level: 'warn', key: 'bcc', paths: ['bases.totalRemuneration', 'bases.extraPayProrata', 'bases.baseCC'],
+    if (rem > 0 && Math.abs(rem + pro - baseCC) > CHECK_TOL) {
+      const c = { level: 'warn', key: 'bcc', paths: ['bases.totalRemuneration', 'bases.extraPayProrata', 'bases.baseCC'],
         diff: round2(Math.abs(rem + pro - baseCC)), sdiff: round2(baseCC - (rem + pro)),
         rtext: `Remuneración (${fmt(rem)}) + prorrata (${fmt(pro)}) = ${fmt(round2(rem + pro))} € y base C.C. ${fmt(baseCC)} €`,
-        text: `Remuneración (${fmt(rem)}) + prorrata (${fmt(pro)}) = ${fmt(round2(rem + pro))} €, distinto de la base C.C. (${fmt(baseCC)} €).` });
+        text: `Remuneración (${fmt(rem)}) + prorrata (${fmt(pro)}) = ${fmt(round2(rem + pro))} €, distinto de la base C.C. (${fmt(baseCC)} €).` };
+      // v2.16.0: la diferencia es justo la de las horas extra → «Base C.C.» tiene la base de desempleo/AT. Señala solo ese campo.
+      if (overtime > 0 && Math.abs((baseCC - (rem + pro)) - overtime) <= CHECK_TOL) {
+        c.gtext = c.text; c.text += ' ' + tr('bccOvertime', { ot: fmt(overtime), base: fmt(round2(rem + pro)) }); c.paths = ['bases.baseCC']; c.hint = true;
+      }
+      out.push(c);
+    }
   }
 
   // 8. Plantilla: el mismo código con un concepto muy distinto al de tus otras nóminas = filas corridas
@@ -5708,7 +5830,7 @@ function checkPayroll(p, opts = {}) {
   //     v2.12.3: con el lado (más o menos) y, si hay varias deducciones con céntimos de diferencia, el neto. Solo
   //     documenta: con el % impreso redondeado, la app no puede saber cuál de las dos cifras es la exacta.
   for (const c of out) {
-    if (c.info && sumsOk) { c.level = 'info'; c.text = tr('upInfo', c.info); c.paths = []; }   // v2.14.1
+    if (c.info && (sumsOk || c.info.byName)) { c.level = 'info'; c.text = tr(c.info.byName && !sumsOk ? 'upInfoName' : 'upInfo', c.info); c.paths = []; }   // v2.14.1; v2.16.0: por su nombre, sin esperar a las sumas
     else if (c.info) { c.gtext = c.text; c.text += ' ' + tr('upInfoPending'); }               // v2.14.2: puede ser informativa
     delete c.info;
     if (c.rtext && sumsOk && c.diff <= ROUND_TOL + 1e-9) {
@@ -5927,7 +6049,9 @@ function createBackupData() {
     },
     payrolls: payrolls,
     // v2.10.0: las cifras de Hacienda que ha escrito la persona (solo si hay alguna)
-    ...(Object.keys(hacienda).length ? { hacienda } : {})
+    ...(Object.keys(hacienda).length ? { hacienda } : {}),
+    // v2.16.0: ¿la empresa paga una paga de beneficios o un bonus? (solo si la persona ha contestado)
+    ...(Object.keys(payAnswers).length ? { pagas: payAnswers } : {})
   };
 }
 
@@ -6175,6 +6299,8 @@ async function processImportedJSON(jsonText, resultDiv, restoredDocs = 0) {
     const hacIn = sanitizeHacienda(data && !Array.isArray(data) ? data.hacienda : null);
     for (const [y, rows] of Object.entries(hacIn)) hacienda[y] = { ...(hacienda[y] || {}), ...rows };
     if (Object.keys(hacIn).length) saveHacienda();
+    const payIn = sanitizePayAnswers(data && !Array.isArray(data) ? data.pagas : null);   // v2.16.0: las del backup sustituyen a las de aquí
+    if (Object.keys(payIn).length) { payAnswers = { ...payAnswers, ...payIn }; savePayAnswers(); }
     // Restaurar en un dispositivo vacío: lo que hay ahora es justo lo que ya está en ese backup
     if (wasEmpty) lsSetNow('nomina-auditor-lastfullbackup');
     const exportedAt = data._meta?.exportedAt ? new Date(data._meta.exportedAt) : null;
@@ -6263,6 +6389,8 @@ async function clearAllData() {
   saveData();
   hacienda = {};          // v2.10.0
   saveHacienda();
+  payAnswers = {};        // v2.16.0
+  savePayAnswers();
   batch = emptyBatch();
   batchPause = null;
   saveBatch();
