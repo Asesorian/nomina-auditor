@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.16.3)
+## 🆕 Novedades (v2.3 – v2.16.4)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 💡 **Dos pistas más (v2.16.4)** | Si a las deducciones les falta dinero y una línea con su % tiene el importe a 0, la pista la nombra con la cuenta (base × % = lo que falta). Y si la base C.C. no es remuneración + prorrata, el aviso recuerda que puede ser la **base mínima** de tu grupo (tiempo parcial, sueldo bajo) o la **máxima** (sueldo alto) | Revisión de una nómina |
 | 🎁 **IRPF con salario en especie (v2.16.3)** | Si tu nómina calcula la retención sobre la base de IRPF **más** lo que cobras en especie (seguro médico, coche, cheques…), como hacen algunos programas que imprimen aparte la «base IRPF por retribución en especie», la app ya no avisa de un IRPF que está bien | Revisión de una nómina |
 | 🧾 **IRPF con el nombre del modelo oficial (v2.16.2)** | Las nóminas que escriben el impuesto con su nombre completo, como el modelo oficial («Impuesto sobre la renta de las personas físicas»), ya no dan el error «No encuentro la línea de IRPF»: la línea cuenta como IRPF y el glosario la explica. También en català, gallego y euskera | Revisión de una nómina · Glosario |
 | 🔎 **Avisos que señalan la cifra sospechosa (v2.16.1)** | El aviso del **IRPF** calcula el % y la base que saldrían con el importe leído y, si la base coincide con otra de la nómina o el importe esperado es el de otra línea, dice **cuál es lo más probable**; «No encuentro la línea de IRPF» dice qué hacer y nombra la línea que podría ser; y el aviso de **código y concepto distintos** a tus otras nóminas enseña el importe y dice si falla el código o el concepto. Solo cambia el texto y las celdas marcadas: la app no cambia ninguna cifra por su cuenta | Revisión de una nómina |
@@ -709,6 +710,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.16.4 (Octubre 2026)
+- **Cuota leída a 0:** si las deducciones no llegan al total y una sola línea con su % impreso tiene el importe a 0, y una base (C.C., A.T. o la de horas extra) × % da justo lo que falta, la pista la nombra y marca solo su importe.
+- **Base C.C. distinta de remuneración + prorrata:** el aviso añade que puede ser la base mínima del grupo (si es mayor) o la máxima (si es menor). Sigue siendo un aviso.
+- Sin niveles ni avisos nuevos. Textos en es, ca y en (català revisado).
 
 ### v2.16.3 (Octubre 2026)
 - **IRPF con salario en especie:** si base IRPF × % no da la retención pero (base IRPF + lo pagado en especie según las líneas de la nómina) × % sí, el IRPF se da por bueno y no sale el aviso (ni la pista que culpaba a la base). Solo para diferencias mayores que un redondeo.

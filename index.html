@@ -413,7 +413,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.16.3</span>
+    <span class="logo-badge">Forense v2.16.4</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -3476,6 +3476,9 @@ Object.assign(I18N.es, {
   "sumHintExtraN": "Pista: {list} valen justo {amount} €. Mira en el papel si una de ellas se ha leído de más.",
   "sumHintCol1": "Pista: {line} tiene el importe a 0 y {amount} € en otra columna (unidades, % o precio): seguramente es su importe, leído en la columna equivocada. Compruébalo en el papel.",
   "sumHintColN": "Pista: {list} tienen el importe a 0 y {amount} € en otra columna: en una de ellas el importe se ha leído en la columna equivocada. Compruébalo en el papel.",
+  "sumHintRate": "Pista: {line} tiene el importe a 0, pero {base} € × {pct} = {amount} €, justo lo que falta. Seguramente su importe no se ha leído: compruébalo en el papel.",
+  "bccMin": "La base C.C. es mayor: si es una nómina a tiempo parcial o con un sueldo bajo, puede ser la base mínima de cotización de tu grupo, y entonces es correcta. Compárala con el papel.",
+  "bccMax": "La base C.C. es menor: con sueldos altos puede ser la base máxima de cotización, y entonces es correcta. Compárala con el papel.",
   "upInfoName": "«{concept}»: {units} × {price} = {exp} €, sin importe en la nómina. Por su nombre es una previsión o provisión de la empresa: es informativa, no se cobra este mes y no cuenta en las sumas.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, sin importe en la nómina. Las sumas cuadran sin ella: es una línea informativa (por ejemplo, una previsión de la empresa) y no se cobra este mes."
 });
@@ -3530,6 +3533,9 @@ Object.assign(I18N.ca, {
   "sumHintExtraN": "Pista: {list} valen just {amount} €. Mira al paper si alguna s'ha llegit de més.",
   "sumHintCol1": "Pista: {line} té l'import a 0 i {amount} € en una altra columna (unitats, % o preu): segurament és el seu import, llegit a la columna equivocada. Comprova-ho al paper.",
   "sumHintColN": "Pista: {list} tenen l'import a 0 i {amount} € en una altra columna: en alguna l'import s'ha llegit a la columna equivocada. Comprova-ho al paper.",
+  "sumHintRate": "Pista: {line} té l'import a 0, però {base} € × {pct} = {amount} €, just el que falta. Segurament no se n'ha llegit l'import: comprova-ho al paper.",
+  "bccMin": "La base C.C. és més alta: si és una nòmina a temps parcial o amb un sou baix, pot ser la base mínima de cotització del teu grup, i llavors és correcta. Compara-la amb el paper.",
+  "bccMax": "La base C.C. és més baixa: amb sous alts pot ser la base màxima de cotització, i llavors és correcta. Compara-la amb el paper.",
   "upInfoName": "«{concept}»: {units} × {price} = {exp} €, sense import a la nòmina. Pel seu nom és una previsió o provisió de l'empresa: és informativa, no es cobra aquest mes i no compta a les sumes.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, sense import a la nòmina. Les sumes quadren sense aquesta línia: és una línia informativa (per exemple, una previsió de l'empresa) i no es cobra aquest mes."
 });
@@ -3584,6 +3590,9 @@ Object.assign(I18N.en, {
   "sumHintExtraN": "Hint: {list} are exactly {amount} €. Check on the paper whether one of them was read by mistake.",
   "sumHintCol1": "Hint: {line} has a 0 amount and {amount} € in another column (units, % or price): it is probably its amount, read in the wrong column. Check it on the paper.",
   "sumHintColN": "Hint: {list} have a 0 amount and {amount} € in another column: in one of them the amount was read in the wrong column. Check it on the paper.",
+  "sumHintRate": "Hint: {line} has a 0 amount, but {base} € × {pct} = {amount} €, exactly what is missing. Its amount was probably not read: check it on the paper.",
+  "bccMin": "The C.C. base is higher: on a part-time payslip or with a low salary it may be the minimum contribution base for your group, and then it is correct. Compare it with the paper.",
+  "bccMax": "The C.C. base is lower: with high salaries it may be the maximum contribution base, and then it is correct. Compare it with the paper.",
   "upInfoName": "«{concept}»: {units} × {price} = {exp} €, with no amount on the payslip. By its name it is a company provision (previsión): it is informational, is not paid this month and does not count in the totals.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, with no amount on the payslip. The totals add up without it: it is an informational line (for example, a company provision) and is not paid this month."
 });
@@ -5645,11 +5654,11 @@ function checkSums(p) {
   if (Number.isFinite(gross) && earn.length && Math.abs(sumE - gross) > CHECK_TOL)
     out.push(withSumHint({ level: 'err', key: 'sumE', paths: ['totals.grossTotal', ...earn.map((_, i) => `earnings.${i}.amount`)],
       text: `Los devengos suman ${fmt(sumE)} € pero el total bruto es ${fmt(gross)} € (diferencia: ${fmt(Math.abs(sumE - gross))} €). Falta una línea, hay un importe mal leído o el total bruto está mal leído: compáralo también con el papel.` },
-      earn, round2(sumE - gross), 'earnings'));
+      earn, round2(sumE - gross), 'earnings', p));
   if (Number.isFinite(totDed) && ded.length && Math.abs(sumD - totDed) > CHECK_TOL)
     out.push(withSumHint({ level: 'err', key: 'sumD', paths: ['totals.totalDeductions', ...ded.map((_, i) => `deductions.${i}.amount`)],
       text: `Las deducciones suman ${fmt(sumD)} € pero el total a deducir es ${fmt(totDed)} € (diferencia: ${fmt(Math.abs(sumD - totDed))} €). Falta una línea, hay un importe mal leído o el total a deducir está mal leído: compáralo también con el papel.` },
-      ded, round2(sumD - totDed), 'deductions'));
+      ded, round2(sumD - totDed), 'deductions', p));
   if (Number.isFinite(gross) && Number.isFinite(totDed) && Number.isFinite(net) && Math.abs(round2(gross - totDed) - net) > CHECK_TOL)
     out.push({ level: 'err', key: 'net', paths: ['totals.grossTotal', 'totals.totalDeductions', 'totals.netPay'],
       text: `Bruto − deducciones = ${fmt(round2(gross - totDed))} € pero el líquido leído es ${fmt(net)} €.` });
@@ -5662,7 +5671,9 @@ function checkSums(p) {
 //     el importe se ha leído en la columna equivocada (pasó con el MEI: la cuota en la columna del %).
 //   Si hay más de 3 candidatas no dice nada (no ayudaría). La pista no se le pasa a Gemini (feedbackFor usa gtext):
 //   movería cifras para que cuadre sin mirar el papel.
-function sumHintInfo(lines, s) {
+//   - v2.16.4, falta dinero en deducciones: una sola línea con su % impreso, el importe a 0 y alguna base (C.C., A.T. o
+//     la suma de las horas extra) × % = la diferencia: su importe no se ha leído (una cifra tapada, por ejemplo).
+function sumHintInfo(lines, s, side, p) {
   const d = Math.abs(s), near = x => Number.isFinite(x) && Math.abs(x - d) <= CHECK_TOL;
   const name = l => `«${l.concept || lineCode(l) || '?'}»`;
   const find = test => lines.map((l, i) => i).filter(i => test(lines[i]));
@@ -5672,14 +5683,25 @@ function sumHintInfo(lines, s) {
     return { kind: 'extra', idx, text: tr(c.length === 1 ? 'sumHintExtra1' : 'sumHintExtraN', { line: name(c[0]), list: joinOr(c.map(name)), amount: fmt(d) }) };
   }
   const idx = find(l => amt(l.amount) === 0 && ['units', 'price'].some(k => near(num(l[k])))), c = idx.map(i => lines[i]);
+  if (!idx.length && side === 'deductions' && p) {
+    const ot = round2((p.earnings || []).filter(e => /hor\w*\s*ext/i.test(String(e.concept || ''))).reduce((t, e) => t + amt(e.amount), 0));
+    const bs = [amt(p.bases?.baseCC), amt(p.bases?.baseAT), ot].filter((b, j, a) => b > 0 && a.indexOf(b) === j);
+    const hits = lines.map((l, i) => {
+      const pct = amt(l.amount) === 0 ? pctOfLine(l) : null;
+      const b = pct > 0 && pct <= 10 ? bs.find(x => near(round2(x * pct / 100))) : undefined;
+      return b === undefined ? null : { i, b, pct };
+    }).filter(Boolean);
+    if (hits.length === 1) return { kind: 'rate', idx: [hits[0].i],
+      text: tr('sumHintRate', { line: name(lines[hits[0].i]), base: fmt(hits[0].b), pct: fmtPct(hits[0].pct), amount: fmt(d) }) };
+  }
   if (!idx.length || idx.length > 3) return null;
   return { kind: 'col', idx, col: ['units', 'price'].find(k => near(num(lines[idx[0]][k]))),
     text: tr(c.length === 1 ? 'sumHintCol1' : 'sumHintColN', { line: name(c[0]), list: joinOr(c.map(name)), amount: fmt(d) }) };
 }
 // v2.16.0: con la pista, solo se marcan las celdas sospechosas (no todos los importes de la columna) y, si la cifra está en
 // otra columna de una sola línea, un botón la pasa al importe (move). La app sigue sin cambiar nada sola.
-function withSumHint(c, lines, s, side) {
-  const h = sumHintInfo(lines, s);
+function withSumHint(c, lines, s, side, p) {
+  const h = sumHintInfo(lines, s, side, p);
   if (h) {
     c.gtext = c.text; c.text += ' ' + h.text; c.hint = true;
     c.paths = h.idx.flatMap(i => h.kind === 'col' ? [`${side}.${i}.${h.col}`, `${side}.${i}.amount`] : [`${side}.${i}.amount`]);
@@ -5820,6 +5842,9 @@ function checkPayroll(p, opts = {}) {
       // v2.16.0: la diferencia es justo la de las horas extra → «Base C.C.» tiene la base de desempleo/AT. Señala solo ese campo.
       if (overtime > 0 && Math.abs((baseCC - (rem + pro)) - overtime) <= CHECK_TOL) {
         c.gtext = c.text; c.text += ' ' + tr('bccOvertime', { ot: fmt(overtime), base: fmt(round2(rem + pro)) }); c.paths = ['bases.baseCC']; c.hint = true;
+      } else {
+        // v2.16.4: una base distinta puede ser la mínima del grupo (tiempo parcial, sueldo bajo) o la máxima (sueldo alto). Solo lo dice.
+        c.gtext = c.text; c.text += ' ' + tr(baseCC > rem + pro ? 'bccMin' : 'bccMax'); c.hint = true;
       }
       out.push(c);
     }
