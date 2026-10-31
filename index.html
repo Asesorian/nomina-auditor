@@ -413,7 +413,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.16.1</span>
+    <span class="logo-badge">Forense v2.16.2</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -3652,7 +3652,7 @@ const GLOSSARY = [
     text: 'La cotización de las horas extra. En 2026, tu parte es el 2 % si son por fuerza mayor y el 4,70 % las demás (Orden PJC/297/2026).' },
   { id: 'solidaridad', side: 'd', title: 'Cotización de solidaridad', re: /solidaridad|solidaritat/i,
     text: 'Cotización adicional, desde 2025, solo para la parte del sueldo que pasa de la base máxima de cotización. Si no cobras tanto, no te sale.' },
-  { id: 'irpf', side: 'd', title: 'IRPF', re: /i\.?\s*r\.?\s*p\.?\s*f|tributaci|retenci/i,
+  { id: 'irpf', side: 'd', title: 'IRPF', re: /i\.?\s*r\.?\s*p\.?\s*f|tributaci|retenci|impuesto\s*(sobre\s*la\s*)?renta|imp\.?\s*renta|renta\s*(de\s*las\s*)?personas\s*fisicas|impost\s*sobre\s*la\s*renda|imposto\s*sobre\s*a\s*renda|errentaren\s*gaineko\s*zerga|\bpfez\b/i,
     text: 'Retención a cuenta del impuesto sobre la renta. No es el impuesto final: en la declaración de la renta se ajusta y te devuelven o pagas la diferencia. El % depende de tu sueldo y tu situación familiar.' },
   { id: 'anticipo', side: 'd', title: 'Anticipo', re: /anticip|bestret/i,
     text: 'Dinero que ya cobraste antes y que ahora se descuenta.' },
@@ -5431,7 +5431,9 @@ const LINE_KIND_TEXT = {
 
 function deductionKind(line) {
   const c = compactText(line?.concept), w = spacedText(line?.concept);
-  if (/irp[fp]|tributa|hacienda|hisenda/.test(c) || (/retenc/.test(c) && !/judic|embarg|pension|alimen/.test(c))) return 'irpf';
+  // v2.16.2: también con el nombre largo del modelo oficial («Impuesto sobre la renta de las personas físicas»), en las lenguas cooficiales
+  if (/irp[fp]|tributa|hacienda|hisenda|impuestosobrelarenta|impuestorenta|imprenta|rentadelaspersonasfisicas|rentapersonasfisicas|impostsobrelarenda|rendadelespersonesfisiques|impostosobrearenda|rendadaspersoasfisicas|errentarengainekozerga/.test(c) || / pfez /.test(w) ||
+      (/retenc/.test(c) && !/judic|embarg|pension|alimen/.test(c))) return 'irpf';
   if (/especie/.test(c)) return 'especie';
   // v2.12.4: también en catalán (cotització, contingències comunes, formació, desocupació / atur, seguretat social)
   if (/contcom|contingcom|contingenciacom|contingenciascom|contingenciescom|ccomun|contcomun/.test(c) || / cc /.test(w)) return 'cc';
