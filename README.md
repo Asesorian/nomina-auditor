@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.16.0)
+## 🆕 Novedades (v2.3 – v2.16.1)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 🔎 **Avisos que señalan la cifra sospechosa (v2.16.1)** | El aviso del **IRPF** calcula el % y la base que saldrían con el importe leído y, si la base coincide con otra de la nómina o el importe esperado es el de otra línea, dice **cuál es lo más probable**; «No encuentro la línea de IRPF» dice qué hacer y nombra la línea que podría ser; y el aviso de **código y concepto distintos** a tus otras nóminas enseña el importe y dice si falla el código o el concepto. Solo cambia el texto y las celdas marcadas: la app no cambia ninguna cifra por su cuenta | Revisión de una nómina |
 | 🧭 **Dónde corregir y paga de beneficios (v2.16.0)** | Cada aviso de suma señala la **celda sospechosa** y, si basta con mover una cifra a «Importe», lo hace un botón; con horas extra, la pista dice si la base C.C. se confundió con la de desempleo/AT; los códigos de relleno salen como «-»; las previsiones son informativas. El tipo **Bonus** pasa a llamarse **Beneficios** («Paga de beneficios o bonus» en los botones), la ayuda explica las 14 pagas (12 + 2 o 12 prorrateadas) y, en el Anual, por cada empresa preguntas si paga esa paga (se guarda en tu dispositivo y en el backup) y avisa si falta. | Ver, Anual |
 | 🛡️ **PDF más seguros (v2.15.1)** | Un PDF manipulado no puede ejecutar código en tu navegador: todos los PDF se abren por una sola puerta con la protección activada y, además, la página ya no admite ejecutar texto como código. No cambia nada de lo que ves ni de tus datos | Visor de PDF, lectura de PDF |
 | 🎯 **Bonus (v2.15.0)** | Un tipo de nómina nuevo, **Bonus** (objetivos, participación en beneficios…), aparte de la paga extra: no tapa una paga extra que falte. Si la app no sabe qué tipo es una nómina, **te lo pregunta** y lo **recuerda** para las siguientes de esa empresa con el mismo texto en el periodo. El mes sin leer sale en rojo | Revisión, *Ver*, Anual |
@@ -706,6 +707,12 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.16.1 (Octubre 2026)
+- **IRPF:** el aviso enseña el % y la base que saldrían con el importe leído. Si la base coincide con otra de la nómina, o el importe esperado es el de otra línea, señala solo ese campo y lo dice; si solo cabe el %, enseña la cifra sin afirmar nada.
+- **«No encuentro la línea de IRPF»:** dice qué hacer (añadir la línea o corregir el %) y, si una línea sin clasificar vale justo la retención, la nombra.
+- **Código y concepto distintos a tus otras nóminas:** enseña el importe de la línea y marca solo el campo que falla (el código o el concepto).
+- No cambia ningún nivel de aviso ni aparecen avisos nuevos en lo ya guardado. Textos en es, ca y en.
 
 ### v2.16.0 (Octubre 2026)
 - **Dónde corregir:** el aviso de una suma que no cuadra marca solo las celdas candidatas; si la cifra está en la columna equivocada, un botón la pasa a «Importe». Con horas extra, la pista de la base C.C. dice si la cuota sale de la base de desempleo/AT.

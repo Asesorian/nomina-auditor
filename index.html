@@ -413,7 +413,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.16.0</span>
+    <span class="logo-badge">Forense v2.16.1</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -3464,6 +3464,14 @@ Object.assign(I18N.es, {
   "moveToAmount": "⇄ Pasar {amount} a Importe",
   "ssViaRem": "Con la remuneración + prorrata ({base} €) sí cuadra: revisa «Base C.C.», puede que sea la base de desempleo/AT (la que lleva las horas extra).",
   "bccOvertime": "La diferencia ({ot} €) es justo lo que suman las horas extra: parece que «Base C.C.» tiene la base de desempleo/AT. La de contingencias comunes sería {base} €.",
+  "irpfImplicit": "Con ese importe y esa base, el % sería {rate}; con ese importe y ese %, la base sería {base} €. Compruébalo en el papel.",
+  "irpfHintBase": "Con ese importe y ese %, la base sería {base} €, que coincide con «{with}»: lo más probable es que «Base IRPF» esté mal leída. Compruébala en el papel.",
+  "irpfHintLine": "El importe que debería tener ({expected} €) es el de la línea {line}: lo más probable es que el IRPF se haya leído de otra fila. Compruébalo en el papel.",
+  "irpfHintRate": "Con ese importe y esa base, el % sería {rate}. Si lo mal leído fuera el %, ese sería su valor; compruébalo en el papel antes de cambiar nada.",
+  "irpfMissingHint": "Añade la línea de IRPF con su importe, o corrige el % si se ha leído mal.",
+  "irpfMissingCand": "La línea {line} vale justo esa retención: revisa su concepto, puede ser el IRPF.",
+  "tplHintCode": "Importe de la línea: {amount} €. En tus otras nóminas, «{concept}» lleva el código {code}: lo más probable es que falle el código.",
+  "tplHintConcept": "Importe de la línea: {amount} €. «{concept}» no está en tus otras nóminas: revisa el concepto en el papel; puede ser un concepto nuevo.",
   "sumHintExtra1": "Pista: {line} vale justo {amount} €. Mira en el papel si esa línea está en esta columna o si se ha leído de más.",
   "sumHintExtraN": "Pista: {list} valen justo {amount} €. Mira en el papel si una de ellas se ha leído de más.",
   "sumHintCol1": "Pista: {line} tiene el importe a 0 y {amount} € en otra columna (unidades, % o precio): seguramente es su importe, leído en la columna equivocada. Compruébalo en el papel.",
@@ -3510,6 +3518,14 @@ Object.assign(I18N.ca, {
   "moveToAmount": "⇄ Passa {amount} a «Importe»",
   "ssViaRem": "Amb la remuneració + prorrata ({base} €) sí que quadra: revisa «Base C.C.», pot ser la base d'atur/AT (la que inclou les hores extraordinàries).",
   "bccOvertime": "La diferència ({ot} €) és just el que sumen les hores extraordinàries: sembla que «Base C.C.» té la base d'atur/AT. La de contingències comunes seria {base} €.",
+  "irpfImplicit": "Amb aquest import i aquesta base, el % seria {rate}; amb aquest import i aquest %, la base seria {base} €. Comprova-ho al paper.",
+  "irpfHintBase": "Amb aquest import i aquest %, la base seria {base} €, que coincideix amb «{with}»: el més probable és que «Base IRPF» estigui mal llegida. Comprova-la al paper.",
+  "irpfHintLine": "L'import que hauria de tenir ({expected} €) és el de la línia {line}: el més probable és que l'IRPF s'hagi llegit d'una altra fila. Comprova-ho al paper.",
+  "irpfHintRate": "Amb aquest import i aquesta base, el % seria {rate}. Si l'error de lectura fos al %, aquest en seria el valor; comprova-ho al paper abans de canviar res.",
+  "irpfMissingHint": "Afegeix la línia d'IRPF amb el seu import, o corregeix el % si s'ha llegit malament.",
+  "irpfMissingCand": "La línia {line} val just aquesta retenció: revisa'n el concepte, pot ser l'IRPF.",
+  "tplHintCode": "Import de la línia: {amount} €. A les teves altres nòmines, «{concept}» porta el codi {code}: el més probable és que falli el codi.",
+  "tplHintConcept": "Import de la línia: {amount} €. «{concept}» no és a les teves altres nòmines: revisa el concepte al paper; pot ser un concepte nou.",
   "sumHintExtra1": "Pista: {line} val just {amount} €. Mira al paper si aquesta línia és en aquesta columna o si s'ha llegit de més.",
   "sumHintExtraN": "Pista: {list} valen just {amount} €. Mira al paper si alguna s'ha llegit de més.",
   "sumHintCol1": "Pista: {line} té l'import a 0 i {amount} € en una altra columna (unitats, % o preu): segurament és el seu import, llegit a la columna equivocada. Comprova-ho al paper.",
@@ -3556,6 +3572,14 @@ Object.assign(I18N.en, {
   "moveToAmount": "⇄ Move {amount} to the Importe (amount) column",
   "ssViaRem": "With remuneration + prorrata ({base} €) it does add up: check «Base C.C.», it may be the unemployment/AT base (the one that includes overtime).",
   "bccOvertime": "The difference ({ot} €) is exactly what the overtime adds up to: «Base C.C.» seems to hold the unemployment/AT base. The common-contingencies one would be {base} €.",
+  "irpfImplicit": "With that amount and that base, the % would be {rate}; with that amount and that %, the base would be {base} €. Check it on the paper.",
+  "irpfHintBase": "With that amount and that %, the base would be {base} €, which matches «{with}»: «Base IRPF» was most likely misread. Check it on the paper.",
+  "irpfHintLine": "The amount it should have ({expected} €) is that of the line {line}: the IRPF (income tax withholding) was most likely read from another row. Check it on the paper.",
+  "irpfHintRate": "With that amount and that base, the % would be {rate}. If the % is what was misread, that would be its value; check the paper before changing anything.",
+  "irpfMissingHint": "Add the IRPF line with its amount, or correct the % if it was misread.",
+  "irpfMissingCand": "The line {line} is exactly that withholding: check its concept, it may be the IRPF.",
+  "tplHintCode": "Line amount: {amount} €. In your other payslips, «{concept}» has the code {code}: the code is most likely what is wrong.",
+  "tplHintConcept": "Line amount: {amount} €. «{concept}» is not in your other payslips: check the concept on the paper; it may be a new item.",
   "sumHintExtra1": "Hint: {line} is exactly {amount} €. Check on the paper whether that line is in this column or was read by mistake.",
   "sumHintExtraN": "Hint: {list} are exactly {amount} €. Check on the paper whether one of them was read by mistake.",
   "sumHintCol1": "Hint: {line} has a 0 amount and {amount} € in another column (units, % or price): it is probably its amount, read in the wrong column. Check it on the paper.",
@@ -5678,13 +5702,41 @@ function checkPayroll(p, opts = {}) {
     const expected = round2(baseIRPF * r.rate / 100);
     if (irpfLine) sdl.push(round2(amt(irpfLine.amount) - expected));   // v2.12.3: lado de cada diferencia, para el neto
     if (!irpfLine) {
-      if (expected >= 1) out.push({ level: 'err', key: 'irpfMissing', paths: ['bases.irpfPercentage'],
-        text: `No encuentro la línea de IRPF: con base ${fmt(baseIRPF)} € al ${fmtPct(r.rate)} debería haber una retención de ${fmt(expected)} €.` });
+      if (expected >= 1) {
+        const c = { level: 'err', key: 'irpfMissing', paths: ['bases.irpfPercentage', 'bases.baseIRPF'],
+          text: `No encuentro la línea de IRPF: con base ${fmt(baseIRPF)} € al ${fmtPct(r.rate)} debería haber una retención de ${fmt(expected)} €.` };
+        // v2.16.1: qué hacer y, si una deducción sin clasificar vale justo lo esperado, cuál puede ser (solo texto y celdas: nivel y clave no cambian)
+        c.gtext = c.text; c.hint = true; c.text += ' ' + tr('irpfMissingHint');
+        const cand = ded.find(d => deductionKind(d) === 'otra' && Math.abs(amt(d.amount) - expected) <= CHECK_TOL);
+        if (cand) { c.text += ' ' + tr('irpfMissingCand', { line: `«${cand.concept || cand.code || '?'}»` }); c.paths.push(`deductions.${ded.indexOf(cand)}.concept`); }
+        out.push(c);
+      }
     } else if (Math.abs(amt(irpfLine.amount) - expected) > CHECK_TOL) {
-      out.push({ level: 'warn', key: 'irpf', paths: [`deductions.${ded.indexOf(irpfLine)}.amount`, 'bases.baseIRPF', 'bases.irpfPercentage'],
+      const c = { level: 'warn', key: 'irpf', paths: [`deductions.${ded.indexOf(irpfLine)}.amount`, 'bases.baseIRPF', 'bases.irpfPercentage'],
         diff: round2(Math.abs(amt(irpfLine.amount) - expected)), sdiff: round2(amt(irpfLine.amount) - expected), ded: true,
         rtext: `IRPF: ${fmt(irpfLine.amount)} € en la nómina y base IRPF ${fmt(baseIRPF)} € × ${fmtPct(r.rate)} = ${fmt(expected)} €`,
-        text: `IRPF leído: ${fmt(irpfLine.amount)} €, pero base IRPF ${fmt(baseIRPF)} € × ${fmtPct(r.rate)} = ${fmt(expected)} €.` });
+        text: `IRPF leído: ${fmt(irpfLine.amount)} €, pero base IRPF ${fmt(baseIRPF)} € × ${fmtPct(r.rate)} = ${fmt(expected)} €.` };
+      // v2.16.1: el % y la base que saldrían con ese importe, y tres hipótesis con su comprobación propia. Solo se afirma
+      //     «lo más probable» si encaja UNA de las dos con comprobación independiente (la base coincide con otra base de la
+      //     nómina; el importe esperado es el de otra línea). Si solo queda el %, no hay comprobación: se enseña la cifra y
+      //     se dejan marcados los tres campos. Nunca se cambia una cifra por su cuenta (docs/TECNICO.md §33).
+      const iAmt = amt(irpfLine.amount), li = ded.indexOf(irpfLine);
+      const impRate = round2(iAmt / baseIRPF * 100), impBase = r.rate > 0 ? round2(iAmt / (r.rate / 100)) : 0;
+      const same = (a, b) => a > 0 && b > 0 && Math.abs(a - b) <= a * 0.005;
+      const hBase = [['Base C.C.', bases.baseCC], ['Base A.T.', bases.baseAT], ['Remuneración total', bases.totalRemuneration], ['Total bruto', p.totals?.grossTotal]]
+        .map(([n, v]) => [n, amt(v)]).find(([, v]) => v > 0 && Math.abs(v - baseIRPF) > CHECK_TOL && same(impBase, v));
+      const hLine = ded.find(d => d !== irpfLine && amt(d.amount) > 0 && Math.abs(amt(d.amount) - expected) <= CHECK_TOL);
+      c.gtext = c.text; c.hint = true;
+      if (hBase && !hLine) {
+        c.text += ' ' + tr('irpfHintBase', { base: fmt(impBase), with: hBase[0] }); c.paths = ['bases.baseIRPF'];
+      } else if (hLine && !hBase) {
+        c.text += ' ' + tr('irpfHintLine', { expected: fmt(expected), line: `«${hLine.concept || hLine.code || '?'}»` }); c.paths = [`deductions.${li}.amount`];
+      } else if (!hBase && !hLine && impRate > 0 && impRate <= 47) {
+        c.text += ' ' + tr('irpfHintRate', { rate: fmtPct(impRate) });
+      } else if (impRate > 0 && impBase > 0) {
+        c.text += ' ' + tr('irpfImplicit', { rate: fmtPct(impRate), base: fmt(impBase) });
+      } else { c.hint = false; delete c.gtext; }
+      out.push(c);
     }
   }
 
@@ -5767,9 +5819,17 @@ function checkPayroll(p, opts = {}) {
       (p[side] || []).forEach((l, i) => {
         const code = lineCode(l);                                                // v2.14.2
         const before = tpl[side][code];
-        if (code && before !== undefined && conceptSimilarity(before, l.concept) < 0.6)
-          out.push({ level: 'warn', key: `tpl-${side}${i}`, paths: [`${side}.${i}.code`, `${side}.${i}.concept`],
-            text: `El código ${code} en tus otras nóminas es «${before}» y aquí pone «${l.concept}»: puede que las filas estén corridas.` });
+        if (code && before !== undefined && conceptSimilarity(before, l.concept) < 0.6) {
+          const c = { level: 'warn', key: `tpl-${side}${i}`, paths: [`${side}.${i}.code`, `${side}.${i}.concept`],
+            text: `El código ${code} en tus otras nóminas es «${before}» y aquí pone «${l.concept}»: puede que las filas estén corridas.` };
+          // v2.16.1: el importe de la línea y cuál de los dos campos falla: si el concepto se parece al de OTRO código de la plantilla,
+          //     falla el código; si no se parece a ninguno, falla el concepto (o es nuevo). Solo texto y celdas: nivel y clave no cambian.
+          const other = Object.keys(tpl[side]).find(k => k !== code && String(tpl[side][k] || '').trim() && conceptSimilarity(tpl[side][k], l.concept) >= 0.6);
+          c.gtext = c.text; c.hint = true;
+          if (other) { c.text += ' ' + tr('tplHintCode', { amount: fmt(l.amount), concept: String(l.concept || ''), code: other }); c.paths = [`${side}.${i}.code`]; }
+          else { c.text += ' ' + tr('tplHintConcept', { amount: fmt(l.amount), concept: String(l.concept || '') }); c.paths = [`${side}.${i}.concept`]; }
+          out.push(c);
+        }
       });
     }
   }
