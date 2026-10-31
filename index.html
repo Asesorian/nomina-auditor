@@ -413,7 +413,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.16.2</span>
+    <span class="logo-badge">Forense v2.16.3</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -5701,7 +5701,18 @@ function checkPayroll(p, opts = {}) {
   const r = irpfRateOf(p);
   const baseIRPF = amt(bases.baseIRPF);
   if (r.rate !== null && baseIRPF > 0 && !['calculado', 'aprox'].includes(r.source)) {
-    const expected = round2(baseIRPF * r.rate / 100);
+    let expected = round2(baseIRPF * r.rate / 100);
+    // v2.16.3: hay programas que imprimen aparte la «Base IRPF por retribución en especie» y calculan la retención sobre
+    //     las dos. Si base × % no da el importe pero (base + lo pagado en especie según las líneas de la propia nómina) × %
+    //     sí, el IRPF está bien: esa es la cuenta que vale (docs/TECNICO.md §35). La app no cambia ninguna cifra.
+    //     Solo para diferencias mayores que un redondeo (ROUND_TOL): unos céntimos de especie no tapan un redondeo de la empresa.
+    if (irpfLine && Math.abs(amt(irpfLine.amount) - expected) > ROUND_TOL + 1e-9) {
+      const espE = round2(earn.filter(e => /especie/.test(compactText(e.concept))).reduce((s, e) => s + amt(e.amount), 0));
+      const espD = round2(ded.filter(d => deductionKind(d) === 'especie').reduce((s, d) => s + amt(d.amount), 0));
+      const conEsp = [espE, espD].filter((v, j, a) => v > 0 && a.indexOf(v) === j).map(v => round2((baseIRPF + v) * r.rate / 100))
+        .find(e => Math.abs(amt(irpfLine.amount) - e) <= CHECK_TOL);
+      if (conEsp !== undefined) expected = conEsp;
+    }
     if (irpfLine) sdl.push(round2(amt(irpfLine.amount) - expected));   // v2.12.3: lado de cada diferencia, para el neto
     if (!irpfLine) {
       if (expected >= 1) {

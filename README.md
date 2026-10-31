@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.16.2)
+## 🆕 Novedades (v2.3 – v2.16.3)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 🎁 **IRPF con salario en especie (v2.16.3)** | Si tu nómina calcula la retención sobre la base de IRPF **más** lo que cobras en especie (seguro médico, coche, cheques…), como hacen algunos programas que imprimen aparte la «base IRPF por retribución en especie», la app ya no avisa de un IRPF que está bien | Revisión de una nómina |
 | 🧾 **IRPF con el nombre del modelo oficial (v2.16.2)** | Las nóminas que escriben el impuesto con su nombre completo, como el modelo oficial («Impuesto sobre la renta de las personas físicas»), ya no dan el error «No encuentro la línea de IRPF»: la línea cuenta como IRPF y el glosario la explica. También en català, gallego y euskera | Revisión de una nómina · Glosario |
 | 🔎 **Avisos que señalan la cifra sospechosa (v2.16.1)** | El aviso del **IRPF** calcula el % y la base que saldrían con el importe leído y, si la base coincide con otra de la nómina o el importe esperado es el de otra línea, dice **cuál es lo más probable**; «No encuentro la línea de IRPF» dice qué hacer y nombra la línea que podría ser; y el aviso de **código y concepto distintos** a tus otras nóminas enseña el importe y dice si falla el código o el concepto. Solo cambia el texto y las celdas marcadas: la app no cambia ninguna cifra por su cuenta | Revisión de una nómina |
 | 🧭 **Dónde corregir y paga de beneficios (v2.16.0)** | Cada aviso de suma señala la **celda sospechosa** y, si basta con mover una cifra a «Importe», lo hace un botón; con horas extra, la pista dice si la base C.C. se confundió con la de desempleo/AT; los códigos de relleno salen como «-»; las previsiones son informativas. El tipo **Bonus** pasa a llamarse **Beneficios** («Paga de beneficios o bonus» en los botones), la ayuda explica las 14 pagas (12 + 2 o 12 prorrateadas) y, en el Anual, por cada empresa preguntas si paga esa paga (se guarda en tu dispositivo y en el backup) y avisa si falta. | Ver, Anual |
@@ -708,6 +709,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.16.3 (Octubre 2026)
+- **IRPF con salario en especie:** si base IRPF × % no da la retención pero (base IRPF + lo pagado en especie según las líneas de la nómina) × % sí, el IRPF se da por bueno y no sale el aviso (ni la pista que culpaba a la base). Solo para diferencias mayores que un redondeo.
+- Sin cambios en las nóminas que ya cuadraban. Sin textos nuevos.
 
 ### v2.16.2 (Octubre 2026)
 - **IRPF con su nombre completo:** «Impuesto sobre la renta de las personas físicas» (el texto del modelo oficial de nómina) y sus formas abreviadas o en català, gallego y euskera se reconocen como IRPF, en las comprobaciones y en el glosario. Antes daban el error «No encuentro la línea de IRPF» aunque la línea estuviera bien leída.
