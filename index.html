@@ -413,7 +413,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.16.4</span>
+    <span class="logo-badge">Forense v2.16.5</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -3476,6 +3476,8 @@ Object.assign(I18N.es, {
   "sumHintExtraN": "Pista: {list} valen justo {amount} €. Mira en el papel si una de ellas se ha leído de más.",
   "sumHintCol1": "Pista: {line} tiene el importe a 0 y {amount} € en otra columna (unidades, % o precio): seguramente es su importe, leído en la columna equivocada. Compruébalo en el papel.",
   "sumHintColN": "Pista: {list} tienen el importe a 0 y {amount} € en otra columna: en una de ellas el importe se ha leído en la columna equivocada. Compruébalo en el papel.",
+  "irpfHintLineBase": "La propia línea de IRPF lleva impresa otra base: {lineBase} € × {rate} = {calc} €, en vez de la base IRPF ({base} €). Compara en el papel esa cifra con la base del IRPF de la nómina: si la base IRPF está mal leída, corrígela en «Base IRPF»; si las dos están bien leídas, la lectura es correcta y es la nómina la que calcula el IRPF sobre otra cantidad. En ese caso no cambies nada: guárdala con el aviso y, si quieres, pregúntalo en la empresa.",
+  "ssTotal": "{line} parece la fila del total de la Seguridad Social, no una cuota. Si en el papel salen encima las cotizaciones una a una (contingencias comunes, desempleo, formación, MEI…), cada una con su %, la lectura se las ha saltado: las sumas cuadran porque el total está bien, pero la app no puede comprobar cada cuota. Pulsa «🔁 Releer con Gemini» o añádelas con «＋ Añadir línea» y quita esta. Si la nómina solo trae el total, está bien leída: no cambies nada.",
   "sumHintRate": "Pista: {line} tiene el importe a 0, pero {base} € × {pct} = {amount} €, justo lo que falta. Seguramente su importe no se ha leído: compruébalo en el papel.",
   "bccMin": "La base C.C. es mayor: si es una nómina a tiempo parcial o con un sueldo bajo, puede ser la base mínima de cotización de tu grupo, y entonces es correcta. Compárala con el papel.",
   "bccMax": "La base C.C. es menor: con sueldos altos puede ser la base máxima de cotización, y entonces es correcta. Compárala con el papel.",
@@ -3533,6 +3535,8 @@ Object.assign(I18N.ca, {
   "sumHintExtraN": "Pista: {list} valen just {amount} €. Mira al paper si alguna s'ha llegit de més.",
   "sumHintCol1": "Pista: {line} té l'import a 0 i {amount} € en una altra columna (unitats, % o preu): segurament és el seu import, llegit a la columna equivocada. Comprova-ho al paper.",
   "sumHintColN": "Pista: {list} tenen l'import a 0 i {amount} € en una altra columna: en alguna l'import s'ha llegit a la columna equivocada. Comprova-ho al paper.",
+  "irpfHintLineBase": "La mateixa línia d'IRPF porta impresa una altra base: {lineBase} € × {rate} = {calc} €, en lloc de la base de l'IRPF ({base} €). Compara al paper aquesta xifra amb la base de l'IRPF de la nòmina: si la base de l'IRPF està mal llegida, corregeix-la a «Base IRPF»; si totes dues estan ben llegides, la lectura és correcta i és la nòmina la que calcula l'IRPF sobre una altra quantitat. En aquest cas no canviïs res: desa-la amb l'avís i, si vols, pregunta-ho a l'empresa.",
+  "ssTotal": "{line} sembla la fila del total de la Seguretat Social, no una quota. Si al paper surten a dalt les cotitzacions una per una (contingències comunes, atur, formació, MEI…), cadascuna amb el seu %, la lectura se les ha saltat: les sumes quadren perquè el total està bé, però l'app no pot comprovar cada quota. Prem «🔁 Releer con Gemini» o afegeix-les amb «＋ Añadir línea» i esborra aquesta. Si la nòmina només porta el total, està ben llegida: no canviïs res.",
   "sumHintRate": "Pista: {line} té l'import a 0, però {base} € × {pct} = {amount} €, just el que falta. Segurament no se n'ha llegit l'import: comprova-ho al paper.",
   "bccMin": "La base C.C. és més alta: si és una nòmina a temps parcial o amb un sou baix, pot ser la base mínima de cotització del teu grup, i llavors és correcta. Compara-la amb el paper.",
   "bccMax": "La base C.C. és més baixa: amb sous alts pot ser la base màxima de cotització, i llavors és correcta. Compara-la amb el paper.",
@@ -3590,6 +3594,8 @@ Object.assign(I18N.en, {
   "sumHintExtraN": "Hint: {list} are exactly {amount} €. Check on the paper whether one of them was read by mistake.",
   "sumHintCol1": "Hint: {line} has a 0 amount and {amount} € in another column (units, % or price): it is probably its amount, read in the wrong column. Check it on the paper.",
   "sumHintColN": "Hint: {list} have a 0 amount and {amount} € in another column: in one of them the amount was read in the wrong column. Check it on the paper.",
+  "irpfHintLineBase": "The IRPF line itself shows a different base: {lineBase} € × {rate} = {calc} €, instead of the IRPF base ({base} €). On the paper, compare that figure with the payslip's IRPF base: if the IRPF base was misread, correct it in «Base IRPF»; if both are read correctly, the reading is right and it is the payslip that calculates the IRPF on a different amount. In that case change nothing: save it with the warning and, if you like, ask the company.",
+  "ssTotal": "{line} looks like the Social Security total row (Seguridad Social), not a contribution. If the paper shows the contributions one by one above it (contingencias comunes, desempleo, formación, MEI…), each with its %, the reading skipped them: the sums add up because the total is right, but the app cannot check each contribution. Press «🔁 Releer con Gemini» or add them with «＋ Añadir línea» and remove this one. If the payslip only shows the total, it was read correctly: change nothing.",
   "sumHintRate": "Hint: {line} has a 0 amount, but {base} € × {pct} = {amount} €, exactly what is missing. Its amount was probably not read: check it on the paper.",
   "bccMin": "The C.C. base is higher: on a part-time payslip or with a low salary it may be the minimum contribution base for your group, and then it is correct. Compare it with the paper.",
   "bccMax": "The C.C. base is lower: with high salaries it may be the maximum contribution base, and then it is correct. Compare it with the paper.",
@@ -5761,8 +5767,15 @@ function checkPayroll(p, opts = {}) {
       const hBase = [['Base C.C.', bases.baseCC], ['Base A.T.', bases.baseAT], ['Remuneración total', bases.totalRemuneration], ['Total bruto', p.totals?.grossTotal]]
         .map(([n, v]) => [n, amt(v)]).find(([, v]) => v > 0 && Math.abs(v - baseIRPF) > CHECK_TOL && same(impBase, v));
       const hLine = ded.find(d => d !== irpfLine && amt(d.amount) > 0 && Math.abs(amt(d.amount) - expected) <= CHECK_TOL);
+      // v2.16.5: la propia línea de IRPF lleva impresa otra base (en precio o unidades) y esa base × % da el importe (± redondeo):
+      //     la empresa ha calculado sobre otra cantidad o «Base IRPF» está mal leída. Es una cifra del papel, así que va primero.
+      const lineBase = ['price', 'units'].map(k => ({ k, v: num(irpfLine[k]) }))
+        .find(({ v }) => Number.isFinite(v) && v > 47 && Math.abs(v - baseIRPF) > CHECK_TOL && Math.abs(round2(v * r.rate / 100) - iAmt) <= ROUND_TOL + 1e-9);
       c.gtext = c.text; c.hint = true;
-      if (hBase && !hLine) {
+      if (lineBase) {
+        c.text += ' ' + tr('irpfHintLineBase', { lineBase: fmt(lineBase.v), rate: fmtPct(r.rate), calc: fmt(round2(lineBase.v * r.rate / 100)), base: fmt(baseIRPF) });
+        c.paths = [`deductions.${li}.${lineBase.k}`, 'bases.baseIRPF'];
+      } else if (hBase && !hLine) {
         c.text += ' ' + tr('irpfHintBase', { base: fmt(impBase), with: hBase[0] }); c.paths = ['bases.baseIRPF'];
       } else if (hLine && !hBase) {
         c.text += ' ' + tr('irpfHintLine', { expected: fmt(expected), line: `«${hLine.concept || hLine.code || '?'}»` }); c.paths = [`deductions.${li}.amount`];
@@ -5805,6 +5818,22 @@ function checkPayroll(p, opts = {}) {
     }
     out.push(c);
   });
+
+  // 5b. v2.16.5: la fila del TOTAL de la S.S. leída como si fuera una línea («TOTAL APORTACIONES»): las sumas cuadran pero se
+  //     pierde el desglose y no se comprueba ninguna cuota. Solo si no hay ninguna cotización reconocida, la línea empieza por
+  //     total/suma/subtotal, no lleva % y vale lo que suele valer la S.S. del trabajador (3–10 % de la base C.C.).
+  //     Si la nómina solo trae el total, la lectura es correcta: el texto lo dice. Aviso, nunca error (docs/TECNICO.md §37).
+  if (baseCC > 0 && !ded.some(d => isSSKind(deductionKind(d)))) {
+    const totDed = num(p.totals?.totalDeductions);
+    const si = ded.findIndex(d => /^(total|suma|subtotal)/.test(compactText(d.concept)) && deductionKind(d) === 'otra' && pctOfLine(d) === null &&
+      amt(d.amount) >= baseCC * 0.03 && amt(d.amount) <= baseCC * 0.10 && !(Number.isFinite(totDed) && Math.abs(amt(d.amount) - totDed) <= CHECK_TOL));
+    if (si >= 0) {
+      const line = `«${ded[si].concept}»`;
+      out.push({ level: 'warn', key: 'ssTotal', paths: [`deductions.${si}.concept`, `deductions.${si}.amount`],
+        gtext: `${line} parece la fila del total de la Seguridad Social: si el documento trae las cotizaciones una a una, lee cada una en su propia fila, con su %, y no la fila del total.`,
+        text: tr('ssTotal', { line }) });
+    }
+  }
 
   // 6. Unidades × precio = importe en los devengos (cuando Gemini ha leído el precio aparte).
   //    En las deducciones no: ahí "unidades" suele ser un porcentaje y ya se comprueba en el punto 5.

@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.15.1-blue)
+![Version](https://img.shields.io/badge/version-2.16.5-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.16.4)
+## 🆕 Novedades (v2.3 – v2.16.5)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 🧮 **Total de la Seguridad Social y base propia del IRPF (v2.16.5)** | Si la lectura se queda con la fila del **total** de la Seguridad Social en vez de las cotizaciones una a una, las sumas cuadran pero no se puede comprobar ninguna cuota: ahora sale un aviso que dice qué mirar en el papel y cómo corregirlo (si tu nómina solo trae el total, te dice que está bien). Y si la línea de IRPF lleva impresa su propia base y la retención se ha calculado sobre ella, el aviso de IRPF lo explica: o la base IRPF está mal leída o es la nómina la que usa otra cantidad. | Revisión y *Ver* |
 | 💡 **Dos pistas más (v2.16.4)** | Si a las deducciones les falta dinero y una línea con su % tiene el importe a 0, la pista la nombra con la cuenta (base × % = lo que falta). Y si la base C.C. no es remuneración + prorrata, el aviso recuerda que puede ser la **base mínima** de tu grupo (tiempo parcial, sueldo bajo) o la **máxima** (sueldo alto) | Revisión de una nómina |
 | 🎁 **IRPF con salario en especie (v2.16.3)** | Si tu nómina calcula la retención sobre la base de IRPF **más** lo que cobras en especie (seguro médico, coche, cheques…), como hacen algunos programas que imprimen aparte la «base IRPF por retribución en especie», la app ya no avisa de un IRPF que está bien | Revisión de una nómina |
 | 🧾 **IRPF con el nombre del modelo oficial (v2.16.2)** | Las nóminas que escriben el impuesto con su nombre completo, como el modelo oficial («Impuesto sobre la renta de las personas físicas»), ya no dan el error «No encuentro la línea de IRPF»: la línea cuenta como IRPF y el glosario la explica. También en català, gallego y euskera | Revisión de una nómina · Glosario |
@@ -710,6 +711,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.16.5 (Octubre 2026)
+- **Fila del total de la S.S. leída como cuota:** si no hay ninguna cotización reconocida y una deducción que empieza por «Total», «Suma» o «Subtotal», sin %, vale entre el 3 % y el 10 % de la base C.C., sale el aviso `ssTotal` (nunca error): las sumas cuadran pero se ha perdido el desglose. Dice qué mirar en el papel, cómo corregirlo y que, si la nómina solo trae el total, la lectura es correcta. Al releer, Gemini recibe la indicación de leer las cuotas una a una.
+- **IRPF sobre la base impresa en su propia línea:** en el aviso de IRPF, si la línea lleva otra base (en precio o unidades) y esa base × % da el importe (± redondeo), la pista lo dice y marca esa cifra y «Base IRPF».
+- Sin cambios en las nóminas que ya cuadraban. Textos en es, ca y en.
 
 ### v2.16.4 (Octubre 2026)
 - **Cuota leída a 0:** si las deducciones no llegan al total y una sola línea con su % impreso tiene el importe a 0, y una base (C.C., A.T. o la de horas extra) × % da justo lo que falta, la pista la nombra y marca solo su importe.
