@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.16.6-blue)
+![Version](https://img.shields.io/badge/version-2.16.7-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,11 +31,10 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.16.6)
+## 🆕 Novedades (v2.3 – v2.16.7)
 
 | | Qué hace | Dónde |
 |---|---|---|
-| 📄 **Solo cuenta lo que se ve en el PDF (v2.16.6)** | La comprobación «PDF digital: N de N cifras comprobadas» ya no tiene en cuenta el texto que el PDF lleva fuera de la página (una capa de notas, texto fuera del recorte): una cifra que solo estuviera ahí no se da por comprobada, porque no se ve en el papel. Sin cambios en las nóminas normales. | Revisión y *Ver* |
 | 🧮 **Total de la Seguridad Social y base propia del IRPF (v2.16.5)** | Si la lectura se queda con la fila del **total** de la Seguridad Social en vez de las cotizaciones una a una, las sumas cuadran pero no se puede comprobar ninguna cuota: ahora sale un aviso que dice qué mirar en el papel y cómo corregirlo (si tu nómina solo trae el total, te dice que está bien). Y si la línea de IRPF lleva impresa su propia base y la retención se ha calculado sobre ella, el aviso de IRPF lo explica: o la base IRPF está mal leída o es la nómina la que usa otra cantidad. | Revisión y *Ver* |
 | 💡 **Dos pistas más (v2.16.4)** | Si a las deducciones les falta dinero y una línea con su % tiene el importe a 0, la pista la nombra con la cuenta (base × % = lo que falta). Y si la base C.C. no es remuneración + prorrata, el aviso recuerda que puede ser la **base mínima** de tu grupo (tiempo parcial, sueldo bajo) o la **máxima** (sueldo alto) | Revisión de una nómina |
 | 🎁 **IRPF con salario en especie (v2.16.3)** | Si tu nómina calcula la retención sobre la base de IRPF **más** lo que cobras en especie (seguro médico, coche, cheques…), como hacen algunos programas que imprimen aparte la «base IRPF por retribución en especie», la app ya no avisa de un IRPF que está bien | Revisión de una nómina |
@@ -713,9 +712,12 @@ BASES Y TOTALES
 
 ## 📋 Changelog
 
+### v2.16.7 (Noviembre 2026)
+- **Se retira el filtro de la v2.16.6:** la librería que lee los PDF (pdf.js) ya descarta ella sola el texto que cae fuera de la página, así que el filtro propio no llegaba a actuar nunca. Queda una prueba que vigila ese comportamiento de la librería, para enterarnos si cambia al actualizarla.
+- Sin cambios para quien usa la app (tampoco los tenía la v2.16.6). Sin textos nuevos.
+
 ### v2.16.6 (Noviembre 2026)
-- **Texto fuera de la página:** `pdfDocNumbers` descarta los trozos de texto que caen enteros fuera de la página visible (`page.view`, con un margen de 2 pt); los que entran en parte se conservan. Una cifra que solo estuviera en esa capa ya no cuenta como comprobada.
-- Sin cambios en las nóminas normales. Sin textos nuevos.
+- Se añadió un filtro del texto situado fuera de la página en la comprobación de cifras del PDF. **Sin efecto en la práctica** (pdf.js ya lo descartaba); retirado en la v2.16.7.
 
 ### v2.16.5 (Octubre 2026)
 - **Fila del total de la S.S. leída como cuota:** si no hay ninguna cotización reconocida y una deducción que empieza por «Total», «Suma» o «Subtotal», sin %, vale entre el 3 % y el 10 % de la base C.C., sale el aviso `ssTotal` (nunca error): las sumas cuadran pero se ha perdido el desglose. Dice qué mirar en el papel, cómo corregirlo y que, si la nómina solo trae el total, la lectura es correcta. Al releer, Gemini recibe la indicación de leer las cuotas una a una.
