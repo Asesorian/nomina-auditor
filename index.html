@@ -413,7 +413,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.16.5</span>
+    <span class="logo-badge">Forense v2.16.6</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -4261,6 +4261,20 @@ function docNumbersFromText(text) {
   return [...out].filter(Number.isFinite).sort((a, b) => a - b);
 }
 
+// ¿Se ve este trozo de texto dentro de la página? Un PDF puede llevar texto fuera de ella (una capa de notas, de
+// pruebas…): existe en el archivo pero no está en el papel, y no vale para comprobar una cifra. Solo se descarta
+// lo que cae entero fuera (los dos extremos del trozo del mismo lado, con un margen); lo que entra en parte, se queda.
+function textItemOnPage(it, view) {
+  if (!Array.isArray(view) || view.length < 4 || !it?.transform) return true;
+  const [a, b, , , tx, ty] = it.transform;
+  const w = +it.width || 0, len = Math.hypot(a, b) || 1;
+  const ex = tx + (w * a) / len, ey = ty + (w * b) / len;
+  const x0 = Math.min(view[0], view[2]) - 2, x1 = Math.max(view[0], view[2]) + 2;
+  const y0 = Math.min(view[1], view[3]) - 2, y1 = Math.max(view[1], view[3]) + 2;
+  if (![tx, ty, ex, ey].every(Number.isFinite)) return true;
+  return !((tx < x0 && ex < x0) || (tx > x1 && ex > x1) || (ty < y0 && ey < y0) || (ty > y1 && ey > y1));
+}
+
 // Los números del texto de un PDF digital, o null (escaneo, texto invisible de un OCR, contraseña, sin pdf.js…).
 async function pdfDocNumbers(base64) {
   let pdf = null;
@@ -4278,7 +4292,7 @@ async function pdfDocNumbers(base64) {
       if (ops.fnArray.some((fn, k) => fn === lib.OPS.setTextRenderingMode && (ops.argsArray[k]?.[0] & 3) === 3)) return null;
       const rows = new Map();
       for (const it of (await page.getTextContent()).items) {
-        if (!it.str || !it.transform) continue;
+        if (!it.str || !it.transform || !textItemOnPage(it, page.view)) continue;
         chars += it.str.trim().length;
         const y = Math.round(it.transform[5] / 3);
         if (!rows.has(y)) rows.set(y, []);
