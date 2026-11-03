@@ -21,7 +21,7 @@
 // ═══════════════════════════════════════════════════════════════════════
 
 const CACHE_PREFIX = 'nomina-auditor-';
-const CACHE_VERSION = CACHE_PREFIX + 'sw4';   // sw4 (v2.14.0): pdf-lib, para separar sin conexión un PDF con varias nóminas
+const CACHE_VERSION = CACHE_PREFIX + 'sw5';   // sw5 (v2.17.1): PDF.js 4.10.38 (borra la copia de la 3.11.174); sw4 (v2.14.0): pdf-lib
 const APP_SHELL = './';
 const NETWORK_TIMEOUT_MS = 4000;
 const CDN_ASSETS = [

@@ -419,7 +419,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.17.0</span>
+    <span class="logo-badge">Forense v2.17.1</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -4078,17 +4078,20 @@ async function viewOriginal(id) {
 // - Se descarga solo la primera vez que hace falta (~380 KB comprimido) y el modo sin conexión lo guarda.
 // - SRI: el navegador solo lo ejecuta si es exactamente esta versión.
 // - Funciona en el hilo principal (sin Worker), suficiente para nóminas de 1-3 páginas y sin problemas de orígenes.
+// - v2.17.1: PDF.js 4.10.38 (antes 3.11.174). Desde la 4.0 son módulos (.mjs): se cargan con <script type="module">,
+//   que también comprueba la huella, y dejan los mismos globales (window.pdfjsLib, window.pdfjsWorker).
 // - Si algo falla, nunca deja sin ver la nómina: ofrece abrirla con el visor del móvil o descargarla.
-const PDFJS_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+const PDFJS_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/';
 const PDFJS_FILES = [
-  ['pdf.min.js', 'sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e'],
-  ['pdf.worker.min.js', 'sha384-SnzOobpRMLXZ52iJvZm/C0fYw0OQemTXzTjIsdsfMcrCtCEe9qgzxTd3RSklO5x2']
+  ['pdf.min.mjs', 'sha384-+0ti2moQlmLN7WZHE2RHIf5lV8hHxhxEalN0il3YZceG26fUPyOkR0hp9daxk1i7'],
+  ['pdf.worker.min.mjs', 'sha384-ToeVvShCxKc6CEvhHeMt0Q8A06pSPDbAlngO9nokrDmh914gk/pYd0N7D0a4Lz2o']
 ];
 let pdfjsPromise = null;
 
-function loadScriptOnce(src, integrity) {
+function loadScriptOnce(src, integrity, module = false) {
   return new Promise((resolve, reject) => {
     const s = document.createElement('script');
+    if (module) s.type = 'module';
     s.src = src;
     s.integrity = integrity;
     s.crossOrigin = 'anonymous';
@@ -4098,12 +4101,24 @@ function loadScriptOnce(src, integrity) {
   });
 }
 
+// v2.17.1: PDF.js 4.x usa Promise.withResolvers (Safari/iOS 17.4, Chrome 119). Con esto funciona también en iPhone con
+// iOS 16.4 o posterior. Lo demás que pide de más nuevo, o lo comprueba antes de usarlo o es del editor, que no se usa.
+function polyfillPdfJs() {
+  if (typeof Promise.withResolvers === 'function') return;
+  Promise.withResolvers = function () {
+    let resolve, reject;
+    const promise = new this((res, rej) => { resolve = res; reject = rej; });
+    return { promise, resolve, reject };
+  };
+}
+
 function loadPdfJs() {
   if (window.pdfjsLib && window.pdfjsWorker) return Promise.resolve(window.pdfjsLib);
   if (!pdfjsPromise) {
     pdfjsPromise = (async () => {
-      if (!window.pdfjsLib) await loadScriptOnce(PDFJS_BASE + PDFJS_FILES[0][0], PDFJS_FILES[0][1]);
-      if (!window.pdfjsWorker) await loadScriptOnce(PDFJS_BASE + PDFJS_FILES[1][0], PDFJS_FILES[1][1]);
+      polyfillPdfJs();
+      if (!window.pdfjsLib) await loadScriptOnce(PDFJS_BASE + PDFJS_FILES[0][0], PDFJS_FILES[0][1], true);
+      if (!window.pdfjsWorker) await loadScriptOnce(PDFJS_BASE + PDFJS_FILES[1][0], PDFJS_FILES[1][1], true);
       if (!window.pdfjsLib || !window.pdfjsWorker) throw new Error('Visor de PDF no disponible');
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_BASE + PDFJS_FILES[1][0];
       return window.pdfjsLib;

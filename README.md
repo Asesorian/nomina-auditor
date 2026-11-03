@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.16.7-blue)
+![Version](https://img.shields.io/badge/version-2.17.1-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -694,7 +694,7 @@ BASES Y TOTALES
 
 - **Frontend:** HTML5 + CSS3 + JavaScript vanilla
 - **IA:** Google Gemini 2.5 (exclusivamente para OCR)
-- **Dependencias (vía CDN, todas verificadas con SRI):** JSZip 3.10 (backups completos en ZIP), QRCode.js 1.0 (pasar la key al móvil) y PDF.js 3.11.174 de Mozilla (visor de PDF: se carga solo al abrir un PDF, sin Worker y con `isEvalSupported: false`, que impide que un PDF manipulado ejecute código: CVE-2024-4367). Si el archivo de la CDN no coincide byte a byte con el esperado, el navegador no lo ejecuta
+- **Dependencias (vía CDN, todas verificadas con SRI):** JSZip 3.10 (backups completos en ZIP), QRCode.js 1.0 (pasar la key al móvil) y PDF.js 4.10.38 de Mozilla (visor de PDF: se carga solo al abrir un PDF, sin Worker y con `isEvalSupported: false`; desde la v2.17.1, en una versión que ya trae corregido el fallo por el que un PDF manipulado podía ejecutar código, CVE-2024-4367). Si el archivo de la CDN no coincide byte a byte con el esperado, el navegador no lo ejecuta
 - **Almacenamiento:** localStorage del navegador (datos) e IndexedDB (documentos originales, que pueden ocupar varios MB)
 - **PWA:** instalable, con service worker para uso sin conexión
 - **Deploy:** GitHub Pages (HTTPS obligatorio para PWA y modo sin conexión)
@@ -713,6 +713,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.17.1 (Noviembre 2026)
+- **PDF.js 4.10.38** (antes 3.11.174), la librería que muestra los PDF y saca su texto. La versión nueva trae corregido de raíz el fallo por el que un PDF manipulado podía ejecutar código (CVE-2024-4367), que hasta ahora se tapaba con dos defensas que se quedan. Se carga como módulo, con su huella, y funciona en iPhone desde iOS 16.4.
+- Sin cambios en lo que lee la app ni textos nuevos. La primera vez que se abra un PDF tras actualizar, se descarga el visor nuevo (hace falta conexión una vez).
 
 ### v2.17.0 (Noviembre 2026)
 - **Saldo de festivos:** festivos trabajados (calendario oficial de la comunidad + 2 fiestas locales − los desmarcados, desde la fecha elegida hasta el mes de la última nómina) frente a festivos cobrados (líneas de devengo con «festiv»/«festiu» y sus unidades, sin las pagas extra). Reparto en orden, el más antiguo primero; un pago nunca cubre un festivo posterior a su nómina. Saldo inicial (festivos pendientes de antes), aviso a los 2 meses, pagos de más (sugiere el saldo inicial) y pagos sin unidades (se nombran, no se adivinan).
