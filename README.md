@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.17.1-blue)
+![Version](https://img.shields.io/badge/version-2.18.0-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,11 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.17.0)
+## 🆕 Novedades (v2.3 – v2.18.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
-| 🎌 **Saldo de festivos (v2.17.0)** | Muchas empresas pagan los festivos trabajados **por lotes y con meses de retraso**, y la nómina no dice a qué festivo corresponde cada pago. Elige tu comunidad autónoma (el calendario oficial del BOE ya está dentro de la app, 2026 y 2027), pon tus 2 fiestas locales y desde cuándo cuentas: la app compara los festivos que trabajas con los que te pagan, en orden (el más antiguo primero), y **avisa si uno lleva 2 meses sin aparecer**. Si no trabajaste alguno, lo desmarcas. Solo documenta: no dice cuánto vale un festivo ni si se puede reclamar (eso depende de tu convenio). Se guarda en tu dispositivo y en el backup | Datos → Festivos · Panel · Anual |
+| 🎌 **Saldo de festivos (v2.17.0)** | Muchas empresas pagan los festivos trabajados **por lotes y con meses de retraso**, y la nómina no dice a qué festivo corresponde cada pago. Elige tu comunidad autónoma (el calendario oficial del BOE ya está dentro de la app, 2026 y 2027), pon tus 2 fiestas locales y desde cuándo cuentas: la app compara los festivos que trabajas con los que te pagan, en orden (el más antiguo primero), y **avisa si uno lleva 2 meses sin aparecer**. Si no trabajaste alguno, lo desmarcas. **En Catalunya (v2.18.0)**, eliges el municipio de tu centro de trabajo y las 2 fiestas locales salen solas de la orden oficial del DOGC (los 947 municipios y sus núcleos agregados). Solo documenta: no dice cuánto vale un festivo ni si se puede reclamar (eso depende de tu convenio). Se guarda en tu dispositivo y en el backup | Datos → Festivos · Panel · Anual |
 | 💾 **La paga de beneficios vuelve con el backup (v2.16.8)** | Al **restaurar un backup** en otro dispositivo (un móvil nuevo, el ordenador), las nóminas de **Beneficios** se quedaban fuera con el aviso «registro ignorado», y también su original. Ahora entran con todo. El backup ya las guardaba bien: si te pasó, vuelve a importar el mismo archivo y saldrán como nuevas, sin tocar las demás | Datos → Importar backup |
 | 🧮 **Total de la Seguridad Social y base propia del IRPF (v2.16.5)** | Si la lectura se queda con la fila del **total** de la Seguridad Social en vez de las cotizaciones una a una, las sumas cuadran pero no se puede comprobar ninguna cuota: ahora sale un aviso que dice qué mirar en el papel y cómo corregirlo (si tu nómina solo trae el total, te dice que está bien). Y si la línea de IRPF lleva impresa su propia base y la retención se ha calculado sobre ella, el aviso de IRPF lo explica: o la base IRPF está mal leída o es la nómina la que usa otra cantidad. | Revisión y *Ver* |
 | 💡 **Dos pistas más (v2.16.4)** | Si a las deducciones les falta dinero y una línea con su % tiene el importe a 0, la pista la nombra con la cuenta (base × % = lo que falta). Y si la base C.C. no es remuneración + prorrata, el aviso recuerda que puede ser la **base mínima** de tu grupo (tiempo parcial, sueldo bajo) o la **máxima** (sueldo alto) | Revisión de una nómina |
@@ -713,6 +713,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.18.0 (Noviembre 2026)
+- **Fiestas locales de Catalunya por municipio:** en Datos → Festivos, con la comunidad Catalunya, se elige el **municipio del centro de trabajo** (también los núcleos agregados, como «Santes Creus (Aiguamúrcia)») y sus 2 fiestas locales salen de la orden anual del DOGC y de sus modificaciones (2026: Ordre EMT/208/2025 y Ordre EMT/3/2026). Las que se pongan a mano mandan; si se borran, vuelven las del DOGC. Si un municipio no hizo propuesta, o el año aún no está en la app, lo dice.
+- Va **entero dentro de la app** (~39 KB): no se descarga nada, así que nadie fuera del dispositivo sabe qué municipio se elige. Se genera con `herramientas/festivos_locals_dogc.py`, que comprueba cada modificación contra lo que decía la orden.
+- 8 textos nuevos en los tres idiomas. Fuera de Catalunya no cambia nada (las fiestas locales se escriben a mano). Prueba nueva en `test_festivos.py` (13).
 
 ### v2.17.1 (Noviembre 2026)
 - **PDF.js 4.10.38** (antes 3.11.174), la librería que muestra los PDF y saca su texto. La versión nueva trae corregido de raíz el fallo por el que un PDF manipulado podía ejecutar código (CVE-2024-4367), que hasta ahora se tapaba con dos defensas que se quedan. Se carga como módulo, con su huella, y funciona en iPhone desde iOS 16.4.
