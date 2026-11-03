@@ -413,7 +413,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.16.7</span>
+    <span class="logo-badge">Forense v2.16.8</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -6357,7 +6357,9 @@ function isZIP(arrayBuffer) {
 // ── Validación de lo que se importa ──
 // Un backup es un archivo que puede venir de cualquier sitio (o estar manipulado): solo entra lo que tiene
 // la forma exacta que crea la app. El resto se ignora y se avisa de cuántos registros eran.
-const PAYROLL_ID_RE = /^\d{4}-(0[1-9]|1[0-2])(-(extra|atrasos)(-\d+)?)?$/;
+// v2.16.8: los tipos salen de PAY_TYPES (antes la lista era fija, «extra|atrasos», y al importar un backup
+// se ignoraba la paga de beneficios, «-bonus», añadida en la v2.15.0). Un tipo nuevo ya no puede quedarse fuera.
+const PAYROLL_ID_RE = new RegExp(`^\\d{4}-(0[1-9]|1[0-2])(-(${Object.keys(PAY_TYPES).filter(t => t !== 'ordinaria').join('|')})(-\\d+)?)?$`);
 const DOC_KEY_RE = /^doc-[\w-]+$/;
 
 function backupPayrollList(data) {

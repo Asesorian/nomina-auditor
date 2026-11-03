@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.16.7)
+## 🆕 Novedades (v2.3 – v2.16.8)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 💾 **La paga de beneficios vuelve con el backup (v2.16.8)** | Al **restaurar un backup** en otro dispositivo (un móvil nuevo, el ordenador), las nóminas de **Beneficios** se quedaban fuera con el aviso «registro ignorado», y también su original. Ahora entran con todo. El backup ya las guardaba bien: si te pasó, vuelve a importar el mismo archivo y saldrán como nuevas, sin tocar las demás | Datos → Importar backup |
 | 🧮 **Total de la Seguridad Social y base propia del IRPF (v2.16.5)** | Si la lectura se queda con la fila del **total** de la Seguridad Social en vez de las cotizaciones una a una, las sumas cuadran pero no se puede comprobar ninguna cuota: ahora sale un aviso que dice qué mirar en el papel y cómo corregirlo (si tu nómina solo trae el total, te dice que está bien). Y si la línea de IRPF lleva impresa su propia base y la retención se ha calculado sobre ella, el aviso de IRPF lo explica: o la base IRPF está mal leída o es la nómina la que usa otra cantidad. | Revisión y *Ver* |
 | 💡 **Dos pistas más (v2.16.4)** | Si a las deducciones les falta dinero y una línea con su % tiene el importe a 0, la pista la nombra con la cuenta (base × % = lo que falta). Y si la base C.C. no es remuneración + prorrata, el aviso recuerda que puede ser la **base mínima** de tu grupo (tiempo parcial, sueldo bajo) o la **máxima** (sueldo alto) | Revisión de una nómina |
 | 🎁 **IRPF con salario en especie (v2.16.3)** | Si tu nómina calcula la retención sobre la base de IRPF **más** lo que cobras en especie (seguro médico, coche, cheques…), como hacen algunos programas que imprimen aparte la «base IRPF por retribución en especie», la app ya no avisa de un IRPF que está bien | Revisión de una nómina |
@@ -711,6 +712,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.16.8 (Noviembre 2026)
+- **Arreglo: al importar un backup se ignoraban las nóminas de Beneficios** (`<mes>-bonus`) y su original. El filtro de identificadores de la importación (`PAYROLL_ID_RE`, de la v2.7.1) tenía la lista de tipos fija (`extra|atrasos`) y no se amplió al añadir el tipo en la v2.15.0. Ahora se construye a partir de `PAY_TYPES`. La exportación siempre las guardó: los backups hechos hasta ahora están completos.
+- Prueba nueva en `test_seguridad.py` (4b), con un centinela que comprueba que el identificador de cada tipo de `PAY_TYPES` pasa el filtro. Sin textos nuevos.
 
 ### v2.16.7 (Noviembre 2026)
 - **Se retira el filtro de la v2.16.6:** la librería que lee los PDF (pdf.js) ya descarta ella sola el texto que cae fuera de la página, así que el filtro propio no llegaba a actuar nunca. Queda una prueba que vigila ese comportamiento de la librería, para enterarnos si cambia al actualizarla.
