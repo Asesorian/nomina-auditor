@@ -419,7 +419,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.18.0</span>
+    <span class="logo-badge">Forense v2.18.1</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -3644,6 +3644,10 @@ Object.assign(I18N.es, {
   "fest.notWorked": "No trabajados (no cuentan): {list}",
   "fest.source": "Calendario oficial: resolución anual de la Dirección General de Trabajo en el BOE ({src}). Las fiestas locales las pones tú.",
   // v2.18.0: «Mi trabajo» y fiestas locales de Cataluña
+  "fest.desdeHelp": "Desde qué día quieres comparar: lo más habitual es el 1 de enero, o el día que empezaste en la empresa si fue después. Los festivos de antes no cuentan.",   // v2.18.1
+  "fest.saldoHelp": "Festivos que trabajaste antes de esa fecha y que aún no te han pagado. Si no lo sabes, deja 0: la app te avisará si te pagan más de los que tiene apuntados.",   // v2.18.1
+  "fest.localesHelpCT": "Fiestas locales: los 2 días de fiesta del municipio donde trabajas cada año (los fija el ayuntamiento). Si eliges el municipio arriba, se ponen solas; si no, pon el día exacto.",   // v2.18.1
+  "fest.localesHelp": "Fiestas locales: los 2 días de fiesta del municipio donde trabajas cada año (los fija el ayuntamiento; suelen salir en su web). Pon el día exacto.",   // v2.18.1
   "fest.muni": "Municipio de tu centro de trabajo",
   "fest.muniHelp": "Escribe y elige de la lista (también los núcleos agregados). Las 2 fiestas locales salen de la orden del DOGC de cada año.",
   "fest.muniUnknown": "No encuentro «{m}» en la lista de municipios de Cataluña: elígelo de la lista o escribe tus fiestas locales a mano.",
@@ -3683,6 +3687,10 @@ Object.assign(I18N.ca, {
   "fest.notWorked": "No treballats (no compten): {list}",
   "fest.source": "Calendari oficial: resolució anual de la Direcció General de Treball al BOE ({src}). Les festes locals les poses tu.",
   // v2.18.0: «Mi trabajo» y fiestas locales de Cataluña
+  "fest.desdeHelp": "Des de quin dia vols comparar: el més habitual és l'1 de gener, o el dia que vas començar a l'empresa si va ser després. Els festius d'abans no compten.",   // v2.18.1
+  "fest.saldoHelp": "Festius que vas treballar abans d'aquesta data i que encara no t'han pagat. Si no ho saps, deixa-hi 0: l'app t'avisarà si te'n paguen més dels que té apuntats.",   // v2.18.1
+  "fest.localesHelpCT": "Festes locals: els 2 dies de festa del municipi on treballes cada any (els fixa l'ajuntament). Si tries el municipi a dalt, es posen soles; si no, posa-hi el dia exacte.",   // v2.18.1
+  "fest.localesHelp": "Festes locals: els 2 dies de festa del municipi on treballes cada any (els fixa l'ajuntament; solen sortir al seu web). Posa-hi el dia exacte.",   // v2.18.1
   "fest.muni": "Municipi del teu centre de treball",
   "fest.muniHelp": "Escriu i tria de la llista (també els nuclis agregats). Les 2 festes locals surten de l'ordre del DOGC de cada any.",
   "fest.muniUnknown": "No trobo «{m}» a la llista de municipis de Catalunya: tria'l de la llista o escriu les teves festes locals a mà.",
@@ -3722,6 +3730,10 @@ Object.assign(I18N.en, {
   "fest.notWorked": "Not worked (not counted): {list}",
   "fest.source": "Official calendar: annual resolution of the Directorate-General for Labour in the BOE ({src}). You add the local holidays.",
   // v2.18.0: «Mi trabajo» y fiestas locales de Cataluña
+  "fest.desdeHelp": "The day you want to start comparing from: usually 1 January, or the day you joined the company if that was later. Holidays before it don't count.",   // v2.18.1
+  "fest.saldoHelp": "Holidays you worked before that date that have not been paid yet. If you don't know, leave 0: the app will tell you if you are paid for more than it has recorded.",   // v2.18.1
+  "fest.localesHelpCT": "Local holidays: the 2 holidays of the municipality where you work each year (set by the town council). If you pick the municipality above, they are filled in for you; if not, enter the exact day.",   // v2.18.1
+  "fest.localesHelp": "Local holidays: the 2 holidays of the municipality where you work each year (set by the town council; usually on its website). Enter the exact day.",   // v2.18.1
   "fest.muni": "Municipality of your workplace (municipio)",
   "fest.muniHelp": "Type and pick from the list (villages within a municipality too). The 2 local holidays come from each year's DOGC order.",
   "fest.muniUnknown": "I can't find «{m}» in the list of municipalities of Catalonia: pick it from the list or enter your local holidays by hand.",
@@ -5155,10 +5167,11 @@ const FEST_REGION_NAMES = { AN: 'Andalucía', AR: 'Aragón', AS: 'Asturias', IB:
 const festDMY = d => `${d.slice(8, 10)}-${d.slice(5, 7)}-${d.slice(0, 4)}`;
 function festName(d) { return FESTIVOS[d.slice(0, 4)]?.nombres?.[d.slice(5)] || tr('fest.local'); }
 function festLastIdx() { const ix = payrolls.filter(p => payTypeOf(p) !== 'extra').map(monthIndex).filter(Number.isFinite); return ix.length ? Math.max(...ix) : NaN; }
-function renderFestivosConfig() {
+// v2.18.1: c = la configuración que se enseña (la guardada o, al cambiar un campo, el borrador del formulario sin guardar)
+function renderFestivosConfig(c = festCfg, soloCampos = false) {
   const el = document.getElementById('festCfgCard');
   if (!el) return;
-  const c = festCfg, last = festLastIdx();
+  const last = festLastIdx();
   const y0 = c.desde ? +c.desde.slice(0, 4) : new Date().getFullYear();
   const y1 = Math.max(y0, Number.isFinite(last) ? Math.floor(last / 12) : y0);
   const years = []; for (let y = y0; y <= y1 && years.length < 5; y++) years.push(y);
@@ -5170,7 +5183,7 @@ function renderFestivosConfig() {
       ${info ? `<div class="fest-note fest-muni-info" data-year="${y}">${esc(info)}</div>` : ''}`; };
   // v2.18.0: «Mi trabajo» (solo Cataluña, donde la app tiene las fiestas locales de cada municipio)
   const muniRow = c.region !== 'CT' ? '' : `<label class="fest-row">${esc(tr('fest.muni'))}
-      <input id="festMuni" list="festMuniList" autocomplete="off" value="${escAttr(c.municipio || '')}" style="min-width:220px"></label>
+      <input id="festMuni" list="festMuniList" autocomplete="off" oninput="festMuniInput(this)" value="${escAttr(c.municipio || '')}" style="min-width:220px"></label>
       <datalist id="festMuniList">${festMuniNames().map(n => `<option value="${escAttr(n)}">`).join('')}</datalist>
       <div class="fest-note" id="festMuniNote">ℹ️ ${esc(c.municipio && !festMuniKnown(c.municipio) ? tr('fest.muniUnknown', { m: c.municipio }) : tr('fest.muniHelp'))}</div>`;
   let worked = '';
@@ -5182,22 +5195,31 @@ function renderFestivosConfig() {
       <div class="fest-list">${all.map(d => `<label><input type="checkbox" class="fest-worked" value="${d}" ${no.has(d) ? '' : 'checked'}> ${festDMY(d)} · ${esc(festName(d))}</label>`).join('')}</div></div>`;
   }
   const note = c.region === 'CN' ? tr('fest.noteCN') : c.region === 'CT' ? tr('fest.noteCT') : '';
+  const campos = `<label class="fest-row">${esc(tr('fest.region'))}
+        <select id="festRegion" onchange="festFormRefresh()"><option value=""></option>${FEST_REGIONS.map(r => `<option value="${r}" ${c.region === r ? 'selected' : ''}>${esc(FEST_REGION_NAMES[r])}</option>`).join('')}</select></label>
+      ${note ? `<div class="fest-note">ℹ️ ${esc(note)}</div>` : ''}
+      ${muniRow}
+      <label class="fest-row">${esc(tr('fest.desde'))} <input type="date" id="festDesde" onchange="festFormRefresh()" value="${c.desde || ''}"></label>
+      <div class="fest-note">${esc(tr('fest.desdeHelp'))}</div>
+      <label class="fest-row">${esc(tr('fest.saldo'))} <input type="number" id="festSaldo" min="0" max="366" step="1" value="${c.saldoInicial || 0}" style="width:70px"></label>
+      <div class="fest-note">${esc(tr('fest.saldoHelp'))}</div>
+      <div class="fest-note" style="margin-top:8px">${esc(tr(c.region === 'CT' ? 'fest.localesHelpCT' : 'fest.localesHelp'))}</div>
+      ${years.map(locRow).join('')}
+      ${worked}`;
+  // Al redibujar solo los campos, el botón no se toca: si no, al pulsar Guardar justo después de escribir el municipio, el
+  // «change» del campo redibujaba el botón antes del clic y no se guardaba nada
+  const box = document.getElementById('festCampos');
+  if (soloCampos && box) { box.innerHTML = campos; return; }
   el.innerHTML = `<h3 style="margin:0 0 8px;font-size:13px;color:var(--accent)">🎌 ${esc(tr('fest.title'))}</h3>
     <p style="color:var(--text-dim);font-size:12px;line-height:1.6;margin-bottom:10px">${esc(tr('fest.cfgIntro'))}</p>
     <div class="fest-form">
-      <label class="fest-row">${esc(tr('fest.region'))}
-        <select id="festRegion"><option value=""></option>${FEST_REGIONS.map(r => `<option value="${r}" ${c.region === r ? 'selected' : ''}>${esc(FEST_REGION_NAMES[r])}</option>`).join('')}</select></label>
-      ${note ? `<div class="fest-note">ℹ️ ${esc(note)}</div>` : ''}
-      ${muniRow}
-      <label class="fest-row">${esc(tr('fest.desde'))} <input type="date" id="festDesde" value="${c.desde || ''}"></label>
-      <label class="fest-row">${esc(tr('fest.saldo'))} <input type="number" id="festSaldo" min="0" max="366" step="1" value="${c.saldoInicial || 0}" style="width:70px"></label>
-      ${years.map(locRow).join('')}
-      ${worked}
+      <div id="festCampos">${campos}</div>
       <button class="btn btn-primary" style="margin-top:10px" onclick="saveFestivosForm()">${esc(tr('fest.save'))}</button>
       <span id="festSaved" style="font-size:12px;color:var(--success);margin-left:8px"></span>
     </div>`;
 }
-function saveFestivosForm() {
+// v2.18.1: la configuración que hay ahora en el formulario, sin guardarla
+function festFormDraft() {
   const v = id => document.getElementById(id)?.value || '';
   const locales = {};
   document.querySelectorAll('#festCfgCard .fest-local').forEach(i => {
@@ -5207,17 +5229,32 @@ function saveFestivosForm() {
   // v2.18.0: con el municipio de «Mi trabajo», las que coinciden con las del DOGC no se guardan como puestas a mano
   const municipio = document.getElementById('festMuni') ? v('festMuni').trim() : festCfg.municipio;
   for (const y of Object.keys(locales)) {
-    const mu = festMuniLocales({ region: v('festRegion'), municipio }, +y);
+    const mu = festMuniLocales({ region: 'CT', municipio }, +y);   // v2.18.1: también al cambiar de comunidad
     if (mu?.dates && [...locales[y]].sort().join() === [...mu.dates].sort().join()) delete locales[y];
   }
   const boxes = [...document.querySelectorAll('#festCfgCard .fest-worked')];
   const shown = new Set(boxes.map(b => b.value));
   const noTrabajados = [...(festCfg.noTrabajados || []).filter(d => !shown.has(d)), ...boxes.filter(b => !b.checked).map(b => b.value)];
-  festCfg = sanitizeFestivosCfg({ ...festCfg, region: v('festRegion'), desde: v('festDesde'), saldoInicial: Math.round(+v('festSaldo') || 0),
+  const c = sanitizeFestivosCfg({ ...festCfg, region: v('festRegion'), desde: v('festDesde'), saldoInicial: Math.round(+v('festSaldo') || 0),
     locales, noTrabajados, municipio });
-  if (!municipio) delete festCfg.municipio;
-  if (!v('festRegion')) delete festCfg.region;
-  if (!v('festDesde')) delete festCfg.desde;
+  if (!municipio) delete c.municipio;
+  if (!v('festRegion')) delete c.region;
+  if (!v('festDesde')) delete c.desde;
+  return c;
+}
+// v2.18.1: al cambiar la comunidad, la fecha o el municipio, el formulario se vuelve a dibujar sin guardar nada (antes el
+// campo del municipio y las fiestas locales del DOGC solo salían después de pulsar Guardar)
+function festFormRefresh() { renderFestivosConfig(festFormDraft(), true); }
+// El municipio redibuja al elegir uno de la lista (o escribirlo entero), no al salir del campo: con «change», pulsar Guardar
+// justo después movía el botón antes del clic y no se guardaba. El cursor vuelve al campo, por si se sigue escribiendo.
+function festMuniInput(el) {
+  if (!festMuniKnown(el.value.trim())) return;
+  festFormRefresh();
+  const i = document.getElementById('festMuni');
+  if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+}
+function saveFestivosForm() {
+  festCfg = festFormDraft();
   saveFestivosCfg();
   renderFestivosConfig();
   const ok = document.getElementById('festSaved'); if (ok) ok.textContent = '✓ ' + tr('fest.saved');

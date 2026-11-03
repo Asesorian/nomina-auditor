@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.18.0-blue)
+![Version](https://img.shields.io/badge/version-2.18.1-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -713,6 +713,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.18.1 (Noviembre 2026)
+- **Datos → Festivos se entiende mejor:** cada campo explica qué poner (desde qué día contar, qué son los festivos pendientes de antes y qué son las fiestas locales). 4 textos nuevos en los tres idiomas.
+- **Arreglo:** el campo del municipio y las fiestas locales del DOGC solo aparecían después de pulsar Guardar. Ahora el formulario se redibuja al elegir la comunidad, la fecha o un municipio de la lista, sin guardar nada ni perder lo escrito. Al cambiar de Catalunya a otra comunidad, las fiestas del DOGC ya no se quedan como puestas a mano. Prueba nueva en `test_festivos.py` (14).
 
 ### v2.18.0 (Noviembre 2026)
 - **Fiestas locales de Catalunya por municipio:** en Datos → Festivos, con la comunidad Catalunya, se elige el **municipio del centro de trabajo** (también los núcleos agregados, como «Santes Creus (Aiguamúrcia)») y sus 2 fiestas locales salen de la orden anual del DOGC y de sus modificaciones (2026: Ordre EMT/208/2025 y Ordre EMT/3/2026). Las que se pongan a mano mandan; si se borran, vuelven las del DOGC. Si un municipio no hizo propuesta, o el año aún no está en la app, lo dice.
