@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.16.8)
+## 🆕 Novedades (v2.3 – v2.17.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 🎌 **Saldo de festivos (v2.17.0)** | Muchas empresas pagan los festivos trabajados **por lotes y con meses de retraso**, y la nómina no dice a qué festivo corresponde cada pago. Elige tu comunidad autónoma (el calendario oficial del BOE ya está dentro de la app, 2026 y 2027), pon tus 2 fiestas locales y desde cuándo cuentas: la app compara los festivos que trabajas con los que te pagan, en orden (el más antiguo primero), y **avisa si uno lleva 2 meses sin aparecer**. Si no trabajaste alguno, lo desmarcas. Solo documenta: no dice cuánto vale un festivo ni si se puede reclamar (eso depende de tu convenio). Se guarda en tu dispositivo y en el backup | Datos → Festivos · Panel · Anual |
 | 💾 **La paga de beneficios vuelve con el backup (v2.16.8)** | Al **restaurar un backup** en otro dispositivo (un móvil nuevo, el ordenador), las nóminas de **Beneficios** se quedaban fuera con el aviso «registro ignorado», y también su original. Ahora entran con todo. El backup ya las guardaba bien: si te pasó, vuelve a importar el mismo archivo y saldrán como nuevas, sin tocar las demás | Datos → Importar backup |
 | 🧮 **Total de la Seguridad Social y base propia del IRPF (v2.16.5)** | Si la lectura se queda con la fila del **total** de la Seguridad Social en vez de las cotizaciones una a una, las sumas cuadran pero no se puede comprobar ninguna cuota: ahora sale un aviso que dice qué mirar en el papel y cómo corregirlo (si tu nómina solo trae el total, te dice que está bien). Y si la línea de IRPF lleva impresa su propia base y la retención se ha calculado sobre ella, el aviso de IRPF lo explica: o la base IRPF está mal leída o es la nómina la que usa otra cantidad. | Revisión y *Ver* |
 | 💡 **Dos pistas más (v2.16.4)** | Si a las deducciones les falta dinero y una línea con su % tiene el importe a 0, la pista la nombra con la cuenta (base × % = lo que falta). Y si la base C.C. no es remuneración + prorrata, el aviso recuerda que puede ser la **base mínima** de tu grupo (tiempo parcial, sueldo bajo) o la **máxima** (sueldo alto) | Revisión de una nómina |
@@ -712,6 +713,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.17.0 (Noviembre 2026)
+- **Saldo de festivos:** festivos trabajados (calendario oficial de la comunidad + 2 fiestas locales − los desmarcados, desde la fecha elegida hasta el mes de la última nómina) frente a festivos cobrados (líneas de devengo con «festiv»/«festiu» y sus unidades, sin las pagas extra). Reparto en orden, el más antiguo primero; un pago nunca cubre un festivo posterior a su nómina. Saldo inicial (festivos pendientes de antes), aviso a los 2 meses, pagos de más (sugiere el saldo inicial) y pagos sin unidades (se nombran, no se adivinan).
+- **Calendario oficial dentro de la app** (`FESTIVOS`, ~6 KB): 2026 y 2027, las 19 regiones, de la resolución anual de la Dirección General de Trabajo en el BOE; se genera con `herramientas/festivos_boe.py`. Si falta el año, la app lo dice y se ponen a mano.
+- Pantallas: configuración en Datos, tarjeta en el Panel y detalle por año en el Anual. Textos en los tres idiomas. No toca `checkPayroll`. Batería nueva `test_festivos.py`.
 
 ### v2.16.8 (Noviembre 2026)
 - **Arreglo: al importar un backup se ignoraban las nóminas de Beneficios** (`<mes>-bonus`) y su original. El filtro de identificadores de la importación (`PAYROLL_ID_RE`, de la v2.7.1) tenía la lista de tipos fija (`extra|atrasos`) y no se amplió al añadir el tipo en la v2.15.0. Ahora se construye a partir de `PAY_TYPES`. La exportación siempre las guardó: los backups hechos hasta ahora están completos.

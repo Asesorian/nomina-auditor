@@ -250,6 +250,12 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 .gl-langs { display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);margin:2px 0 10px; }
 .gl-lang { background:none;border:1px solid var(--border);border-radius:999px;color:var(--text-dim);font-size:11px;padding:3px 10px;cursor:pointer;font-family:inherit; }
 .gl-lang.on { border-color:var(--accent);color:var(--accent);background:var(--accent-glow); }
+.fest-form { font-size:12px;color:var(--text-dim); }
+.fest-row { display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0; }
+.fest-row select, .fest-row input { background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:12px;max-width:100%; }
+.fest-list { display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:2px 10px;margin-top:6px; }
+.fest-note { font-size:11px;color:var(--text-muted);margin:2px 0 6px; }
+.fest-day { display:flex;flex-wrap:wrap;gap:4px 12px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px; }
 .gl-link { background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;padding:0;margin:-6px 0 14px;font-family:inherit;text-align:left; }
 .price-amounts { font-size:11px;color:var(--text-dim);margin-top:3px;line-height:1.6;font-family:'JetBrains Mono',monospace; }
 .price-sub { font-size:11px;font-weight:700;color:var(--accent);margin:14px 0 2px;text-transform:uppercase;letter-spacing:0.5px; }
@@ -413,7 +419,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.16.8</span>
+    <span class="logo-badge">Forense v2.17.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -468,6 +474,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 
   <div id="batchReminder"></div>
   <div id="backupReminder"></div>
+  <div id="festDash"></div>
 
   <div class="stats-grid">
     <div class="card stat-card"><div class="stat-label">Total Bruto</div><div class="stat-value mono" id="statBruto">0,00 €</div></div>
@@ -633,6 +640,9 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 
   <!-- Import result -->
   <div id="importResult"></div>
+
+  <!-- v2.17.0: saldo de festivos -->
+  <div class="card" id="festCfgCard" style="margin-bottom:14px"></div>
 
   <!-- Data info -->
   <div class="card" style="margin-bottom:14px">
@@ -819,6 +829,7 @@ function loadData() {
   try { payrolls = JSON.parse(localStorage.getItem('nomina-auditor-data') || '[]'); } catch { payrolls = []; }
   loadHacienda();   // v2.10.0
   loadPayAnswers(); // v2.16.0
+  loadFestivosCfg(); // v2.17.0
   const key = localStorage.getItem('nomina-auditor-apikey') || '';
   document.getElementById('apiKeyInput').value = key;
   updateApiStatus(key);
@@ -3602,6 +3613,97 @@ Object.assign(I18N.en, {
   "upInfoName": "«{concept}»: {units} × {price} = {exp} €, with no amount on the payslip. By its name it is a company provision (previsión): it is informational, is not paid this month and does not count in the totals.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, with no amount on the payslip. The totals add up without it: it is an informational line (for example, a company provision) and is not paid this month."
 });
+// v2.17.0: saldo de festivos (el català, revisado por Jordi el 03-11 con ayuda de Gemini)
+Object.assign(I18N.es, {
+  "fest.title": "Festivos",
+  "fest.card": "{w} trabajados · {p} cobrados · {n} pendientes",
+  "fest.cardPrev": "+{k} de antes",
+  "fest.late": "El festivo del {d} lleva {m} meses sin aparecer en tus nóminas.",
+  "fest.lateOld": "Los festivos pendientes de antes llevan {m} meses sin aparecer en tus nóminas.",
+  "fest.lateFix": "Si no lo trabajaste, desmárcalo en Datos → Festivos.",
+  "fest.extra": "Te han pagado {k} festivos más de los que tienes apuntados desde el {d}. ¿Tenías festivos pendientes de antes? Ponlos en Datos → Festivos.",
+  "fest.order": "La nómina no dice a qué festivo corresponde cada pago: se cuentan en orden, el más antiguo primero.",
+  "fest.nocal": "Todavía no tengo el calendario oficial de {y}: añade tus festivos a mano.",
+  "fest.nounits": "Hay {k} pagos de festivos sin unidades: no se pueden contar. Revisa la columna de unidades de esas nóminas.",
+  "fest.dayoff": "Muchos convenios dan además un día libre por cada festivo trabajado: si es tu caso, comprueba cómo te lo compensan.",
+  "fest.local": "Fiesta local",
+  "fest.locales": "Fiestas locales de {y}",
+  "fest.worked": "Festivos que cuentan (desmarca los que no trabajaste)",
+  "fest.cfgIntro": "Compara los festivos que trabajas con los que te pagan en las nóminas. Se guarda solo en este dispositivo y en el backup.",
+  "fest.region": "Comunidad autónoma de tu centro de trabajo",
+  "fest.desde": "Empiezo a contar el",
+  "fest.saldo": "Festivos pendientes de cobrar de antes",
+  "fest.noteCN": "En Canarias cada isla tiene además su fiesta: añádela como fiesta local.",
+  "fest.noteCT": "En la Val d'Aran los festivos son otros: si trabajas allí, desmarca los que no tienes y añade los tuyos como fiestas locales.",
+  "fest.save": "Guardar",
+  "fest.saved": "Guardado",
+  "fest.noRegion": "Elige tu comunidad en Datos → Festivos para contar los festivos oficiales.",
+  "fest.seeDetail": "Ver detalle",
+  "fest.paidIn": "cobrado en la nómina de {m}",
+  "fest.pending": "pendiente",
+  "fest.notWorked": "No trabajados (no cuentan): {list}",
+  "fest.source": "Calendario oficial: resolución anual de la Dirección General de Trabajo en el BOE ({src}). Las fiestas locales las pones tú."
+});
+Object.assign(I18N.ca, {
+  "fest.title": "Festius",
+  "fest.card": "{w} treballats · {p} cobrats · {n} pendents",
+  "fest.cardPrev": "+{k} d'abans",
+  "fest.late": "El festiu del {d} fa {m} mesos que no surt a les teves nòmines.",
+  "fest.lateOld": "Els festius pendents d'abans fa {m} mesos que no surten a les teves nòmines.",
+  "fest.lateFix": "Si no el vas treballar, desmarca'l a Datos → Festius.",
+  "fest.extra": "T'han pagat {k} festius més dels que tens apuntats des del {d}. Tenies festius pendents d'abans? Posa'ls a Datos → Festius.",
+  "fest.order": "La nòmina no diu a quin festiu correspon cada pagament: es compten per ordre, primer el més antic.",
+  "fest.nocal": "Encara no tinc el calendari oficial del {y}: afegeix els teus festius a mà.",
+  "fest.nounits": "Hi ha {k} pagaments de festius sense unitats: no es poden comptar. Revisa la columna d'unitats d'aquestes nòmines.",
+  "fest.dayoff": "Molts convenis donen a més un dia lliure per cada festiu treballat: si és el teu cas, comprova com te'l compensen.",
+  "fest.local": "Festa local",
+  "fest.locales": "Festes locals del {y}",
+  "fest.worked": "Festius que compten (desmarca els que no vas treballar)",
+  "fest.cfgIntro": "Compara els festius que treballes amb els que et paguen a les nòmines. Es desa només en aquest dispositiu i a la còpia de seguretat (backup).",
+  "fest.region": "Comunitat autònoma del teu centre de treball",
+  "fest.desde": "Començo a comptar el",
+  "fest.saldo": "Festius pendents de cobrar d'abans",
+  "fest.noteCN": "A les Canàries cada illa té a més la seva festa: afegeix-la com a festa local.",
+  "fest.noteCT": "A la Val d'Aran els festius són uns altres: si hi treballes, desmarca els que no tens i afegeix els teus com a festes locals.",
+  "fest.save": "Desa",
+  "fest.saved": "Desat",
+  "fest.noRegion": "Tria la teva comunitat a Datos → Festius per comptar els festius oficials.",
+  "fest.seeDetail": "Mostra'n el detall",
+  "fest.paidIn": "cobrat a la nòmina ({m})",
+  "fest.pending": "pendent",
+  "fest.notWorked": "No treballats (no compten): {list}",
+  "fest.source": "Calendari oficial: resolució anual de la Direcció General de Treball al BOE ({src}). Les festes locals les poses tu."
+});
+Object.assign(I18N.en, {
+  "fest.title": "Public holidays (festivos)",
+  "fest.card": "{w} worked · {p} paid · {n} pending",
+  "fest.cardPrev": "+{k} from before",
+  "fest.late": "The holiday of {d} has not appeared in your payslips for {m} months.",
+  "fest.lateOld": "The holidays pending from before have not appeared in your payslips for {m} months.",
+  "fest.lateFix": "If you did not work it, untick it in Datos → Public holidays.",
+  "fest.extra": "You have been paid for {k} more holidays than you have recorded since {d}. Did you have holidays pending from before? Add them in Datos → Public holidays.",
+  "fest.order": "Payslips do not say which holiday each payment is for: they are counted in order, oldest first.",
+  "fest.nocal": "I don't have the official {y} calendar yet: add your holidays by hand.",
+  "fest.nounits": "There are {k} holiday payments without units: they can't be counted. Check the units column in those payslips.",
+  "fest.dayoff": "Many collective agreements also give a day off for each holiday worked: if that applies to you, check how it is compensated.",
+  "fest.local": "Local holiday (fiesta local)",
+  "fest.locales": "Local holidays in {y} (fiestas locales)",
+  "fest.worked": "Holidays that count (untick the ones you did not work)",
+  "fest.cfgIntro": "Compares the public holidays you work with the ones paid on your payslips. Saved only on this device and in the backup.",
+  "fest.region": "Region (comunidad autónoma) of your workplace",
+  "fest.desde": "Start counting on",
+  "fest.saldo": "Holidays still unpaid from before",
+  "fest.noteCN": "In the Canary Islands each island also has its own holiday: add it as a local holiday.",
+  "fest.noteCT": "The Val d'Aran has different holidays: if you work there, untick the ones you don't have and add yours as local holidays.",
+  "fest.save": "Save",
+  "fest.saved": "Saved",
+  "fest.noRegion": "Choose your region in Datos → Public holidays to count the official holidays.",
+  "fest.seeDetail": "See details",
+  "fest.paidIn": "paid in the {m} payslip",
+  "fest.pending": "pending",
+  "fest.notWorked": "Not worked (not counted): {list}",
+  "fest.source": "Official calendar: annual resolution of the Directorate-General for Labour in the BOE ({src}). You add the local holidays."
+});
 // Textos fijos del HTML con data-tr="clave": se escriben con tr() al arrancar (v2.13.1)
 function trStatic(root = document) {
   root.querySelectorAll('[data-tr]').forEach(el => { el.textContent = tr(el.getAttribute('data-tr')); });
@@ -4591,6 +4693,7 @@ function renderDashboard() {
   const fp = payrolls.filter(p => p.period?.year === currentYear);
   renderBatchReminder();
   renderBackupReminder();
+  renderFestivosCard();   // v2.17.0
 
   const nExtra = fp.filter(p => payTypeOf(p) !== 'ordinaria').length;
   document.getElementById('dashSubtitle').textContent = `${fp.length} nómina${fp.length !== 1 ? 's' : ''} procesada${fp.length !== 1 ? 's' : ''} en ${currentYear}` +
@@ -4714,6 +4817,7 @@ function renderAnnual() {
     ${haciendaCardHtml(currentYear)}
 
     ${priceCardHtml(prices, currentYear)}
+    ${festAnnualHtml(currentYear)}
 
     <div class="card">
       <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">Observaciones para Abogado</h3>
@@ -4816,6 +4920,253 @@ function yearCompleteness(year) {
     }
   }
   return out;
+}
+
+// v2.17.0: festivos nacionales y autonómicos por año y región (código), de la resolución anual de la Dirección
+// General de Trabajo en el BOE. Generado con herramientas/festivos_boe.py (no editar a mano). Las fiestas
+// locales (2 al año) las pone la persona. Canarias: además, la fiesta de cada isla; Cataluña: Arán tiene otras.
+const FESTIVOS = {
+  2026: { fuente: 'BOE-A-2025-21667',
+    nombres: {"01-01": "Año Nuevo", "01-06": "Epifanía del Señor", "02-28": "Día de Andalucía", "03-02": "Lunes siguiente al Día de les Illes Balears", "03-19": "San José", "03-20": "Fiesta del Eid Fitr", "04-02": "Jueves Santo", "04-03": "Viernes Santo", "04-06": "Lunes de Pascua", "04-23": "San Jorge/Día de Aragón", "05-01": "Fiesta del Trabajo", "05-02": "Fiesta de la Comunidad de Madrid", "05-27": "Fiesta Sacrificio-Eidul Adha", "05-30": "Día de Canarias", "06-04": "Corpus Christi", "06-09": "Día de la Región de Murcia", "06-24": "San Juan", "07-25": "Santiago Apóstol/Día Nacional de Galicia", "07-28": "Día de las Instituciones de Cantabria", "08-05": "Nuestra Señora de África", "08-15": "Asunción de la Virgen", "09-02": "Día de Ceuta", "09-08": "Día de Asturias", "09-11": "Fiesta Nacional de Cataluña", "09-15": "La Bien Aparecida", "10-09": "Día de la Comunitat Valenciana", "10-12": "Fiesta Nacional de España", "11-02": "Día siguiente a Todos los Santos", "12-07": "Lunes siguiente al Día de la Constitución Española", "12-08": "Inmaculada Concepción", "12-25": "Natividad del Señor", "12-26": "San Esteban"},
+    AN: '01-01 01-06 02-28 04-02 04-03 05-01 08-15 10-12 11-02 12-07 12-08 12-25',
+    AR: '01-01 01-06 04-02 04-03 04-23 05-01 08-15 10-12 11-02 12-07 12-08 12-25',
+    AS: '01-01 01-06 04-02 04-03 05-01 08-15 09-08 10-12 11-02 12-07 12-08 12-25',
+    CB: '01-01 01-06 04-02 04-03 05-01 07-28 08-15 09-15 10-12 12-07 12-08 12-25',
+    CE: '01-01 01-06 04-02 04-03 05-01 05-27 08-05 08-15 09-02 10-12 12-08 12-25',
+    CL: '01-01 01-06 04-02 04-03 04-23 05-01 08-15 10-12 11-02 12-07 12-08 12-25',
+    CM: '01-01 01-06 04-02 04-03 04-06 05-01 06-04 08-15 10-12 11-02 12-08 12-25',
+    CN: '01-01 01-06 04-02 04-03 05-01 05-30 08-15 10-12 11-02 12-08 12-25',
+    CT: '01-01 01-06 04-03 04-06 05-01 06-24 08-15 09-11 10-12 12-08 12-25 12-26',
+    EX: '01-01 01-06 04-02 04-03 05-01 08-15 09-08 10-12 11-02 12-07 12-08 12-25',
+    GA: '01-01 01-06 03-19 04-02 04-03 05-01 06-24 07-25 08-15 10-12 12-08 12-25',
+    IB: '01-01 01-06 03-02 04-02 04-03 04-06 05-01 08-15 10-12 12-08 12-25 12-26',
+    MC: '01-01 01-06 03-19 04-02 04-03 05-01 06-09 08-15 10-12 12-07 12-08 12-25',
+    MD: '01-01 01-06 04-02 04-03 05-01 05-02 08-15 10-12 11-02 12-07 12-08 12-25',
+    ML: '01-01 01-06 03-20 04-02 04-03 05-01 05-27 08-15 10-12 12-07 12-08 12-25',
+    NC: '01-01 01-06 03-19 04-02 04-03 04-06 05-01 08-15 10-12 11-02 12-08 12-25',
+    PV: '01-01 01-06 03-19 04-02 04-03 04-06 05-01 07-25 08-15 10-12 12-08 12-25',
+    RI: '01-01 01-06 04-02 04-03 04-06 05-01 06-09 08-15 10-12 12-07 12-08 12-25',
+    VC: '01-01 01-06 03-19 04-03 04-06 05-01 06-24 08-15 10-09 10-12 12-08 12-25',
+  },
+  2027: { fuente: 'BOE-A-2026-21254',
+    nombres: {"01-01": "Año Nuevo", "01-06": "Epifanía del Señor", "03-01": "Día de Andalucía", "03-10": "Fiesta del Eid Fitr", "03-19": "San José", "03-25": "Jueves Santo", "03-26": "Viernes Santo", "03-29": "Lunes de Pascua", "04-23": "San Jorge/Día de Aragón", "05-01": "Fiesta del Trabajo", "05-17": "Día de las Letras Gallegas", "05-27": "Corpus Christi", "05-31": "Día de Castilla-La Mancha", "06-09": "Día de la Región de Murcia", "06-24": "Día de San Juan", "07-28": "Día de las Instituciones de Cantabria", "08-05": "Nuestra Señora de África", "08-16": "Lunes siguiente a asunción de la Virgen", "09-08": "Día de Asturias", "09-11": "Fiesta Nacional de Cataluña", "09-15": "La Bien Aparecida", "10-07": "Aniversario 1er Gobierno Euskadi", "10-09": "Día de la Comunitat Valenciana", "10-11": "Sustitución 15 de agosto", "10-12": "Fiesta Nacional de España", "11-01": "Todos los Santos", "12-06": "Día de la Constitución Española", "12-08": "Inmaculada Concepción", "12-25": "Natividad del Señor"},
+    AN: '01-01 01-06 03-01 03-25 03-26 05-01 08-16 10-12 11-01 12-06 12-08 12-25',
+    AR: '01-01 01-06 03-25 03-26 04-23 05-01 08-16 10-12 11-01 12-06 12-08 12-25',
+    AS: '01-01 01-06 03-25 03-26 05-01 08-16 09-08 10-12 11-01 12-06 12-08 12-25',
+    CB: '01-01 01-06 03-25 03-26 05-01 07-28 09-15 10-12 11-01 12-06 12-08 12-25',
+    CE: '01-01 01-06 03-25 03-26 05-01 05-17 08-05 10-12 11-01 12-06 12-08 12-25',
+    CL: '01-01 01-06 03-25 03-26 04-23 05-01 08-16 10-12 11-01 12-06 12-08 12-25',
+    CM: '01-01 01-06 03-25 03-26 05-01 05-27 05-31 10-12 11-01 12-06 12-08 12-25',
+    CN: '01-01 01-06 03-25 03-26 05-01 08-16 10-12 11-01 12-06 12-08 12-25',
+    CT: '01-01 01-06 03-26 03-29 05-01 06-24 09-11 10-12 11-01 12-06 12-08 12-25',
+    EX: '01-01 01-06 03-25 03-26 05-01 09-08 10-11 10-12 11-01 12-06 12-08 12-25',
+    GA: '01-01 01-06 03-19 03-25 03-26 05-01 05-17 10-12 11-01 12-06 12-08 12-25',
+    IB: '01-01 01-06 03-01 03-25 03-26 03-29 05-01 10-12 11-01 12-06 12-08 12-25',
+    MC: '01-01 01-06 03-19 03-25 03-26 05-01 06-09 10-12 11-01 12-06 12-08 12-25',
+    MD: '01-01 01-06 03-19 03-25 03-26 05-01 08-16 10-12 11-01 12-06 12-08 12-25',
+    ML: '01-01 01-06 03-10 03-25 03-26 05-01 05-17 10-12 11-01 12-06 12-08 12-25',
+    NC: '01-01 01-06 03-19 03-25 03-26 03-29 05-01 10-12 11-01 12-06 12-08 12-25',
+    PV: '01-01 01-06 03-25 03-26 03-29 05-01 10-07 10-12 11-01 12-06 12-08 12-25',
+    RI: '01-01 01-06 03-25 03-26 03-29 05-01 06-09 10-12 11-01 12-06 12-08 12-25',
+    VC: '01-01 01-06 03-19 03-26 03-29 05-01 10-09 10-12 11-01 12-06 12-08 12-25',
+  },
+};
+
+// ── v2.17.0: saldo de festivos (docs/TECNICO.md §40) ──
+// Festivos trabajados (calendario oficial de la región + 2 locales − los no trabajados) frente a festivos cobrados (líneas de
+// devengo con «festiv»/«festiu» y sus unidades). La nómina no dice a qué festivo corresponde cada pago: se cuentan en orden,
+// el más antiguo primero, y un pago nunca cubre un festivo posterior al mes de su nómina. Solo documenta: no dice cuánto vale
+// un festivo ni si se puede reclamar. No toca checkPayroll. Configuración solo en el dispositivo y en el backup.
+const FEST_KEY = 'nomina-auditor-festivos';
+const FEST_REGIONS = ['AN', 'AR', 'AS', 'IB', 'CN', 'CB', 'CM', 'CL', 'CT', 'EX', 'GA', 'MD', 'MC', 'NC', 'PV', 'RI', 'VC', 'CE', 'ML'];
+const FEST_DATE_RE = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+const FEST_MD_RE = /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+const FEST_CONCEPT_RE = /festi[vu]/i;   // festivo(s), festiu(s), «Plus domingos y festivos»… (euskera: revisar con una nómina real)
+let festCfg = {};
+function sanitizeFestivosCfg(raw) {
+  const out = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+  if (FEST_REGIONS.includes(raw.region)) out.region = raw.region;
+  if (typeof raw.desde === 'string' && FEST_DATE_RE.test(raw.desde)) out.desde = raw.desde;
+  const n = Number(raw.saldoInicial);
+  if (Number.isInteger(n) && n > 0 && n <= 366) out.saldoInicial = n;
+  const u = Number(raw.umbralMeses);
+  if (Number.isInteger(u) && u >= 1 && u <= 12 && u !== 2) out.umbralMeses = u;
+  if (raw.locales && typeof raw.locales === 'object' && !Array.isArray(raw.locales)) {
+    const loc = {};
+    for (const [y, l] of Object.entries(raw.locales).slice(0, 20)) {
+      if (!/^\d{4}$/.test(y) || !Array.isArray(l)) continue;
+      const ok = [...new Set(l.filter(d => typeof d === 'string' && FEST_MD_RE.test(d)))].slice(0, 4).sort();
+      if (ok.length) loc[y] = ok;
+    }
+    if (Object.keys(loc).length) out.locales = loc;
+  }
+  if (Array.isArray(raw.noTrabajados)) {
+    const nt = [...new Set(raw.noTrabajados.filter(d => typeof d === 'string' && FEST_DATE_RE.test(d)))].slice(0, 400).sort();
+    if (nt.length) out.noTrabajados = nt;
+  }
+  return out;
+}
+function loadFestivosCfg() { try { festCfg = sanitizeFestivosCfg(JSON.parse(localStorage.getItem(FEST_KEY) || '{}')); } catch { festCfg = {}; } }
+function saveFestivosCfg() {
+  if (Object.keys(festCfg).length) localStorage.setItem(FEST_KEY, JSON.stringify(festCfg)); else localStorage.removeItem(FEST_KEY);
+  try { localStorage.setItem('nomina-auditor-lastchange', new Date().toISOString()); } catch {}   // cuenta para el aviso de backup
+}
+// Unidades de una línea de festivos: las de la columna si son un número entero de 1 a 31; si no, importe / precio si sale
+// entero; si no, null (se cuenta aparte como «pago sin unidades»: no se adivina).
+function festivoUnits(line) {
+  const u = num(line?.units);
+  if (Number.isFinite(u) && u > 0 && u <= 31 && Math.abs(u - Math.round(u)) < 0.01) return Math.round(u);
+  const pr = num(line?.price), a = num(line?.amount);
+  if (pr > 0 && a > 0) { const r = a / pr; if (r >= 0.98 && r <= 31 && Math.abs(r - Math.round(r)) < 0.02) return Math.round(r); }
+  return null;
+}
+// Fechas (AAAA-MM-DD) de los festivos que cuentan entre dos meses (índices de monthIndex), y los años sin calendario.
+function festivoDates(cfg, fromIdx, toIdx) {
+  const dates = new Set(), sinCalendario = [];
+  for (let y = Math.floor(fromIdx / 12); y <= Math.floor(toIdx / 12); y++) {
+    const cal = FESTIVOS[y]?.[cfg.region];
+    if (cal) cal.split(' ').forEach(md => dates.add(`${y}-${md}`)); else sinCalendario.push(y);
+    (cfg.locales?.[y] || []).forEach(md => dates.add(`${y}-${md}`));
+  }
+  const no = new Set(cfg.noTrabajados || []);
+  const idx = d => +d.slice(0, 4) * 12 + +d.slice(5, 7) - 1;
+  return { dates: [...dates].filter(d => !no.has(d) && d >= cfg.desde && idx(d) <= toIdx).sort(), sinCalendario };
+}
+function festivosSaldo(list, cfg = festCfg) {
+  if (!cfg?.desde || !FEST_DATE_RE.test(cfg.desde)) return null;
+  const d0 = +cfg.desde.slice(0, 4) * 12 + +cfg.desde.slice(5, 7) - 1, umbral = cfg.umbralMeses ?? 2;
+  const nom = (list || []).filter(p => monthIndex(p) >= d0 && payTypeOf(p) !== 'extra');
+  if (!nom.length) return null;
+  const hasta = Math.max(...nom.map(monthIndex));
+  const { dates, sinCalendario } = festivoDates(cfg, d0, hasta);
+  const idx = d => +d.slice(0, 4) * 12 + +d.slice(5, 7) - 1;
+  const cola = [];
+  for (let k = 0; k < (cfg.saldoInicial || 0); k++) cola.push({ mi: d0 - 1, fecha: null });   // pendientes de antes
+  dates.forEach(f => cola.push({ mi: idx(f), fecha: f }));
+  const pagos = [], sinUnidades = [];
+  for (const p of nom) for (const l of p.earnings || []) if (FEST_CONCEPT_RE.test(String(l?.concept || ''))) {
+    const u = festivoUnits(l);
+    if (u == null) sinUnidades.push(p.id); else pagos.push({ mi: monthIndex(p), id: p.id, u });
+  }
+  pagos.sort((a, b) => a.mi - b.mi);
+  let pagados = 0, sobrantes = 0, maxRetraso = 0;
+  const cubiertos = [];   // { fecha, id }: festivo y nómina que lo paga (fecha null = pendiente de antes)
+  for (const pg of pagos) {
+    pagados += pg.u;
+    for (let k = 0; k < pg.u; k++) {
+      const i = cola.findIndex(c => c.mi <= pg.mi);
+      if (i < 0) { sobrantes++; continue; }
+      const c = cola.splice(i, 1)[0];
+      cubiertos.push({ fecha: c.fecha, id: pg.id });
+      if (c.fecha) maxRetraso = Math.max(maxRetraso, pg.mi - c.mi);
+    }
+  }
+  const viejo = cola[0];
+  return { hasta, trabajados: dates.length, saldoInicial: cfg.saldoInicial || 0, pagados, cubiertos,
+    pendientes: cola.map(c => c.fecha), sobrantes, sinUnidades, maxRetraso, sinCalendario,
+    retrasoPendiente: viejo ? hasta - viejo.mi : 0, aviso: !!viejo && hasta - viejo.mi >= umbral };
+}
+
+// Pantallas del saldo de festivos (v2.17.0): configuración en Datos, tarjeta del Panel y detalle en el Anual.
+const FEST_REGION_NAMES = { AN: 'Andalucía', AR: 'Aragón', AS: 'Asturias', IB: 'Illes Balears', CN: 'Canarias', CB: 'Cantabria',
+  CM: 'Castilla-La Mancha', CL: 'Castilla y León', CT: 'Catalunya', EX: 'Extremadura', GA: 'Galicia', MD: 'Comunidad de Madrid',
+  MC: 'Región de Murcia', NC: 'Navarra', PV: 'País Vasco / Euskadi', RI: 'La Rioja', VC: 'Comunitat Valenciana', CE: 'Ceuta', ML: 'Melilla' };
+const festDMY = d => `${d.slice(8, 10)}-${d.slice(5, 7)}-${d.slice(0, 4)}`;
+function festName(d) { return FESTIVOS[d.slice(0, 4)]?.nombres?.[d.slice(5)] || tr('fest.local'); }
+function festLastIdx() { const ix = payrolls.filter(p => payTypeOf(p) !== 'extra').map(monthIndex).filter(Number.isFinite); return ix.length ? Math.max(...ix) : NaN; }
+function renderFestivosConfig() {
+  const el = document.getElementById('festCfgCard');
+  if (!el) return;
+  const c = festCfg, last = festLastIdx();
+  const y0 = c.desde ? +c.desde.slice(0, 4) : new Date().getFullYear();
+  const y1 = Math.max(y0, Number.isFinite(last) ? Math.floor(last / 12) : y0);
+  const years = []; for (let y = y0; y <= y1 && years.length < 5; y++) years.push(y);
+  const locRow = y => { const l = c.locales?.[y] || [];
+    return `<label class="fest-row">${esc(tr('fest.locales', { y }))}
+      ${[0, 1].map(i => `<input type="date" class="fest-local" data-year="${y}" min="${y}-01-01" max="${y}-12-31" value="${l[i] ? `${y}-${l[i]}` : ''}">`).join(' ')}</label>`; };
+  let worked = '';
+  if (c.region && c.desde) {
+    const toIdx = Number.isFinite(last) ? Math.max(last, y1 * 12 + 11) : y1 * 12 + 11;
+    const all = festivoDates({ ...c, noTrabajados: [] }, +c.desde.slice(0, 4) * 12 + +c.desde.slice(5, 7) - 1, toIdx).dates;
+    const no = new Set(c.noTrabajados || []);
+    worked = `<div style="margin-top:10px"><strong style="font-size:12px">${esc(tr('fest.worked'))}</strong>
+      <div class="fest-list">${all.map(d => `<label><input type="checkbox" class="fest-worked" value="${d}" ${no.has(d) ? '' : 'checked'}> ${festDMY(d)} · ${esc(festName(d))}</label>`).join('')}</div></div>`;
+  }
+  const note = c.region === 'CN' ? tr('fest.noteCN') : c.region === 'CT' ? tr('fest.noteCT') : '';
+  el.innerHTML = `<h3 style="margin:0 0 8px;font-size:13px;color:var(--accent)">🎌 ${esc(tr('fest.title'))}</h3>
+    <p style="color:var(--text-dim);font-size:12px;line-height:1.6;margin-bottom:10px">${esc(tr('fest.cfgIntro'))}</p>
+    <div class="fest-form">
+      <label class="fest-row">${esc(tr('fest.region'))}
+        <select id="festRegion"><option value=""></option>${FEST_REGIONS.map(r => `<option value="${r}" ${c.region === r ? 'selected' : ''}>${esc(FEST_REGION_NAMES[r])}</option>`).join('')}</select></label>
+      ${note ? `<div class="fest-note">ℹ️ ${esc(note)}</div>` : ''}
+      <label class="fest-row">${esc(tr('fest.desde'))} <input type="date" id="festDesde" value="${c.desde || ''}"></label>
+      <label class="fest-row">${esc(tr('fest.saldo'))} <input type="number" id="festSaldo" min="0" max="366" step="1" value="${c.saldoInicial || 0}" style="width:70px"></label>
+      ${years.map(locRow).join('')}
+      ${worked}
+      <button class="btn btn-primary" style="margin-top:10px" onclick="saveFestivosForm()">${esc(tr('fest.save'))}</button>
+      <span id="festSaved" style="font-size:12px;color:var(--success);margin-left:8px"></span>
+    </div>`;
+}
+function saveFestivosForm() {
+  const v = id => document.getElementById(id)?.value || '';
+  const locales = {};
+  document.querySelectorAll('#festCfgCard .fest-local').forEach(i => {
+    if (!i.value || i.value.slice(0, 4) !== i.dataset.year) return;
+    (locales[i.dataset.year] = locales[i.dataset.year] || []).push(i.value.slice(5));
+  });
+  const boxes = [...document.querySelectorAll('#festCfgCard .fest-worked')];
+  const shown = new Set(boxes.map(b => b.value));
+  const noTrabajados = [...(festCfg.noTrabajados || []).filter(d => !shown.has(d)), ...boxes.filter(b => !b.checked).map(b => b.value)];
+  festCfg = sanitizeFestivosCfg({ ...festCfg, region: v('festRegion'), desde: v('festDesde'), saldoInicial: Math.round(+v('festSaldo') || 0),
+    locales, noTrabajados });
+  if (!v('festRegion')) delete festCfg.region;
+  if (!v('festDesde')) delete festCfg.desde;
+  saveFestivosCfg();
+  renderFestivosConfig();
+  const ok = document.getElementById('festSaved'); if (ok) ok.textContent = '✓ ' + tr('fest.saved');
+  renderDashboard();
+}
+// Tarjeta del Panel: solo si la persona lo ha configurado. Todo aviso dice dónde corregir (Datos → Festivos).
+function renderFestivosCard() {
+  const el = document.getElementById('festDash');
+  if (!el) return;
+  const r = festivosSaldo(payrolls);
+  if (!r) { el.innerHTML = ''; return; }
+  const items = [];
+  if (r.aviso) { const d = r.pendientes.find(Boolean);
+    items.push(`<div class="obs-item warning">⚠ ${esc(d ? tr('fest.late', { d: festDMY(d), m: r.retrasoPendiente }) + ' ' + tr('fest.lateFix') : tr('fest.lateOld', { m: r.retrasoPendiente }))}</div>`); }
+  if (r.sobrantes) items.push(`<div class="obs-item info">💡 ${esc(tr('fest.extra', { k: r.sobrantes, d: festDMY(festCfg.desde) }))}</div>`);
+  if (r.sinUnidades.length) items.push(`<div class="obs-item warning">⚠ ${esc(tr('fest.nounits', { k: r.sinUnidades.length }) + ' (' + [...new Set(r.sinUnidades)].map(id => payName(payrolls.find(x => x.id === id) || { period: {} })).join(', ') + ')')}</div>`);
+  r.sinCalendario.forEach(y => items.push(`<div class="obs-item info">ℹ️ ${esc(tr('fest.nocal', { y }))}</div>`));
+  if (!festCfg.region) items.push(`<div class="obs-item info">ℹ️ ${esc(tr('fest.noRegion'))}</div>`);
+  const pend = r.pendientes.length;
+  el.innerHTML = `<div class="card" id="festCard" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><strong style="color:var(--accent)">🎌 ${esc(tr('fest.title'))}</strong>
+      <span style="font-size:13px">${esc(tr('fest.card', { w: r.trabajados, p: r.pagados - r.sobrantes, n: pend }) + (r.saldoInicial ? ' · ' + tr('fest.cardPrev', { k: r.saldoInicial }) : ''))}</span>
+      <button class="gl-link" style="margin-left:auto" onclick="showView('annual')">${esc(tr('fest.seeDetail'))}</button></div>
+    ${items.join('')}</div>`;
+}
+// Detalle del año en el Anual: cada festivo con su estado.
+function festAnnualHtml(year) {
+  const r = festivosSaldo(payrolls);
+  if (!r) return '';
+  const paidBy = new Map(r.cubiertos.filter(c => c.fecha).map(c => [c.fecha, c.id]));
+  const pend = new Set(r.pendientes.filter(Boolean));
+  const d0 = +festCfg.desde.slice(0, 4) * 12 + +festCfg.desde.slice(5, 7) - 1;
+  const days = festivoDates(festCfg, d0, r.hasta).dates.filter(d => d.startsWith(year + '-'));
+  const no = new Set((festCfg.noTrabajados || []).filter(d => d.startsWith(year + '-')));
+  if (!days.length && !no.size) return '';
+  const nomName = id => { const p = payrolls.find(x => x.id === id); return p ? `${p.period?.month || ''} ${p.period?.year || ''}`.trim() : id; };
+  const rows = days.map(d => `<div class="fest-day"><span class="mono">${festDMY(d)}</span> <span>${esc(festName(d))}</span> <span>${paidBy.has(d)
+      ? `<span style="color:var(--success)">✓ ${esc(tr('fest.paidIn', { m: nomName(paidBy.get(d)) }))}</span>`
+      : pend.has(d) ? `<span style="color:var(--warning)">${esc(tr('fest.pending'))}</span>` : ''}</span></div>`).join('');
+  return `<div class="card" id="festAnnual"><h3 style="margin:0 0 8px;font-size:14px;color:var(--accent)">🎌 ${esc(tr('fest.title'))} — ${esc(year)}</h3>
+    <div>${rows}</div>
+    ${no.size ? `<p style="font-size:11px;color:var(--text-muted);margin-top:6px">${esc(tr('fest.notWorked', { list: [...no].sort().map(festDMY).join(', ') }))}</p>` : ''}
+    <p style="font-size:12px;color:var(--text-dim);margin-top:8px">${esc(tr('fest.order'))}</p>
+    <p style="font-size:12px;color:var(--text-dim)">${esc(tr('fest.dayoff'))}</p>
+    <p style="font-size:11px;color:var(--text-muted)">${esc(tr('fest.source', { src: [...new Set(days.map(d => FESTIVOS[d.slice(0, 4)]?.fuente).filter(Boolean))].join(', ') || '—' }))}</p></div>`;
 }
 
 // ── v2.16.0: ¿la empresa paga una paga de beneficios o un bonus? (docs/TECNICO.md §32) ──
@@ -6178,7 +6529,9 @@ function createBackupData() {
     // v2.10.0: las cifras de Hacienda que ha escrito la persona (solo si hay alguna)
     ...(Object.keys(hacienda).length ? { hacienda } : {}),
     // v2.16.0: ¿la empresa paga una paga de beneficios o un bonus? (solo si la persona ha contestado)
-    ...(Object.keys(payAnswers).length ? { pagas: payAnswers } : {})
+    ...(Object.keys(payAnswers).length ? { pagas: payAnswers } : {}),
+    // v2.17.0: configuración del saldo de festivos (solo si hay alguna)
+    ...(Object.keys(festCfg).length ? { festivos: festCfg } : {})
   };
 }
 
@@ -6430,6 +6783,8 @@ async function processImportedJSON(jsonText, resultDiv, restoredDocs = 0) {
     if (Object.keys(hacIn).length) saveHacienda();
     const payIn = sanitizePayAnswers(data && !Array.isArray(data) ? data.pagas : null);   // v2.16.0: las del backup sustituyen a las de aquí
     if (Object.keys(payIn).length) { payAnswers = { ...payAnswers, ...payIn }; savePayAnswers(); }
+    const festIn = sanitizeFestivosCfg(data && !Array.isArray(data) ? data.festivos : null);   // v2.17.0: la del backup sustituye a la de aquí
+    if (Object.keys(festIn).length) { festCfg = festIn; saveFestivosCfg(); }
     // Restaurar en un dispositivo vacío: lo que hay ahora es justo lo que ya está en ese backup
     if (wasEmpty) lsSetNow('nomina-auditor-lastfullbackup');
     const exportedAt = data._meta?.exportedAt ? new Date(data._meta.exportedAt) : null;
@@ -6520,6 +6875,8 @@ async function clearAllData() {
   saveHacienda();
   payAnswers = {};        // v2.16.0
   savePayAnswers();
+  festCfg = {};           // v2.17.0
+  saveFestivosCfg();
   batch = emptyBatch();
   batchPause = null;
   saveBatch();
@@ -6531,6 +6888,7 @@ async function clearAllData() {
 
 function renderBackupView() {
   renderOfflineStatus();
+  renderFestivosConfig();   // v2.17.0
   // Update export count
   const countEl = document.getElementById('exportCount');
   if (countEl) countEl.textContent = payrolls.length;
