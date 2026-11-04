@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.18.1-blue)
+![Version](https://img.shields.io/badge/version-2.18.2-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -713,6 +713,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.18.2 (Noviembre 2026)
+- **Arreglo (desde la v2.17.0):** una fiesta local que coincide con el festivo de otra comunidad salía con el nombre de ese festivo (el 5 de agosto local, como «Nuestra Señora de África», la fiesta de Ceuta). Ahora el nombre solo sale si es festivo oficial de tu comunidad; si no, «Fiesta local». El cálculo no cambia.
+- **Compruébalo tú:** debajo de las fiestas locales del DOGC, enlaces a la orden oficial y a su modificación, y el recordatorio de que lo que manda es el calendario laboral que la empresa tiene que colgar en el centro de trabajo. 1 texto nuevo en los tres idiomas. Prueba nueva en `test_festivos.py` (15).
 
 ### v2.18.1 (Noviembre 2026)
 - **Datos → Festivos se entiende mejor:** cada campo explica qué poner (desde qué día contar, qué son los festivos pendientes de antes y qué son las fiestas locales). 4 textos nuevos en los tres idiomas.
