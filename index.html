@@ -223,6 +223,34 @@ code { font-family:'JetBrains Mono',monospace; }
 .cmp th, .cmp td { padding:5px 6px;border-bottom:1px solid var(--border);text-align:left; }
 .cmp td.r, .cmp th.r { text-align:right;font-family:'JetBrains Mono',monospace; }
 .obs-item.info { color:var(--text-dim); }
+/* v2.19.0: «Nóminas almacenadas» por años (docs/TECNICO.md §43). Ámbar solo para lo que falta; azul para lo aparte */
+.st-year { border:1px solid var(--border); border-radius:8px; margin-top:8px; background:var(--bg2); }
+.st-year > summary { list-style:none; cursor:pointer; display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 10px; font-size:12px; }
+.st-year > summary::-webkit-details-marker { display:none; }
+.st-year > summary::after { content:'▸'; margin-left:auto; color:var(--text-dim); }
+.st-year[open] > summary::after { content:'▾'; }
+.st-y { font-weight:800; color:var(--text); font-size:13px; }
+.st-n { color:var(--text-dim); }
+.st-badge { padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; border:1px solid currentColor; }
+.st-badge.ok { color:var(--success); }
+.st-badge.warn { color:var(--warning); }
+.st-badge.cur { color:var(--text-dim); }
+.st-body { padding:0 10px 10px; }
+.st-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:5px; }
+@media (max-width:340px) { .st-grid { grid-template-columns:repeat(4,1fr); } }
+.st-m { position:relative; padding:6px 2px; border-radius:6px; font-size:11px; text-align:center; border:1px solid var(--border); background:var(--card); color:var(--text); font-family:inherit; }
+button.st-m { cursor:pointer; }
+.st-m.miss { border:1px dashed var(--warning); color:var(--warning); background:transparent; }
+.st-m.fut, .st-m.none { color:var(--text-muted); background:transparent; border-style:dotted; }
+.st-dot { position:absolute; top:2px; right:3px; width:6px; height:6px; border-radius:50%; background:var(--info); }
+.st-aside { margin-top:8px; font-size:11px; color:var(--text-dim); display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+.st-chip { padding:3px 8px; border-radius:12px; border:1px solid var(--info); color:var(--info); background:var(--info-bg); font-size:11px; font-family:inherit; cursor:pointer; }
+.st-chip.plain { border-color:var(--border); color:var(--text); background:var(--bg2); }
+.st-hint { margin-top:6px; font-size:11px; color:var(--warning); }
+/* Año en curso: lo que falta, sin color de alarma (a primeros de mes la nómina del mes pasado aún no ha llegado) */
+.st-m.miss.soft { border-color:var(--text-dim); color:var(--text-dim); }
+.st-hint.soft { color:var(--text-dim); }
+.st-legend { margin-top:8px; font-size:10px; color:var(--text-muted); }
 /* Precios por concepto (v2.9.0) */
 .price-intro { font-size:11px;color:var(--text-muted);line-height:1.5;margin-bottom:6px; }
 .price-item { padding:8px 0;border-top:1px solid var(--border); }
@@ -419,7 +447,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.18.2</span>
+    <span class="logo-badge">Forense v2.19.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -3746,6 +3774,55 @@ Object.assign(I18N.en, {
   "fest.muniNone": "The DOGC lists no local holidays for {m} in {y}: enter them by hand.",
   "fest.sourceMuni": "Official calendar: annual resolution of the Directorate-General for Labour in the BOE ({src}). Local holidays ({m}): {loc}."
 });
+// v2.19.0: «Nóminas almacenadas» por años
+Object.assign(I18N.es, {
+  "stored.title": "Nóminas almacenadas",
+  "stored.help": "Toca un año para abrirlo y un mes para ver su nómina.",
+  "stored.count": "{n} nóminas",
+  "stored.count1": "1 nómina",
+  "stored.complete": "Completo",
+  "stored.missing": "Faltan {k}: {list}",
+  "stored.cur": "En curso",
+  "stored.curMissing": "En curso · falta: {list}",
+  "stored.extra": "paga extra de {m}",
+  "stored.aside": "Aparte:",
+  "stored.none": "ninguna",
+  "stored.upload": "Súbelas en «Subir».",
+  "stored.noYear": "Sin año:",
+  "stored.legend": "Verde: completo · Ámbar: faltan nóminas · Azul: nóminas aparte (Paga extra, Atrasos, Beneficios) · 📎: con documento original"
+});
+Object.assign(I18N.ca, {
+  "stored.title": "Nòmines desades",
+  "stored.help": "Toca un any per obrir-lo i un mes per veure'n la nòmina.",
+  "stored.count": "{n} nòmines",
+  "stored.count1": "1 nòmina",
+  "stored.complete": "Complet",
+  "stored.missing": "En falten {k}: {list}",
+  "stored.cur": "En curs",
+  "stored.curMissing": "En curs · falta: {list}",
+  "stored.extra": "paga extra ({m})",
+  "stored.aside": "A part:",
+  "stored.none": "cap",
+  "stored.upload": "Puja-les a «Subir».",
+  "stored.noYear": "Sense any:",
+  "stored.legend": "Verd: complet · Ambre: falten nòmines · Blau: nòmines a part (Paga extra, Atrasos, Beneficios) · 📎: amb document original"
+});
+Object.assign(I18N.en, {
+  "stored.title": "Stored payslips",
+  "stored.help": "Tap a year to open it and a month to see its payslip.",
+  "stored.count": "{n} payslips",
+  "stored.count1": "1 payslip",
+  "stored.complete": "Complete",
+  "stored.missing": "{k} missing: {list}",
+  "stored.cur": "In progress",
+  "stored.curMissing": "In progress · missing: {list}",
+  "stored.extra": "extra pay (paga extra) for {m}",
+  "stored.aside": "Separate:",
+  "stored.none": "none",
+  "stored.upload": "Upload them in «Subir».",
+  "stored.noYear": "No year:",
+  "stored.legend": "Green: complete · Amber: payslips missing · Blue: separate payslips (Paga extra, Atrasos, Beneficios) · 📎: with original document"
+});
 // Textos fijos del HTML con data-tr="clave": se escriben con tr() al arrancar (v2.13.1)
 function trStatic(root = document) {
   root.querySelectorAll('[data-tr]').forEach(el => { el.textContent = tr(el.getAttribute('data-tr')); });
@@ -7045,6 +7122,76 @@ async function clearAllData() {
   renderBackupView();
 }
 
+// ═══════════ v2.19.0: «NÓMINAS ALMACENADAS» POR AÑOS (docs/TECNICO.md §43) ═══════════
+// Una fila por año (el más reciente arriba), plegada salvo el año en curso. El estado sale de yearCompleteness, la
+// misma función de la tarjeta «¿Está completo el año?» del Anual: Datos y Anual no se pueden contradecir.
+// Ámbar solo para lo que falta; azul para lo aparte (pagas extra, atrasos, beneficios), con el tipo escrito.
+const storedOpen = new Map();   // año → abierto o no, solo mientras la app está abierta (nada en localStorage)
+
+function storedYearStatus(year) {
+  const c = yearCompleteness(year);
+  if (!c) return { kind: 'none', list: [], c: null };
+  const lc = m => String(m).toLowerCase();
+  const list = [...c.missing.map(lc),
+    ...c.companyGaps.flatMap(g => g.months.filter(m => !c.missing.includes(m)).map(m => `${lc(m)} (${g.name})`)),
+    ...c.extras.map(e => tr('stored.extra', { m: lc(e.month) }) + (c.many ? ` (${e.name})` : ''))];
+  if (!c.closed) return { kind: 'cur', list, c };
+  return { kind: list.length ? 'warn' : 'ok', list, c };
+}
+
+function storedBadgeText(st) {
+  if (st.kind === 'ok') return tr('stored.complete');
+  if (st.kind === 'warn') return tr('stored.missing', { k: st.list.length, list: st.list.join(', ') });
+  if (st.kind === 'cur') return st.list.length ? tr('stored.curMissing', { list: st.list.join(', ') }) : tr('stored.cur');
+  return '';
+}
+
+function storedCellLabel(p, m) { return esc(MONTHS[m].slice(0, 3)) + (p && hasOriginal(p) ? ' 📎' : ''); }
+
+function storedYearHtml(year, cy) {
+  const fp = payrolls.filter(p => p.period?.year === year).sort((a, b) => a.id.localeCompare(b.id));
+  const st = storedYearStatus(year);
+  const missing = new Set(st.c ? st.c.missing : []);
+  const last = st.c ? st.c.last : 11;
+  const mi = p => MONTHS.indexOf(p.period?.month);
+  const ord = fp.filter(p => payTypeOf(p) === 'ordinaria' && mi(p) >= 0);
+  const aside = fp.filter(p => payTypeOf(p) !== 'ordinaria');
+  const odd = fp.filter(p => payTypeOf(p) === 'ordinaria' && mi(p) < 0);   // mes sin leer: aparte, sin color
+  const asideMonths = new Set(aside.map(mi));
+  const open = storedOpen.has(year) ? storedOpen.get(year) : Number(year) === cy;
+  const show = p => `showReport(payrolls.find(x=>x.id===${jsArg(p.id)}))`;
+  const cells = MONTHS.map((name, m) => {
+    const p = ord.find(x => mi(x) === m);
+    const dot = asideMonths.has(m) ? '<span class="st-dot"></span>' : '';
+    if (p) return `<button class="st-m" data-m="${m}" title="${esc(payName(p))}" onclick="${show(p)}">${storedCellLabel(p, m)}${dot}</button>`;
+    const cls = missing.has(name) ? (st.kind === 'cur' ? 'miss soft' : 'miss') : (Number(year) > cy || (Number(year) === cy && m > last)) ? 'fut' : 'none';
+    return `<span class="st-m ${cls}" data-m="${m}">${storedCellLabel(null, m)}${dot}</span>`;
+  }).join('');
+  const chip = (p, cls) => `<button class="st-chip${cls}" onclick="${show(p)}">${esc(payLabelOf(p) + ' · ' + String(p.period?.month || '?').toLowerCase())}${hasOriginal(p) ? ' 📎' : ''}</button>`;
+  const badge = st.kind === 'none' ? '' : `<span class="st-badge ${st.kind}">${esc(storedBadgeText(st))}</span>`;
+  return `<details class="st-year" data-year="${esc(year)}"${open ? ' open' : ''} ontoggle="storedOpen.set(this.dataset.year, this.open)">
+    <summary><span class="st-y">${esc(year)}</span>${badge}<span class="st-n">${esc(fp.length === 1 ? tr('stored.count1') : tr('stored.count', { n: fp.length }))}</span></summary>
+    <div class="st-body">
+      <div class="st-grid">${cells}</div>
+      <div class="st-aside"><span>${esc(tr('stored.aside'))}</span>${aside.length ? aside.map(p => chip(p, '')).join('') : `<span>${esc(tr('stored.none'))}</span>`}${odd.map(p => chip(p, ' plain')).join('')}</div>
+      ${st.list.length ? `<div class="st-hint${st.kind === 'cur' ? ' soft' : ''}">${esc(tr('stored.upload'))}</div>` : ''}
+    </div>
+  </details>`;
+}
+
+function storedYearsHtml() {
+  const cy = appToday().getFullYear();
+  const years = [...new Set(payrolls.map(p => p.period?.year).filter(Boolean))].sort((a, b) => b.localeCompare(a));
+  const noYear = payrolls.filter(p => !p.period?.year);
+  return `<div id="storedYears" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+    <strong style="color:var(--text)">${esc(tr('stored.title'))}</strong>
+    <div style="font-size:11px;color:var(--text-dim);margin-top:2px">${esc(tr('stored.help'))}</div>
+    ${years.map(y => storedYearHtml(y, cy)).join('')}
+    ${noYear.length ? `<div class="st-aside"><span>${esc(tr('stored.noYear'))}</span>${noYear.map(p => `<button class="st-chip plain" onclick="showReport(payrolls.find(x=>x.id===${jsArg(p.id)}))">${esc(payName(p))}</button>`).join('')}</div>` : ''}
+    <div class="st-legend">${esc(tr('stored.legend'))}</div>
+  </div>`;
+}
+
 function renderBackupView() {
   renderOfflineStatus();
   renderFestivosConfig();   // v2.17.0
@@ -7070,7 +7217,6 @@ function renderBackupView() {
   // Data stats
   const statsEl = document.getElementById('dataStats');
   if (statsEl) {
-    const years = [...new Set(payrolls.map(p => p.period?.year))].filter(Boolean).sort();
     const lastBackup = localStorage.getItem('nomina-auditor-lastbackup');
     const dataSize = new Blob([JSON.stringify(payrolls)]).size;
     const withDoc = payrolls.filter(hasOriginal);
@@ -7080,7 +7226,6 @@ function renderBackupView() {
     statsEl.innerHTML = `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div>📁 Total nóminas: <strong style="color:var(--text)">${payrolls.length}</strong></div>
-        <div>📅 Años: <strong style="color:var(--text)">${years.length > 0 ? years.join(', ') : 'Ninguno'}</strong></div>
         <div>💾 Tamaño datos: <strong style="color:var(--text)">${sizeStr}</strong></div>
         <div>🕐 Último backup: <strong style="color:var(--text)">${lastBackup ? new Date(lastBackup).toLocaleString('es-ES') : 'Nunca'}</strong></div>
         <div>🗂️ Último backup completo: <strong style="color:${needsBackup() ? 'var(--warning)' : 'var(--text)'}">${lsTime('nomina-auditor-lastfullbackup') ? new Date(lsTime('nomina-auditor-lastfullbackup')).toLocaleString('es-ES') : 'Nunca'}</strong>${needsBackup() ? ' · hay cambios después' : ''}</div>
@@ -7089,10 +7234,7 @@ function renderBackupView() {
       </div>
       <div id="persistInfo" style="margin-top:6px;font-size:11px;color:var(--text-muted)"></div>
       <div id="orphanInfo"></div>
-      ${payrolls.length > 0 ? `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-        <strong style="color:var(--text)">Nóminas almacenadas:</strong><br>
-        ${payrolls.map(p => `<span style="display:inline-block;margin:4px 4px 0 0;padding:3px 10px;border-radius:12px;background:var(--bg2);border:1px solid ${payTypeOf(p) === 'ordinaria' ? 'var(--border)' : 'var(--warning)'};font-size:11px">${esc(payName(p))}${hasOriginal(p) ? ' 📎' : ''}</span>`).join('')}
-      </div>` : ''}`;
+      ${payrolls.length > 0 ? storedYearsHtml() : ''}`;
     if (withDoc.length && navigator.storage && navigator.storage.persisted) {
       navigator.storage.persisted().then(ok => {
         const el = document.getElementById('persistInfo');

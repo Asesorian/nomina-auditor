@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.18.2-blue)
+![Version](https://img.shields.io/badge/version-2.19.0-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.18.0)
+## 🆕 Novedades (v2.3 – v2.19.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 🗂️ **Nóminas almacenadas por años (v2.19.0)** | Con varios años guardados, la lista de nóminas ya no es una fila interminable de etiquetas: **una fila por año**, con su estado (**Completo** en verde, **Faltan N** en ámbar diciendo cuáles, **En curso** sin color de alarma). Al abrir un año, sus **12 meses** (lo que falta, con borde discontinuo) y, aparte y en azul, las pagas extra, atrasos y beneficios con su tipo escrito. Toca un mes para ver su nómina. El estado es el mismo que el de «¿Está completo el año?» del Anual. | **Datos** |
 | 🎌 **Saldo de festivos (v2.17.0)** | Muchas empresas pagan los festivos trabajados **por lotes y con meses de retraso**, y la nómina no dice a qué festivo corresponde cada pago. Elige tu comunidad autónoma (el calendario oficial del BOE ya está dentro de la app, 2026 y 2027), pon tus 2 fiestas locales y desde cuándo cuentas: la app compara los festivos que trabajas con los que te pagan, en orden (el más antiguo primero), y **avisa si uno lleva 2 meses sin aparecer**. Si no trabajaste alguno, lo desmarcas. **En Catalunya (v2.18.0)**, eliges el municipio de tu centro de trabajo y las 2 fiestas locales salen solas de la orden oficial del DOGC (los 947 municipios y sus núcleos agregados). Solo documenta: no dice cuánto vale un festivo ni si se puede reclamar (eso depende de tu convenio). Se guarda en tu dispositivo y en el backup | Datos → Festivos · Panel · Anual |
 | 💾 **La paga de beneficios vuelve con el backup (v2.16.8)** | Al **restaurar un backup** en otro dispositivo (un móvil nuevo, el ordenador), las nóminas de **Beneficios** se quedaban fuera con el aviso «registro ignorado», y también su original. Ahora entran con todo. El backup ya las guardaba bien: si te pasó, vuelve a importar el mismo archivo y saldrán como nuevas, sin tocar las demás | Datos → Importar backup |
 | 🧮 **Total de la Seguridad Social y base propia del IRPF (v2.16.5)** | Si la lectura se queda con la fila del **total** de la Seguridad Social en vez de las cotizaciones una a una, las sumas cuadran pero no se puede comprobar ninguna cuota: ahora sale un aviso que dice qué mirar en el papel y cómo corregirlo (si tu nómina solo trae el total, te dice que está bien). Y si la línea de IRPF lleva impresa su propia base y la retención se ha calculado sobre ella, el aviso de IRPF lo explica: o la base IRPF está mal leída o es la nómina la que usa otra cantidad. | Revisión y *Ver* |
@@ -713,6 +714,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.19.0 (Noviembre 2026)
+- **«Nóminas almacenadas» por años** (Datos): una fila por año, del más reciente al más antiguo, plegadas salvo el año en curso. Cada año dice si está **completo**, qué **falta** (meses, la paga extra esperada o el hueco de una de las empresas) o si está **en curso**; sale de la misma cuenta que «¿Está completo el año?» del Anual. Al abrirlo, una cuadrícula de 12 meses: cada mes guardado se toca y abre su nómina; lo que falta, con borde discontinuo; lo que aún no toca, atenuado. Las nóminas aparte (Paga extra, Atrasos, Beneficios) van en azul con el tipo escrito, y su mes lleva un punto azul. 📎 en las que tienen el documento original.
+- **Colores:** el ámbar queda solo para lo que falta (antes las pagas extra y los atrasos llevaban un borde naranja que parecía un aviso). En el año en curso, el mes que falta sale en gris: a primeros de mes la nómina del anterior aún puede no haber llegado.
+- Fuera la línea «📅 Años», que ahora repetía la lista. 14 textos nuevos en los tres idiomas. Batería nueva `test_datos_anos.py`. No cambia ninguna comprobación ni ningún dato guardado.
 
 ### v2.18.2 (Noviembre 2026)
 - **Arreglo (desde la v2.17.0):** una fiesta local que coincide con el festivo de otra comunidad salía con el nombre de ese festivo (el 5 de agosto local, como «Nuestra Señora de África», la fiesta de Ceuta). Ahora el nombre solo sale si es festivo oficial de tu comunidad; si no, «Fiesta local». El cálculo no cambia.
