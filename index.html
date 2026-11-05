@@ -368,6 +368,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 .backup-reminder .doc-actions { margin-top:10px; }
 .backup-reminder.done { display:flex;gap:8px;align-items:flex-start;background:var(--success-bg);border-color:rgba(74,222,128,0.35); }
 .backup-reminder.done strong { color:var(--success); }
+.backup-confirm { margin-top:10px;padding-top:10px;border-top:1px dashed rgba(245,158,11,0.45);color:var(--text); }
 /* Revisión en pantallas estrechas (v2.7.5): cada línea en dos filas, el importe siempre a la vista */
 .editable:empty { display:inline-block; min-width:2.2em; min-height:1em; vertical-align:bottom; }
 @media (max-width:600px) {
@@ -447,7 +448,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.19.0</span>
+    <span class="logo-badge">Forense v2.19.1</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -1139,14 +1140,32 @@ function canShareBackup() {
 }
 
 // Escribe el archivo y comprueba que ha quedado entero (mismo tamaño). Devuelve si se ha podido comprobar.
+// v2.19.1: si es un ZIP, también que lo escrito lo sea de verdad (looksLikeWholeZip): mismo tamaño no basta.
 async function writeToPicked(handle, blob) {
   const w = await handle.createWritable();
   try { await w.write(blob); await w.close(); }
   catch (e) { try { await w.abort(); } catch {} throw e; }
-  let size = null;
-  try { size = (await handle.getFile()).size; } catch {}
+  let file = null;
+  try { file = await handle.getFile(); } catch {}
+  const size = file ? file.size : null;
   if (size !== null && size !== blob.size) throw new Error(`no ha quedado entero (${size} de ${blob.size} bytes)`);
+  if (file && blob.type === 'application/zip') {
+    let ok = true;
+    try { ok = await looksLikeWholeZip(file); } catch {}
+    if (!ok) throw new Error(tr('bk.notZip'));
+  }
   return size !== null;
+}
+
+// v2.19.1: empieza como un ZIP («PK\x03\x04») y tiene su registro final («PK\x05\x06») en los últimos 64 KB.
+// Un archivo del tamaño justo pero lleno de ceros, o sin el final, no se podría restaurar.
+async function looksLikeWholeZip(file) {
+  const head = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+  if (!(head[0] === 0x50 && head[1] === 0x4B && head[2] === 0x03 && head[3] === 0x04)) return false;
+  const tail = new Uint8Array(await file.slice(Math.max(0, file.size - 65557)).arrayBuffer());
+  for (let i = tail.length - 22; i >= 0; i--)
+    if (tail[i] === 0x50 && tail[i + 1] === 0x4B && tail[i + 2] === 0x05 && tail[i + 3] === 0x06) return true;
+  return false;
 }
 
 // ═══════════ FORMATTING ═══════════
@@ -3822,6 +3841,34 @@ Object.assign(I18N.en, {
   "stored.upload": "Upload them in «Subir».",
   "stored.noYear": "No year:",
   "stored.legend": "Green: complete · Amber: payslips missing · Blue: separate payslips (Paga extra, Atrasos, Beneficios) · 📎: with original document"
+});
+// v2.19.1: backup completo sin confirmar (punto 35). El català, revisado con Gemini (05-11).
+Object.assign(I18N.es, {
+  "bk.confirmQ": "Falta un paso: abre el sitio donde lo has guardado (Drive, por ejemplo) y comprueba que «{name}» pesa {peso}. Hasta que lo confirmes, no cuenta como copia de seguridad.",
+  "bk.yes": "✓ Sí, pesa {peso}",
+  "bk.no": "✗ No, pesa 0 o no sube",
+  "bk.pending": "Backup completo sin confirmar: «{name}» ({peso}), del {date}.",
+  "bk.okMsg": "Backup confirmado: ya cuenta como copia de seguridad.",
+  "bk.badMsg": "No cuenta como copia. Vuelve a guardar el backup (en Drive, aunque el primero siga subiendo: el segundo suele subir bien) y después borra de Drive el que pesa 0.",
+  "bk.notZip": "lo guardado no es un ZIP completo"
+});
+Object.assign(I18N.ca, {
+  "bk.confirmQ": "Falta un pas: obre el lloc on l'has desat (Drive, per exemple) i comprova que «{name}» pesa {peso}. Fins que no ho confirmis, no compta com a còpia de seguretat.",
+  "bk.yes": "✓ Sí, pesa {peso}",
+  "bk.no": "✗ No, pesa 0 o no es puja",
+  "bk.pending": "Còpia completa sense confirmar: «{name}» ({peso}), del {date}.",
+  "bk.okMsg": "Còpia confirmada: ja compta com a còpia de seguretat.",
+  "bk.badMsg": "No compta com a còpia. Torna-la a desar (a Drive, encara que la primera s'estigui pujant: la segona sol pujar bé) i després esborra de Drive la que pesa 0.",
+  "bk.notZip": "el que s'ha desat no és un ZIP complet"
+});
+Object.assign(I18N.en, {
+  "bk.confirmQ": "One step left: open the place where you saved it (Drive, for example) and check that «{name}» is {peso}. Until you confirm it, it does not count as a backup.",
+  "bk.yes": "✓ Yes, it is {peso}",
+  "bk.no": "✗ No, it is 0 or won't upload",
+  "bk.pending": "Unconfirmed full backup: «{name}» ({peso}), from {date}.",
+  "bk.okMsg": "Backup confirmed: it now counts as a backup.",
+  "bk.badMsg": "It does not count as a backup. Save it again (to Drive, even if the first one is still uploading: the second one usually uploads fine) and then delete from Drive the one that is 0.",
+  "bk.notZip": "what was saved is not a complete ZIP"
 });
 // Textos fijos del HTML con data-tr="clave": se escriben con tr() al arrancar (v2.13.1)
 function trStatic(root = document) {
@@ -6680,6 +6727,38 @@ function needsBackup() {
 
 let pendingBackup = null;   // v2.12.5: { file, size, fromPanel, nDocs }: ZIP preparado, a falta de elegir dónde guardarlo
 let backupJustDone = null;   // { how, name, verified }: para decirlo en el Panel justo después
+let backupConfirmed = null;   // v2.19.1: true/false recién contestado «¿pesa lo que debe?», para decirlo en el Panel
+
+// v2.19.1 (punto 35): con «Guardar como» o la hoja de compartir, la app solo ve el archivo en el móvil. Drive lo sube
+// después y puede quedar con 0 bytes sin que la página lo sepa (getFile() da el tamaño local). Por eso esa copia no
+// cuenta como backup hasta que la persona confirma que pesa lo que debe: queda «sin confirmar» (también tras recargar).
+// La descarga sigue contando al momento: el archivo está en Descargas y el aviso explica cómo llevarlo a Drive.
+const BK_UNCONFIRMED = 'nomina-auditor-backup-unconfirmed';
+function unconfirmedBackup() {
+  try { const u = JSON.parse(localStorage.getItem(BK_UNCONFIRMED) || 'null'); return u && u.at ? u : null; } catch { return null; }
+}
+function countFullBackup(at) {
+  try { localStorage.setItem('nomina-auditor-lastbackup', at); localStorage.setItem('nomina-auditor-lastfullbackup', at); } catch {}
+}
+function backupConfirmHtml(u) {
+  const peso = fmtBytes(u.size);
+  return `<div class="backup-confirm"><div>${esc(tr('bk.confirmQ', { name: u.name, peso }))}</div>
+    <div class="doc-actions">
+      <button class="btn btn-primary btn-sm" onclick="confirmBackup(true)">${esc(tr('bk.yes', { peso }))}</button>
+      <button class="btn btn-secondary btn-sm" onclick="confirmBackup(false)">${esc(tr('bk.no'))}</button>
+    </div></div>`;
+}
+function confirmBackup(ok) {
+  const u = unconfirmedBackup();
+  if (!u) return;
+  try { localStorage.removeItem(BK_UNCONFIRMED); } catch {}
+  if (ok) countFullBackup(u.at);   // la hora del backup, no la de ahora: lo cambiado después sigue pendiente
+  const note = document.getElementById('fullBackupNote');
+  if (note) { note.innerHTML = ok ? `✓ ${esc(tr('bk.okMsg'))}` : `⚠ ${esc(tr('bk.badMsg'))}`; note.classList.remove('hidden'); }
+  backupConfirmed = ok;
+  renderBackupReminder();
+  renderBackupView();
+}
 
 // v2.8.10: guardado donde se eligió (con su nombre) o descargado (y cómo llevarlo a Drive)
 function fullBackupLabel() { return canPickSaveLocation() || canShareBackup() ? '🗂️ Guardar backup completo…' : '🗂️ Descargar backup completo'; }
@@ -6709,10 +6788,25 @@ function renderBackupReminder() {
   if (backupJustDone) {
     const r = backupJustDone;
     backupJustDone = null;
-    el.innerHTML = `<div class="backup-reminder done">✓ <span>${backupDoneHtml(r)}</span></div>`;
+    const u = unconfirmedBackup();   // v2.19.1: guardado o enviado, a falta de confirmar
+    el.innerHTML = u ? `<div class="backup-reminder"><div class="backup-reminder-text">⏳ <span>${backupDoneHtml(r)}</span></div>${backupConfirmHtml(u)}</div>`
+      : `<div class="backup-reminder done">✓ <span>${backupDoneHtml(r)}</span></div>`;
+    return;
+  }
+  if (backupConfirmed !== null) {   // v2.19.1: recién contestado
+    const ok = backupConfirmed;
+    backupConfirmed = null;
+    el.innerHTML = ok ? `<div class="backup-reminder done">✓ <span>${esc(tr('bk.okMsg'))}</span></div>`
+      : `<div class="backup-reminder"><div class="backup-reminder-text">⚠ <span>${esc(tr('bk.badMsg'))}</span></div>
+        <div class="doc-actions"><button class="btn btn-primary btn-sm" onclick="exportFullBackup(this)">${fullBackupLabel()}</button></div></div>`;
     return;
   }
   if (pendingBackup?.fromPanel) { el.innerHTML = pendingBackupHtml(); return; }   // v2.12.5: preparado, sin guardar aún
+  const unc = unconfirmedBackup();   // v2.19.1: sigue sin confirmar (no se oculta con «Ahora no»)
+  if (unc) {
+    el.innerHTML = `<div class="backup-reminder"><div class="backup-reminder-text">⏳ <span>${esc(tr('bk.pending', { name: unc.name, peso: fmtBytes(unc.size), date: new Date(unc.at).toLocaleString('es-ES') }))}</span></div>${backupConfirmHtml(unc)}</div>`;
+    return;
+  }
   const dismissed = lsTime('nomina-auditor-backupnag-dismissed');
   if (!needsBackup() || (dismissed && dismissed >= lsTime('nomina-auditor-lastchange'))) { el.innerHTML = ''; return; }
   const full = lsTime('nomina-auditor-lastfullbackup');
@@ -6883,11 +6977,17 @@ async function exportFullBackup(srcBtn) {
 }
 
 // Cuenta como backup completo y lo dice (en Datos y, si se hizo desde el Panel, en el Panel)
+// v2.19.1: guardado con «Guardar como» o enviado por la hoja de compartir, queda sin confirmar (BK_UNCONFIRMED)
 function markFullBackupDone(done, fromPanel) {
-  localStorage.setItem('nomina-auditor-lastbackup', new Date().toISOString());
-  lsSetNow('nomina-auditor-lastfullbackup');
+  const at = new Date().toISOString();
+  const unsure = done.how === 'saved' || done.how === 'shared';
+  try {
+    if (unsure) localStorage.setItem(BK_UNCONFIRMED, JSON.stringify({ how: done.how, name: done.name, size: done.size, at }));
+    else localStorage.removeItem(BK_UNCONFIRMED);
+  } catch {}
+  if (!unsure) countFullBackup(at);
   const note = document.getElementById('fullBackupNote');
-  if (note) { note.innerHTML = '✓ ' + backupDoneHtml(done); note.classList.remove('hidden'); }
+  if (note) { note.innerHTML = unsure ? '⏳ ' + backupDoneHtml(done) + backupConfirmHtml(unconfirmedBackup() || { ...done, at }) : '✓ ' + backupDoneHtml(done); note.classList.remove('hidden'); }
   if (fromPanel) { backupJustDone = done; renderBackupReminder(); }
   renderBackupView();
 }

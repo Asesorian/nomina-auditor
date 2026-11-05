@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.19.0-blue)
+![Version](https://img.shields.io/badge/version-2.19.1-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.19.0)
+## 🆕 Novedades (v2.3 – v2.19.1)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -714,6 +714,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.19.1 (Noviembre 2026)
+- **El backup completo guardado en Drive ya no cuenta hasta que lo confirmas.** Con «Guardar como» (Chrome) o con «Guardar en…» (iPhone), la app solo ve el archivo en el móvil; Drive lo sube después y a veces se queda con 0 bytes sin que la app pueda saberlo. Ahora la copia queda **sin confirmar** (también si cierras la app), con el tamaño que debe tener y dos botones: **«Sí, pesa…»** la cuenta como copia y **«No, pesa 0 o no sube»** explica cómo volver a guardarla. Mientras no contestes, el Panel lo sigue pidiendo. La descarga a Descargas cuenta como siempre.
+- **Comprobación del ZIP:** además del tamaño, la app mira que lo guardado empieza y acaba como un ZIP de verdad; si no, lo quita y lo descarga.
+- 7 textos nuevos en los tres idiomas. No cambia ninguna comprobación ni ningún dato guardado.
 
 ### v2.19.0 (Noviembre 2026)
 - **«Nóminas almacenadas» por años** (Datos): una fila por año, del más reciente al más antiguo, plegadas salvo el año en curso. Cada año dice si está **completo**, qué **falta** (meses, la paga extra esperada o el hueco de una de las empresas) o si está **en curso**; sale de la misma cuenta que «¿Está completo el año?» del Anual. Al abrirlo, una cuadrícula de 12 meses: cada mes guardado se toca y abre su nómina; lo que falta, con borde discontinuo; lo que aún no toca, atenuado. Las nóminas aparte (Paga extra, Atrasos, Beneficios) van en azul con el tipo escrito, y su mes lleva un punto azul. 📎 en las que tienen el documento original.
