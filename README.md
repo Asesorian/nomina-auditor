@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.19.2-blue)
+![Version](https://img.shields.io/badge/version-2.19.3-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.19.2)
+## 🆕 Novedades (v2.3 – v2.19.3)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -714,6 +714,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.19.3 (Noviembre 2026)
+- **Una lectura de Gemini a la que se le ha perdido una «}» ya no se tira.** De vez en cuando `gemini-2.5-flash` (el segundo modelo de la cadena) se salta la llave que cierra un elemento de la lista de devengos o deducciones: el JSON queda roto, la app lo rechazaba y pasaba al modelo siguiente. En un diagnóstico con 62 respuestas válidas, 8 no se podían leer y, en 7 de ellas, lo único que faltaba era esa llave. Ahora la app la repone sola, solo cuando el JSON tal cual no vale; una respuesta correcta no se toca.
+- Probado también contra el modelo en vivo: las 4 respuestas rotas que salieron con la app corregida se leyeron y coincidían con los datos ya corregidos de esa nómina (todas las cifras bien, ninguna de más). No cambia ninguna cifra, comprobación ni dato guardado, y no hay textos nuevos.
 
 ### v2.19.2 (Noviembre 2026)
 - **Comprobación nueva: los devengos frente a la remuneración total.** Si la suma de los devengos no da la «Remuneración total» de las bases, un aviso lo dice con las dos cifras y dónde mirar. No salta cuando la diferencia es justo lo que muchas nóminas dejan fuera: horas extra, prorrata de pagas, pagas extra, gastos de estancia o desplazamiento o lo que no cotiza (dietas, transporte, especie). Tampoco repite lo que ya dice «los devengos suman…».

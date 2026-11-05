@@ -448,7 +448,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.19.2</span>
+    <span class="logo-badge">Forense v2.19.3</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -1342,10 +1342,31 @@ function stripJsonComments(s) {
 
 // Reparaciones de errores típicos, solo si el JSON tal cual no vale
 function repairJSON(t) {
-  return stripJsonComments(t)
+  return closeMissingBraces(stripJsonComments(t)
     .replace(/,\s*([}\]])/g, '$1')                                          // coma antes de } o ]
     .replace(/("(?:[^"\\]|\\.)*"|\d|true|false|null|[}\]])[ \t]*\n(\s*["{])/g, '$1,\n$2') // falta la coma entre líneas
-    .replace(/:\s*(NaN|undefined)\b/g, ': 0');                              // valores que no existen en JSON
+    .replace(/:\s*(NaN|undefined)\b/g, ': 0'));                             // valores que no existen en JSON
+}
+
+// v2.19.3: de vez en cuando el modelo se salta la «}» que cierra un elemento de un array de objetos («"amount": 12.5 , { … »
+// o «"amount": 12.5 ] »). En JSON válido nunca hay un «{» donde toca un nombre de propiedad (tras una coma, dentro de un objeto)
+// ni un «]» con un objeto abierto: ahí falta una «}» y se pone. Respeta las cadenas; sobre JSON válido no cambia nada.
+function closeMissingBraces(s) {
+  const out = [], stack = [];
+  let inStr = false, escaped = false, lastSig = '', lastComma = -1;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (inStr) { out.push(c); if (escaped) escaped = false; else if (c === '\\') escaped = true; else if (c === '"') inStr = false; continue; }
+    if (c === '"') { inStr = true; out.push(c); lastSig = c; continue; }
+    if (c === '{' && stack[stack.length - 1] === '{' && lastSig === ',') { out.splice(lastComma, 0, '}'); stack.pop(); }
+    if (c === ']') while (stack[stack.length - 1] === '{') { out.push('}'); stack.pop(); }
+    if (c === '{' || c === '[') stack.push(c);
+    else if (c === '}' || c === ']') stack.pop();
+    if (c === ',') lastComma = out.length;
+    out.push(c);
+    if (!/\s/.test(c)) lastSig = c;
+  }
+  return out.join('');
 }
 
 // v2.13.1: los objetos JSON de primer nivel que vienen seguidos («{…}{…}», «{…},{…}»), respetando las comillas.
