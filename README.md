@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.19.1-blue)
+![Version](https://img.shields.io/badge/version-2.19.2-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.19.1)
+## 🆕 Novedades (v2.3 – v2.19.2)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -714,6 +714,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.19.2 (Noviembre 2026)
+- **Comprobación nueva: los devengos frente a la remuneración total.** Si la suma de los devengos no da la «Remuneración total» de las bases, un aviso lo dice con las dos cifras y dónde mirar. No salta cuando la diferencia es justo lo que muchas nóminas dejan fuera: horas extra, prorrata de pagas, pagas extra, gastos de estancia o desplazamiento o lo que no cotiza (dietas, transporte, especie). Tampoco repite lo que ya dice «los devengos suman…».
+- **Total bruto no impreso:** en una nómina de prueba sin total de devengos, Gemini lo sumaba él y la comprobación de los devengos no podía fallar. Ahora el prompt le pide «N/L» solo en el total bruto si no está impreso (sin tocar el resto de totales), y la app pone la suma de las líneas y lo dice en la revisión («El total bruto no está impreso…»). Esa suma sigue a las líneas aunque se corrijan; si la persona escribe el del papel, se queda el suyo. La comprobación «PDF digital» ya no lo busca en el texto.
+- Con las nóminas guardadas no cambia ningún aviso (simulado con un backup real de 40 nóminas). Banco de modelos pasado dos veces con el prompt nuevo: las diferencias con el anterior caen en líneas de deducciones que la instrucción no toca (ruido entre lecturas); un solo caso con el total devengado en blanco, que la app suma. 3 textos nuevos en los tres idiomas.
 
 ### v2.19.1 (Noviembre 2026)
 - **El backup completo guardado en Drive ya no cuenta hasta que lo confirmas.** Con «Guardar como» (Chrome) o con «Guardar en…» (iPhone), la app solo ve el archivo en el móvil; Drive lo sube después y a veces se queda con 0 bytes sin que la app pueda saberlo. Ahora la copia queda **sin confirmar** (también si cierras la app), con el tamaño que debe tener y dos botones: **«Sí, pesa…»** la cuenta como copia y **«No, pesa 0 o no sube»** explica cómo volver a guardarla. Mientras no contestes, el Panel lo sigue pidiendo. La descarga a Descargas cuenta como siempre.
