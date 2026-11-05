@@ -448,7 +448,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.19.4</span>
+    <span class="logo-badge">Forense v2.19.5</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -2374,7 +2374,7 @@ function renderVerification() {
 function renderValidation(d) {
   if (payTypeOf(d) !== 'ordinaria') {
     return `<div class="validation ok" style="color:var(--text-dim);border-color:var(--border);background:var(--bg2)">
-      ℹ Nómina de ${esc(payLabelOf(d).toLowerCase())}: la comprobación Remuneración + Prorrata = Base C.C. solo aplica a la nómina mensual ordinaria.
+      ${esc(tr('valNotOrd', { type: payLabelOf(d).toLowerCase() }))}
     </div>`;
   }
   const rem = amt(d.bases?.totalRemuneration);
@@ -2382,12 +2382,13 @@ function renderValidation(d) {
   const bcc = amt(d.bases?.baseCC);
   const diff = Math.abs((rem + pro) - bcc);
   const ok = diff < 0.02;
-  // v2.8.13: unos céntimos con las sumas cuadradas son un redondeo de la empresa (checkPayroll lo decide)
+  // v2.8.13: unos céntimos con las sumas cuadradas pueden ser un redondeo de la empresa (checkPayroll lo decide)
   const rounding = !ok && checkPayroll(d).some(c => c.key === 'bcc' && c.level === 'round');
   const lado = bcc - (rem + pro);   // v2.12.3: el lado del redondeo
+  // v2.19.5: con tr() y, como bccRound (v2.19.4), sin dar el redondeo por seguro: puede ser un dígito mal leído
   return `<div class="validation ${ok || rounding ? 'ok' : 'err'}">
-    ${ok ? '✓' : rounding ? '≈' : '⚠'} Validación: Remuneración (${fmt(rem)}) + Prorrata (${fmt(pro)}) = ${fmt(rem+pro)}
-    ${ok ? '✓ Coincide con Base C.C.' : rounding ? `≈ Base C.C. (${fmt(bcc)}): ${cts(lado)} ${lado > 0 ? 'mayor' : 'menor'}, redondeo de la empresa` : `≠ Base C.C. (${fmt(bcc)}) — Diferencia: ${fmt(diff)} €`}
+    ${ok ? '✓' : rounding ? '≈' : '⚠'} ${esc(tr('valSum', { rem: fmt(rem), pro: fmt(pro), sum: fmt(rem + pro) }))}
+    ${esc(ok ? tr('valOk') : rounding ? tr(lado > 0 ? 'valRoundMore' : 'valRoundLess', { bcc: fmt(bcc), cts: cts(lado) }) : tr('valErr', { bcc: fmt(bcc), diff: fmt(diff) }))}
   </div>`;
 }
 
@@ -3578,6 +3579,12 @@ Object.assign(I18N.es, {
   "bccMax": "La base C.C. es menor: con sueldos altos puede ser la base máxima de cotización, y entonces es correcta. Compárala con el papel.",
   "bccAT": "La base A.T. sí coincide con esa suma ({base} €): lo más probable es que la base C.C. esté mal leída (un dígito cambiado). Sin horas extra, las dos bases suelen ser iguales. Compárala con el papel.",
   "bccRound": "Puede ser un redondeo de la empresa o una cifra mal leída (un dígito cambiado): compárala con el papel.",
+  "valNotOrd": "ℹ Nómina de {type}: la comprobación Remuneración + Prorrata = Base C.C. solo aplica a la nómina mensual ordinaria.",
+  "valSum": "Validación: Remuneración ({rem}) + Prorrata ({pro}) = {sum}",
+  "valOk": "✓ Coincide con Base C.C.",
+  "valRoundMore": "≈ Base C.C. ({bcc}), {cts} mayor: puede ser un redondeo de la empresa o una cifra mal leída; compárala con el papel",
+  "valRoundLess": "≈ Base C.C. ({bcc}), {cts} menor: puede ser un redondeo de la empresa o una cifra mal leída; compárala con el papel",
+  "valErr": "≠ Base C.C. ({bcc}) — Diferencia: {diff} €",
   "upInfoName": "«{concept}»: {units} × {price} = {exp} €, sin importe en la nómina. Por su nombre es una previsión o provisión de la empresa: es informativa, no se cobra este mes y no cuenta en las sumas.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, sin importe en la nómina. Las sumas cuadran sin ella: es una línea informativa (por ejemplo, una previsión de la empresa) y no se cobra este mes."
 });
@@ -3639,6 +3646,12 @@ Object.assign(I18N.ca, {
   "bccMax": "La base C.C. és més baixa: amb sous alts pot ser la base màxima de cotització, i llavors és correcta. Compara-la amb el paper.",
   "bccAT": "La base A.T. sí que coincideix amb aquesta suma ({base} €): el més probable és que la base C.C. estigui mal llegida (un dígit canviat). Sense hores extraordinàries, les dues bases solen ser iguals. Compara-la amb el paper.",
   "bccRound": "Pot ser un arrodoniment de l'empresa o una xifra mal llegida (un dígit canviat): compara-la amb el paper.",
+  "valNotOrd": "ℹ Nòmina ({type}): la comprovació Remuneración + Prorrata = Base C.C. només s'aplica a la nòmina mensual ordinària.",
+  "valSum": "Validació: Remuneración ({rem}) + Prorrata ({pro}) = {sum}",
+  "valOk": "✓ Coincideix amb la Base C.C.",
+  "valRoundMore": "≈ Base C.C. ({bcc}), {cts} més alta: pot ser un arrodoniment de l'empresa o una xifra mal llegida; compara-la amb el paper",
+  "valRoundLess": "≈ Base C.C. ({bcc}), {cts} més baixa: pot ser un arrodoniment de l'empresa o una xifra mal llegida; compara-la amb el paper",
+  "valErr": "≠ Base C.C. ({bcc}) — Diferència: {diff} €",
   "upInfoName": "«{concept}»: {units} × {price} = {exp} €, sense import a la nòmina. Pel seu nom és una previsió o provisió de l'empresa: és informativa, no es cobra aquest mes i no compta a les sumes.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, sense import a la nòmina. Les sumes quadren sense aquesta línia: és una línia informativa (per exemple, una previsió de l'empresa) i no es cobra aquest mes."
 });
@@ -3700,6 +3713,12 @@ Object.assign(I18N.en, {
   "bccMax": "The C.C. base is lower: with high salaries it may be the maximum contribution base, and then it is correct. Compare it with the paper.",
   "bccAT": "The A.T. base does match that sum ({base} €): most likely the C.C. base was misread (one digit changed). Without overtime, both bases are usually the same. Compare it with the paper.",
   "bccRound": "It may be the company's rounding or a misread figure (one digit changed): compare it with the paper.",
+  "valNotOrd": "ℹ {type} payslip (nómina): the check Remuneración + Prorrata = Base C.C. only applies to the ordinary monthly payslip.",
+  "valSum": "Check: Remuneración ({rem}) + Prorrata ({pro}) = {sum}",
+  "valOk": "✓ Matches the Base C.C.",
+  "valRoundMore": "≈ Base C.C. ({bcc}), {cts} higher: it may be the company's rounding or a misread figure; compare it with the paper",
+  "valRoundLess": "≈ Base C.C. ({bcc}), {cts} lower: it may be the company's rounding or a misread figure; compare it with the paper",
+  "valErr": "≠ Base C.C. ({bcc}) — Difference: {diff} €",
   "upInfoName": "«{concept}»: {units} × {price} = {exp} €, with no amount on the payslip. By its name it is a company provision (previsión): it is informational, is not paid this month and does not count in the totals.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, with no amount on the payslip. The totals add up without it: it is an informational line (for example, a company provision) and is not paid this month."
 });

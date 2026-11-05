@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.19.4-blue)
+![Version](https://img.shields.io/badge/version-2.19.5-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.19.4)
+## 🆕 Novedades (v2.3 – v2.19.5)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -714,6 +714,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.19.5 (Noviembre 2026)
+- **La línea de validación de las bases ya no da el redondeo de la base C.C. por seguro.** Cuando la base C.C. está a unos céntimos de remuneración + prorrata y la app lo trata como redondeo (≈), la línea de la revisión decía «redondeo de la empresa» a secas; ahora dice, como el aviso de la v2.19.4, que puede ser un redondeo o una cifra mal leída y que se compare con el papel. El resto de la línea (✓, ≠ y las pagas que no son la nómina ordinaria) dice lo mismo que antes.
+- **Textos:** la línea entera pasa a `tr()` (`valNotOrd`, `valSum`, `valOk`, `valRoundMore`, `valRoundLess`, `valErr`) en es, ca y en; los nombres de los campos (Remuneración, Prorrata, Base C.C.) no se traducen. No cambia ninguna cifra, comprobación ni dato guardado. **Pruebas:** `test_lecturas.py` 41 (datos inventados).
 
 ### v2.19.4 (Noviembre 2026)
 - **La base C.C. a unos céntimos de la suma ya no se da por «redondeo de la empresa» si la base A.T. sí coincide.** Con una nómina escaneada, el modelo leyó un 6 como un 5 en la base C.C. (9 céntimos menos que remuneración + prorrata) y la app lo daba por redondeo y decía que la cifra estaba bien leída. Una empresa que redondea, redondea las dos bases; si la A.T. coincide al céntimo con la suma y la C.C. no, lo más probable es un dígito mal leído: ahora sale un aviso que señala solo el campo Base C.C. y dice por qué.
