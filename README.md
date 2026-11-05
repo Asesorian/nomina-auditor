@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.19.3-blue)
+![Version](https://img.shields.io/badge/version-2.19.4-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.19.3)
+## 🆕 Novedades (v2.3 – v2.19.4)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -714,6 +714,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.19.4 (Noviembre 2026)
+- **La base C.C. a unos céntimos de la suma ya no se da por «redondeo de la empresa» si la base A.T. sí coincide.** Con una nómina escaneada, el modelo leyó un 6 como un 5 en la base C.C. (9 céntimos menos que remuneración + prorrata) y la app lo daba por redondeo y decía que la cifra estaba bien leída. Una empresa que redondea, redondea las dos bases; si la A.T. coincide al céntimo con la suma y la C.C. no, lo más probable es un dígito mal leído: ahora sale un aviso que señala solo el campo Base C.C. y dice por qué.
+- El redondeo de la base C.C. (las dos bases a unos céntimos de la suma) sigue siendo redondeo, pero ya no dice «la cifra está bien leída»: pide compararla con el papel. Con el último backup real, este «redondeo» solo salía en una nómina, y era el dígito mal leído.
+- **Textos:** `bccAT`, `bccRound` en es, ca y en. **Pruebas:** `test_lecturas.py` 40 (datos inventados) y las del redondeo de la base C.C. con las dos bases redondeadas.
 
 ### v2.19.3 (Noviembre 2026)
 - **Una lectura de Gemini a la que se le ha perdido una «}» ya no se tira.** De vez en cuando `gemini-2.5-flash` (el segundo modelo de la cadena) se salta la llave que cierra un elemento de la lista de devengos o deducciones: el JSON queda roto, la app lo rechazaba y pasaba al modelo siguiente. En un diagnóstico con 62 respuestas válidas, 8 no se podían leer y, en 7 de ellas, lo único que faltaba era esa llave. Ahora la app la repone sola, solo cuando el JSON tal cual no vale; una respuesta correcta no se toca.

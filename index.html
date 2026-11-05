@@ -448,7 +448,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.19.3</span>
+    <span class="logo-badge">Forense v2.19.4</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -3576,6 +3576,8 @@ Object.assign(I18N.es, {
   "sumHintRate": "Pista: {line} tiene el importe a 0, pero {base} € × {pct} = {amount} €, justo lo que falta. Seguramente su importe no se ha leído: compruébalo en el papel.",
   "bccMin": "La base C.C. es mayor: si es una nómina a tiempo parcial o con un sueldo bajo, puede ser la base mínima de cotización de tu grupo, y entonces es correcta. Compárala con el papel.",
   "bccMax": "La base C.C. es menor: con sueldos altos puede ser la base máxima de cotización, y entonces es correcta. Compárala con el papel.",
+  "bccAT": "La base A.T. sí coincide con esa suma ({base} €): lo más probable es que la base C.C. esté mal leída (un dígito cambiado). Sin horas extra, las dos bases suelen ser iguales. Compárala con el papel.",
+  "bccRound": "Puede ser un redondeo de la empresa o una cifra mal leída (un dígito cambiado): compárala con el papel.",
   "upInfoName": "«{concept}»: {units} × {price} = {exp} €, sin importe en la nómina. Por su nombre es una previsión o provisión de la empresa: es informativa, no se cobra este mes y no cuenta en las sumas.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, sin importe en la nómina. Las sumas cuadran sin ella: es una línea informativa (por ejemplo, una previsión de la empresa) y no se cobra este mes."
 });
@@ -3635,6 +3637,8 @@ Object.assign(I18N.ca, {
   "sumHintRate": "Pista: {line} té l'import a 0, però {base} € × {pct} = {amount} €, just el que falta. Segurament no se n'ha llegit l'import: comprova-ho al paper.",
   "bccMin": "La base C.C. és més alta: si és una nòmina a temps parcial o amb un sou baix, pot ser la base mínima de cotització del teu grup, i llavors és correcta. Compara-la amb el paper.",
   "bccMax": "La base C.C. és més baixa: amb sous alts pot ser la base màxima de cotització, i llavors és correcta. Compara-la amb el paper.",
+  "bccAT": "La base A.T. sí que coincideix amb aquesta suma ({base} €): el més probable és que la base C.C. estigui mal llegida (un dígit canviat). Sense hores extraordinàries, les dues bases solen ser iguals. Compara-la amb el paper.",
+  "bccRound": "Pot ser un arrodoniment de l'empresa o una xifra mal llegida (un dígit canviat): compara-la amb el paper.",
   "upInfoName": "«{concept}»: {units} × {price} = {exp} €, sense import a la nòmina. Pel seu nom és una previsió o provisió de l'empresa: és informativa, no es cobra aquest mes i no compta a les sumes.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, sense import a la nòmina. Les sumes quadren sense aquesta línia: és una línia informativa (per exemple, una previsió de l'empresa) i no es cobra aquest mes."
 });
@@ -3694,6 +3698,8 @@ Object.assign(I18N.en, {
   "sumHintRate": "Hint: {line} has a 0 amount, but {base} € × {pct} = {amount} €, exactly what is missing. Its amount was probably not read: check it on the paper.",
   "bccMin": "The C.C. base is higher: on a part-time payslip or with a low salary it may be the minimum contribution base for your group, and then it is correct. Compare it with the paper.",
   "bccMax": "The C.C. base is lower: with high salaries it may be the maximum contribution base, and then it is correct. Compare it with the paper.",
+  "bccAT": "The A.T. base does match that sum ({base} €): most likely the C.C. base was misread (one digit changed). Without overtime, both bases are usually the same. Compare it with the paper.",
+  "bccRound": "It may be the company's rounding or a misread figure (one digit changed): compare it with the paper.",
   "upInfoName": "«{concept}»: {units} × {price} = {exp} €, with no amount on the payslip. By its name it is a company provision (previsión): it is informational, is not paid this month and does not count in the totals.",
   "upInfo": "«{concept}»: {units} × {price} = {exp} €, with no amount on the payslip. The totals add up without it: it is an informational line (for example, a company provision) and is not paid this month."
 });
@@ -6563,6 +6569,10 @@ function checkPayroll(p, opts = {}) {
       // v2.16.0: la diferencia es justo la de las horas extra → «Base C.C.» tiene la base de desempleo/AT. Señala solo ese campo.
       if (overtime > 0 && Math.abs((baseCC - (rem + pro)) - overtime) <= CHECK_TOL) {
         c.gtext = c.text; c.text += ' ' + tr('bccOvertime', { ot: fmt(overtime), base: fmt(round2(rem + pro)) }); c.paths = ['bases.baseCC']; c.hint = true;
+      } else if (amt(bases.baseAT) > 0 && Math.abs(amt(bases.baseAT) - (rem + pro)) <= CHECK_TOL && Math.abs(rem + pro - baseCC) <= ROUND_TOL + 1e-9) {
+        // v2.19.4: unos céntimos de diferencia, pero la base A.T. sí coincide con la suma: no es un redondeo de la empresa
+        //     (redondearía las dos bases), es un dígito mal leído en la base C.C. Aviso en ese campo, nunca «redondeo».
+        c.gtext = c.text; c.text += ' ' + tr('bccAT', { base: fmt(round2(rem + pro)) }); c.paths = ['bases.baseCC']; c.hint = true; delete c.rtext;
       } else {
         // v2.16.4: una base distinta puede ser la mínima del grupo (tiempo parcial, sueldo bajo) o la máxima (sueldo alto). Solo lo dice.
         c.gtext = c.text; c.text += ' ' + tr(baseCC > rem + pro ? 'bccMin' : 'bccMax'); c.hint = true;
@@ -6681,7 +6691,8 @@ function checkPayroll(p, opts = {}) {
     delete c.info;
     if (c.rtext && sumsOk && c.diff <= ROUND_TOL + 1e-9) {
       c.level = 'round';
-      c.text = `${c.rtext}: ${c.ded ? descontado(c.sdiff) : baseLado(c.sdiff)}. Redondeo de la empresa: las sumas cuadran, así que la cifra está bien leída.`;
+      c.text = `${c.rtext}: ${c.ded ? descontado(c.sdiff) : baseLado(c.sdiff)}. ` +   // v2.19.4: en la base C.C., sin dar por buena la cifra
+        (c.key === 'bcc' ? tr('bccRound') : 'Redondeo de la empresa: las sumas cuadran, así que la cifra está bien leída.');
     }
     delete c.rtext; delete c.ded;
   }
