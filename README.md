@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.19.9-blue)
+![Version](https://img.shields.io/badge/version-2.20.0-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.19.9)
+## 🆕 Novedades (v2.3 – v2.20.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 📑 **Pestaña Informes (v2.20.0)** | Una pestaña nueva, entre Anual y Datos, que responde a **«¿Para qué necesitas tus nóminas?»**: si el año está completo, **Comparar con Hacienda**, **Pedir las que faltan** (un texto para pedírselas a la empresa, por empresa, con los meses y las pagas extra que faltan: lo copias, pones tu nombre y tu DNI y lo envías tú) y **Copiar para el abogado**. Las tarjetas llevan a lo que ya existe y comparten el año con el Anual. En el Panel, si falta la nómina del mes pasado, un aviso **«Sube la nómina de…»** (solo sugiere). | Pestaña **Informes** y **Panel** |
 | 🗂️ **Nóminas almacenadas por años (v2.19.0)** | Con varios años guardados, la lista de nóminas ya no es una fila interminable de etiquetas: **una fila por año**, con su estado (**Completo** en verde, **Faltan N** en ámbar diciendo cuáles, **En curso** sin color de alarma). Al abrir un año, sus **12 meses** (lo que falta, con borde discontinuo) y, aparte y en azul, las pagas extra, atrasos y beneficios con su tipo escrito. Toca un mes para ver su nómina. El estado es el mismo que el de «¿Está completo el año?» del Anual. | **Datos** |
 | 🎌 **Saldo de festivos (v2.17.0)** | Muchas empresas pagan los festivos trabajados **por lotes y con meses de retraso**, y la nómina no dice a qué festivo corresponde cada pago. Elige tu comunidad autónoma (el calendario oficial del BOE ya está dentro de la app, 2026 y 2027), pon tus 2 fiestas locales y desde cuándo cuentas: la app compara los festivos que trabajas con los que te pagan, en orden (el más antiguo primero), y **avisa si uno lleva 2 meses sin aparecer**. Si no trabajaste alguno, lo desmarcas. **En Catalunya (v2.18.0)**, eliges el municipio de tu centro de trabajo y las 2 fiestas locales salen solas de la orden oficial del DOGC (los 947 municipios y sus núcleos agregados). Solo documenta: no dice cuánto vale un festivo ni si se puede reclamar (eso depende de tu convenio). Se guarda en tu dispositivo y en el backup | Datos → Festivos · Panel · Anual |
 | 💾 **La paga de beneficios vuelve con el backup (v2.16.8)** | Al **restaurar un backup** en otro dispositivo (un móvil nuevo, el ordenador), las nóminas de **Beneficios** se quedaban fuera con el aviso «registro ignorado», y también su original. Ahora entran con todo. El backup ya las guardaba bien: si te pasó, vuelve a importar el mismo archivo y saldrán como nuevas, sin tocar las demás | Datos → Importar backup |
@@ -714,6 +715,12 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.20.0 (Noviembre 2026)
+- **Pestaña Informes.** La barra pasa a **Panel · Subir · Anual · Informes · Datos**. Informes reúne, con el selector de año (el mismo del Anual), una tarjeta por uso, solo de lo que ya funciona: **¿Está completo el año?** (resumen y botón al Anual), **Comparar con Hacienda** (abre la tarjeta del Anual), **Pedir las que faltan** y **Copiar para el abogado** (lleva a cada nómina, donde está el botón). Sin nóminas, el estado vacío de siempre. En el móvil, las pestañas se reparten el ancho con el icono encima del nombre (caben a 360 px con el botón Instalar).
+- **Pedir las que faltan** (`missingRequestText`): un texto por empresa para pedir copia de las nóminas que faltan (meses y pagas extra, con los huecos `[tu nombre]` y `[DNI]`), con botón Copiar. Los meses entre dos empresas, sin nómina de ninguna, salen aparte. Debajo, solo información: el recibo de salarios (art. 29.1 del Estatuto de los Trabajadores) y el plazo general de un año para reclamar (art. 59.2). La app no envía nada.
+- **Panel: «Sube la nómina de {mes}»** (`dueMonth`): si falta la mensual del mes anterior al de hoy y ya hay nóminas de ese año o del anterior. Solo sugiere; Subir sigue aceptando cualquier mes.
+- **Textos:** 27 claves `nav.*`, `rep.*` y `dash.*` en es, ca y en. No cambia ningún cálculo ni dato guardado. **Pruebas:** `test_informes.py` (nueva; datos inventados).
 
 ### v2.19.9 (Noviembre 2026)
 - **Comparar con Hacienda: pagadores que no dan nóminas.** En los datos fiscales pueden salir, además de la empresa, el SEPE (paro, subsidios, ERTE), el INSS (pensiones, una baja pagada directamente), una mutua, el FOGASA o el rescate de un plan de pensiones. Al añadirlos con «+ Otro pagador», la app decía «¿un trabajo que no has subido?» y quitaba el ✓ de «¿Está completo el año?», aunque la empresa coincidiera al céntimo. Ahora cada pagador añadido tiene la casilla **«No da nóminas»**: marcada, sale como información y el año vuelve a salir completo.

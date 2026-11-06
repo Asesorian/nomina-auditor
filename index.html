@@ -186,7 +186,8 @@ code { font-family:'JetBrains Mono',monospace; }
 /* Responsive */
 @media (max-width:700px) {
   header { flex-wrap:wrap; padding:10px 12px; }
-  nav { width:100%; justify-content:center; }
+  nav { width:100%; justify-content:center; gap:2px !important; }
+  .nav-btn { flex:1 1 0; min-width:0; flex-direction:column; gap:2px; padding:6px 2px; font-size:11px; }   /* v2.20.0 */
   main { padding:16px; }
   .stats-grid { grid-template-columns:1fr 1fr; gap:8px; }
   .stat-value { font-size:16px; }
@@ -441,6 +442,12 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 .type-clash { margin-top:10px; padding:8px 10px; border-radius:6px; font-size:12px; line-height:1.5; background:var(--warning-bg); border:1px solid rgba(245,158,11,0.45); color:var(--text-dim); }
 .type-clash strong { color:var(--warning); }
 .hidden { display:none !important; }
+/* v2.20.0: pestaña Informes */
+.rep-card h3 { margin:0 0 8px; font-size:14px; color:var(--accent); }
+.rep-card p { color:var(--text-dim); font-size:12px; line-height:1.6; margin:0 0 10px; }
+.rep-text { white-space:pre-wrap; font-family:inherit; font-size:12px; line-height:1.5; background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:10px; margin:6px 0 8px; overflow-wrap:anywhere; }
+.rep-to { font-size:12px; font-weight:700; color:var(--text); margin-top:10px; }
+.rep-list { display:flex; flex-wrap:wrap; gap:6px; }
 </style>
 <!-- Librerías externas con huella SRI: si cdnjs sirviera otro archivo, el navegador no lo ejecuta -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
@@ -453,7 +460,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.19.9</span>
+    <span class="logo-badge">Forense v2.20.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -468,6 +475,10 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
     <button class="nav-btn" data-view="annual" onclick="showView('annual')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       <span class="nav-label">Anual</span>
+    </button>
+    <button class="nav-btn" data-view="informes" onclick="showView('informes')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg>
+      <span class="nav-label" data-tr="nav.reports">Informes</span>
     </button>
     <button class="nav-btn" data-view="backup" onclick="showView('backup')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -507,6 +518,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="year-pills" id="yearPills"></div>
 
   <div id="batchReminder"></div>
+  <div id="dueReminder"></div>
   <div id="backupReminder"></div>
   <div id="festDash"></div>
 
@@ -573,6 +585,11 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 <!-- ═══════════ ANNUAL VIEW ═══════════ -->
 <main id="view-annual" class="hidden">
   <div id="annualContent"></div>
+</main>
+
+<!-- ═══════════ INFORMES VIEW (v2.20.0) ═══════════ -->
+<main id="view-informes" class="hidden">
+  <div id="informesContent"></div>
 </main>
 
 <!-- ═══════════ BACKUP VIEW ═══════════ -->
@@ -1266,7 +1283,7 @@ function showView(name) {
   if (editingId && name !== 'upload') clearUpload();
   // Al salir de una bandeja ya terminada, su resumen ya no hace falta
   if (name !== 'upload' && !batch.items.length && (batch.saved.length || batch.discarded || batch.copies)) { batch = emptyBatch(); saveBatch(); }
-  ['dashboard','upload','report','annual','backup','glossary'].forEach(v => {
+  ['dashboard','upload','report','annual','informes','backup','glossary'].forEach(v => {
     document.getElementById('view-' + v).classList.toggle('hidden', v !== name);
   });
   document.querySelectorAll('.nav-btn').forEach(b => {
@@ -1276,6 +1293,7 @@ function showView(name) {
   // A «Subir» se vuelve a donde se estaba (una nómina a medio revisar se queda); si no, a la bandeja si la hay
   if (name === 'upload' && !extractedData && !imageBase64) renderUploadArea();
   if (name === 'annual') renderAnnual();
+  if (name === 'informes') renderInformes();   // v2.20.0
   if (name === 'backup') renderBackupView();
   if (name === 'glossary') renderGlossary();
 }
@@ -3975,6 +3993,94 @@ Object.assign(I18N.en, {
   "hac.noNominaHint": "This looks like a body that does not issue payslips (SEPE, INSS, a mutual insurer…). If so, tick it and it will not show up as a missing job.",
   "hac.noNominaMark": "Tick «Does not issue payslips»"
 });
+// v2.20.0: pestaña Informes, «Pedir las que faltan» y el mes que toca subir. El català, revisado con Gemini (06-11).
+Object.assign(I18N.es, {
+  "nav.reports": "Informes",
+  "rep.title": "¿Para qué necesitas tus nóminas?",
+  "rep.subtitle": "Lo que puedes hacer con las nóminas que tienes guardadas. La app documenta; no asesora.",
+  "rep.empty": "Aún no hay nóminas guardadas. Cuando subas alguna, aquí verás lo que puedes hacer con ellas.",
+  "rep.noData": "No hay nóminas de {year}.",
+  "rep.complete": "¿Está completo el año?",
+  "rep.completeOk": "✓ No falta ninguna nómina de {year}.",
+  "rep.completeGaps": "En {year} faltan: {list}.",
+  "rep.seeAnnual": "Ver el detalle en Anual",
+  "rep.hacienda": "Comparar con Hacienda",
+  "rep.haciendaText": "Compara lo que suman tus nóminas del año con lo que tu empresa declaró a Hacienda (los datos fiscales de la renta).",
+  "rep.open": "Abrir",
+  "rep.request": "Pedir las que faltan",
+  "rep.requestNone": "No te falta ninguna de {year}.",
+  "rep.requestText": "Un texto para pedírselas a tu empresa. Cópialo, rellena tu nombre y tu DNI y envíalo por correo o por el portal del empleado.",
+  "rep.requestInfo": "La empresa tiene que darte un recibo de cada pago de salario (art. 29.1 del Estatuto de los Trabajadores). Para reclamar dinero, el plazo general es de un año (art. 59.2). La app no envía nada: solo copia el texto.",
+  "rep.noCompany": "Sin nómina de ninguna empresa: {list}. Si trabajaste esos meses, pídesela a la empresa en la que estabas.",
+  "rep.letter": "Asunto: Solicitud de copia de nóminas\n\nHola:\n\nComo trabajador/a de {company}, os pido copia de mis recibos de salarios (nóminas) de {year} que no tengo: {items}. Podéis enviármelas por correo electrónico o dejarlas en el portal del empleado.\n\nGracias.\n\n[tu nombre]\n[DNI]",
+  "rep.extraOf": "la paga extra de {month}",
+  "rep.and": " y ",
+  "rep.companyBlank": "[nombre de la empresa]",
+  "rep.lawyer": "Copiar para el abogado",
+  "rep.lawyerText": "El texto para el abogado se copia desde cada nómina: ábrela y pulsa «📋 Copiar para Abogado». Estas son las de {year}:",
+  "rep.copy": "Copiar",
+  "dash.dueMonth": "Sube la nómina de {month}",
+  "dash.dueHint": "Es la última que ya tendrías que haber cobrado. Si es de otro mes, Subir también la acepta.",
+  "dash.dueBtn": "Subir →"
+});
+Object.assign(I18N.ca, {
+  "nav.reports": "Informes",
+  "rep.title": "Per a què necessites les teves nòmines?",
+  "rep.subtitle": "El que pots fer amb les nòmines que tens desades. L'app documenta; no assessora.",
+  "rep.empty": "Encara no hi ha nòmines desades. Quan en pugis alguna, aquí veuràs què pots fer-hi.",
+  "rep.noData": "No hi ha nòmines del {year}.",
+  "rep.complete": "L'any està complet?",
+  "rep.completeOk": "✓ No falta cap nòmina del {year}.",
+  "rep.completeGaps": "L'any {year} en falten: {list}.",
+  "rep.seeAnnual": "Mostra el detall a Anual",
+  "rep.hacienda": "Comparar amb Hisenda",
+  "rep.haciendaText": "Compara el que sumen les teves nòmines de l'any amb el que la teva empresa va declarar a Hisenda (les dades fiscals de la renda).",
+  "rep.open": "Obre",
+  "rep.request": "Demanar les que falten",
+  "rep.requestNone": "No et falta cap nòmina del {year}.",
+  "rep.requestText": "Un text per demanar-les a la teva empresa. Copia'l, omple el teu nom i el teu DNI i envia'l per correu o pel portal de l'empleat.",
+  "rep.requestInfo": "L'empresa t'ha de donar un rebut de cada pagament del salari (art. 29.1 de l'Estatut dels Treballadors). Per reclamar diners, el termini general és d'un any (art. 59.2). L'app no envia res: només copia el text.",
+  "rep.noCompany": "Sense nòmina de cap empresa: {list}. Si vas treballar aquests mesos, demana-les a l'empresa on eres.",
+  "rep.letter": "Assumpte: Sol·licitud de còpia de nòmines\n\nBon dia:\n\nCom a treballador/a de l'empresa {company}, us demano una còpia dels meus rebuts de salaris (nòmines) del {year} que no tinc: {items}. Me les podeu enviar per correu electrònic o deixar-les al portal de l'empleat.\n\nGràcies.\n\n[el teu nom]\n[DNI]",
+  "rep.extraOf": "la paga extra corresponent a {month}",
+  "rep.and": " i ",
+  "rep.companyBlank": "[nom de l'empresa]",
+  "rep.lawyer": "Copiar per a l'advocat",
+  "rep.lawyerText": "El text per a l'advocat es copia des de cada nòmina: obre-la i prem «📋 Copiar para Abogado». Aquestes són les del {year}:",
+  "rep.copy": "Copia",
+  "dash.dueMonth": "Puja la nòmina corresponent a {month}",
+  "dash.dueHint": "És l'última que ja hauries d'haver cobrat. Si és d'un altre mes, «Subir» també l'accepta.",
+  "dash.dueBtn": "Puja →"
+});
+Object.assign(I18N.en, {
+  "nav.reports": "Reports",
+  "rep.title": "What do you need your payslips for?",
+  "rep.subtitle": "What you can do with the payslips you have saved. The app documents; it does not give advice.",
+  "rep.empty": "No payslips saved yet. Once you upload some, you will see here what you can do with them.",
+  "rep.noData": "There are no payslips from {year}.",
+  "rep.complete": "Is the year complete?",
+  "rep.completeOk": "✓ No payslip from {year} is missing.",
+  "rep.completeGaps": "Missing from {year}: {list}.",
+  "rep.seeAnnual": "See the details in Anual",
+  "rep.hacienda": "Compare with the Tax Agency (Hacienda)",
+  "rep.haciendaText": "Compare what your payslips for the year add up to with what your employer reported to the Tax Agency (the tax data for your income tax return).",
+  "rep.open": "Open",
+  "rep.request": "Request the missing ones",
+  "rep.requestNone": "You are not missing any from {year}.",
+  "rep.requestText": "A text to request them from your employer. Copy it, fill in your name and your DNI and send it by email or through the employee portal.",
+  "rep.requestInfo": "Your employer must give you a receipt for each salary payment (art. 29.1 of the Estatuto de los Trabajadores). To claim money, the general time limit is one year (art. 59.2). The app sends nothing: it only copies the text.",
+  "rep.noCompany": "No payslip from any employer: {list}. If you worked in those months, ask the employer you were with.",
+  "rep.letter": "Subject: Request for copies of payslips\n\nHello,\n\nAs an employee of {company}, I am asking for copies of my payslips (nóminas) for {year} that I do not have: {items}. You can send them to me by email or put them on the employee portal.\n\nThank you.\n\n[your name]\n[DNI]",
+  "rep.extraOf": "the extra payment (paga extra) for {month}",
+  "rep.and": " and ",
+  "rep.companyBlank": "[employer's name]",
+  "rep.lawyer": "Copy for the lawyer",
+  "rep.lawyerText": "The text for the lawyer is copied from each payslip: open it and tap «📋 Copiar para Abogado». These are the ones from {year}:",
+  "rep.copy": "Copy",
+  "dash.dueMonth": "Upload the payslip for {month}",
+  "dash.dueHint": "It is the latest one you should already have been paid. If it is for another month, Subir accepts it too.",
+  "dash.dueBtn": "Upload →"
+});
 // v2.19.2: devengos frente a la remuneración total, y total bruto no impreso. El català, pendiente de revisión.
 Object.assign(I18N.es, {
   "remE": "Los devengos suman {sum} €, pero la remuneración total es {rem} € (diferencia: {diff} €), y la diferencia no son las horas extra, la prorrata ni lo que no cotiza. Mira en el papel «Remuneración total» y cada importe de los devengos: uno está mal leído o la nómina tiene un error.",
@@ -4994,6 +5100,7 @@ function renderDashboard() {
 
   const fp = payrolls.filter(p => p.period?.year === currentYear);
   renderBatchReminder();
+  renderDueReminder();    // v2.20.0
   renderBackupReminder();
   renderFestivosCard();   // v2.17.0
 
@@ -5222,6 +5329,90 @@ function yearCompleteness(year) {
     }
   }
   return out;
+}
+
+// ═══════════ INFORMES (v2.20.0, docs/TECNICO.md §52) ═══════════
+// El mes que toca subir: el anterior al de hoy. Solo si ya hay alguna nómina de ese año o del anterior (quien no ha
+// subido ninguna ve el estado vacío de siempre) y falta su mensual. Solo sugiere: Subir acepta cualquier mes.
+function dueMonth(today = appToday(), list = payrolls) {
+  const d = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const y = String(d.getFullYear()), prev = String(d.getFullYear() - 1), m = MONTHS[d.getMonth()];
+  if (!list.some(p => p.period?.year === y || p.period?.year === prev)) return null;
+  if (list.some(p => p.period?.year === y && p.period?.month === m && payTypeOf(p) === 'ordinaria')) return null;
+  return { year: y, month: m };
+}
+function renderDueReminder() {
+  const el = document.getElementById('dueReminder');
+  if (!el) return;
+  const d = dueMonth();
+  el.innerHTML = d ? `<div class="batch-reminder" id="dueMonthCard">📅 <strong>${esc(tr('dash.dueMonth', { month: `${d.month.toLowerCase()} de ${d.year}` }))}</strong> ${esc(tr('dash.dueHint'))}
+    <div class="doc-actions"><button class="btn btn-primary btn-sm" onclick="showView('upload')">${esc(tr('dash.dueBtn'))}</button></div></div>` : '';
+}
+function listJoin(items) {
+  return items.length < 2 ? (items[0] || '') : items.slice(0, -1).join(', ') + tr('rep.and') + items[items.length - 1];
+}
+// «Pedir las que faltan»: un texto por empresa con los meses y las pagas extra que faltan. Los meses que no son de
+// ninguna empresa (entre una y otra) van aparte, en `orphan`: no se sabe a quién pedirlos. Nada se envía: se copia.
+function missingRequestText(year, c = yearCompleteness(year)) {
+  const out = { letters: [], orphan: [] };
+  if (!c) return out;
+  const groups = new Map(), lc = m => String(m).toLowerCase();
+  const add = (name, what) => { const k = name || ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(what); };
+  if (c.many) {
+    const inGaps = new Set();
+    c.companyGaps.forEach(g => g.months.forEach(m => { add(g.name, lc(m)); inGaps.add(m); }));
+    out.orphan = c.missing.filter(m => !inGaps.has(m)).map(lc);
+  } else c.missing.forEach(m => add(c.pays[0]?.name, lc(m)));
+  c.extras.forEach(e => add(e.name, tr('rep.extraOf', { month: lc(e.month) })));
+  out.letters = [...groups].map(([name, items]) => ({ name, items,
+    text: tr('rep.letter', { company: name || tr('rep.companyBlank'), items: listJoin(items), year: c.year }) }));
+  return out;
+}
+let informesLetters = [];
+function goAnnual(cardId, openHac) {
+  if (openHac) hacOpen = true;
+  showView('annual');
+  const el = cardId && document.getElementById(cardId);
+  if (el) el.scrollIntoView({ block: 'start' }); else window.scrollTo(0, 0);
+}
+function copyLetter(i, btn) { copyToClipboard(informesLetters[i]?.text || '', btn); }
+function renderInformes() {
+  const el = document.getElementById('informesContent');
+  if (!el) return;
+  const head = `<h2>${esc(tr('rep.title'))}</h2><p class="subtitle">${esc(tr('rep.subtitle'))}</p>`;
+  informesLetters = [];
+  if (!payrolls.length) {
+    el.innerHTML = head + `<div class="card empty"><div class="empty-icon">📋</div><p style="color:var(--text-dim)">${esc(tr('rep.empty'))}</p>
+      <button class="btn btn-primary" style="margin-top:16px" onclick="showView('upload')">Subir primera nómina</button></div>`;
+    return;
+  }
+  const years = [...new Set(payrolls.map(p => p.period?.year))].filter(Boolean);
+  if (!years.includes(currentYear)) years.push(currentYear);
+  years.sort();
+  const pills = `<div class="year-pills">${years.map(y =>
+    `<button class="year-pill ${y === currentYear ? 'active' : ''}" onclick="currentYear=${jsArg(y)};hacOpen=false;renderInformes()">${esc(y)}</button>`).join('')}</div>`;
+  const year = currentYear, fp = payrolls.filter(p => p.period?.year === year);
+  const c = yearCompleteness(year);
+  const req = missingRequestText(year, c);
+  informesLetters = req.letters;
+  const gaps = c ? [...c.missing.map(m => m.toLowerCase()), ...c.extras.map(e => tr('rep.extraOf', { month: e.month.toLowerCase() }))] : [];
+  const complete = !c ? tr('rep.noData', { year }) : gaps.length ? tr('rep.completeGaps', { year, list: listJoin(gaps) }) : tr('rep.completeOk', { year });
+  const card = (id, title, body) => `<div class="card rep-card" id="${id}"><h3>${esc(title)}</h3>${body}</div>`;
+  el.innerHTML = head + pills +
+    card('repComplete', tr('rep.complete'), `<p>${esc(complete)}</p>
+      <button class="btn btn-secondary btn-sm" onclick="goAnnual('completeCard')">${esc(tr('rep.seeAnnual'))}</button>`) +
+    card('repHacienda', tr('rep.hacienda'), `<p>${esc(tr('rep.haciendaText'))}</p>
+      <button class="btn btn-secondary btn-sm" onclick="goAnnual('hacCard', true)">${esc(tr('rep.open'))}</button>`) +
+    card('repRequest', tr('rep.request'), !req.letters.length && !req.orphan.length ? `<p>${esc(tr(c ? 'rep.requestNone' : 'rep.noData', { year }))}</p>` :
+      `<p>${esc(tr('rep.requestText'))}</p>` +
+      req.letters.map((l, i) => `${req.letters.length > 1 || l.name ? `<div class="rep-to">${esc(l.name || tr('rep.companyBlank'))}</div>` : ''}
+        <pre class="rep-text">${esc(l.text)}</pre>
+        <button class="btn btn-primary btn-sm" onclick="copyLetter(${i}, this)">${esc(tr('rep.copy'))}</button>`).join('') +
+      (req.orphan.length ? `<p style="margin-top:10px">${esc(tr('rep.noCompany', { list: listJoin(req.orphan) }))}</p>` : '') +
+      `<p style="margin-top:10px">${esc(tr('rep.requestInfo'))}</p>`) +
+    card('repLawyer', tr('rep.lawyer'), `<p>${esc(tr('rep.lawyerText', { year }))}</p>` +
+      (fp.length ? `<div class="rep-list">${fp.map(p => `<button class="btn btn-secondary btn-sm" onclick="showReport(payrolls.find(x=>x.id===${jsArg(p.id)}))">${esc(payName(p))}</button>`).join('')}</div>`
+        : `<p>${esc(tr('rep.noData', { year }))}</p>`));
 }
 
 // v2.17.0: festivos nacionales y autonómicos por año y región (código), de la resolución anual de la Dirección
