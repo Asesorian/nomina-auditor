@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.19.7-blue)
+![Version](https://img.shields.io/badge/version-2.19.8-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.19.7)
+## 🆕 Novedades (v2.3 – v2.19.8)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -714,6 +714,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.19.8 (Noviembre 2026)
+- **Comprobar el backup ya no depende de cómo cuenta cada sistema.** Al guardar el backup completo, la app pedía comprobar que el archivo «pesa 31,6 MB». El mismo archivo sale como 31,6 MB en la app, 33,1 MB en un móvil (que cuenta 1 MB = 1.000.000 bytes) y 32.325 KB en el Explorador de Windows: se podía pensar que estaba mal. Ahora pide comprobar que **no pesa 0 y ronda los 32 MB**, un número redondo entre las dos medidas; el fallo que se busca es el archivo vacío.
+- **Textos:** `bk.confirmQ`, `bk.yes` y `bk.pending` en es, ca y en (en català, `bk.pending` pasa de «del {date}» a «de data {date}»), y los mensajes de backup guardado, enviado y preparado. El tamaño exacto de la pantalla Datos y el de cada documento no cambian. No cambia ningún cálculo ni dato guardado. **Pruebas:** `test_originales.py` 12c y 12d (datos inventados).
 
 ### v2.19.7 (Noviembre 2026)
 - **Festivos:** la ayuda de las fiestas locales dice que una fiesta que no trabajaste se desmarca en «Festivos que cuentan»; con un municipio elegido, quitarla con ✕ no basta, porque vuelven las del DOGC.

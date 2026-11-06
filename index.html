@@ -451,7 +451,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.19.7</span>
+    <span class="logo-badge">Forense v2.19.8</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -1062,6 +1062,17 @@ function originalFileName(p, type) {
 function fmtBytes(n) {
   if (!n) return '0 KB';
   return n < 1024 * 1024 ? Math.max(1, Math.round(n / 1024)) + ' KB' : (n / 1024 / 1024).toFixed(1).replace('.', ',') + ' MB';
+}
+
+// v2.19.8: tamaño aproximado para comprobar un backup en otro sitio. Cada sistema cuenta distinto (Windows y fmtBytes,
+// 1 MB = 1.048.576 bytes; Android e iPhone, 1.000.000): el mismo archivo sale como 31,6 MB, 33,1 MB o 32.325 KB.
+// Un número redondo entre las dos medidas, y la pregunta es «no pesa 0 y ronda…»: lo que se busca es el archivo vacío.
+function fmtBytesApprox(n) {
+  if (!n) return '0 KB';
+  const mb = n / 1024000;   // entre n / 1.048.576 y n / 1.000.000
+  if (mb >= 10) return Math.round(mb) + ' MB';
+  if (mb >= 1) return mb.toFixed(1).replace('.', ',') + ' MB';
+  return Math.max(1, Math.round(n / 1012)) + ' KB';   // entre n / 1.024 y n / 1.000
 }
 
 // Pide al navegador que no borre los datos de la app si el móvil se queda sin espacio
@@ -3924,28 +3935,28 @@ Object.assign(I18N.en, {
 });
 // v2.19.1: backup completo sin confirmar (punto 35). El català, revisado con Gemini (05-11).
 Object.assign(I18N.es, {
-  "bk.confirmQ": "Falta un paso: abre el sitio donde lo has guardado (Drive, por ejemplo) y comprueba que «{name}» pesa {peso}. Hasta que lo confirmes, no cuenta como copia de seguridad.",
-  "bk.yes": "✓ Sí, pesa {peso}",
+  "bk.confirmQ": "Falta un paso: abre el sitio donde lo has guardado (Drive, por ejemplo) y comprueba que «{name}» no pesa 0 y ronda los {peso}. Hasta que lo confirmes, no cuenta como copia de seguridad.",
+  "bk.yes": "✓ Sí, ronda los {peso}",
   "bk.no": "✗ No, pesa 0 o no sube",
-  "bk.pending": "Backup completo sin confirmar: «{name}» ({peso}), del {date}.",
+  "bk.pending": "Backup completo sin confirmar: «{name}» (unos {peso}), del {date}.",
   "bk.okMsg": "Backup confirmado: ya cuenta como copia de seguridad.",
   "bk.badMsg": "No cuenta como copia. Vuelve a guardar el backup (en Drive, aunque el primero siga subiendo: el segundo suele subir bien) y después borra de Drive el que pesa 0.",
   "bk.notZip": "lo guardado no es un ZIP completo"
 });
 Object.assign(I18N.ca, {
-  "bk.confirmQ": "Falta un pas: obre el lloc on l'has desat (Drive, per exemple) i comprova que «{name}» pesa {peso}. Fins que no ho confirmis, no compta com a còpia de seguretat.",
-  "bk.yes": "✓ Sí, pesa {peso}",
+  "bk.confirmQ": "Falta un pas: obre el lloc on l'has desat (Drive, per exemple) i comprova que «{name}» no pesa 0 i que fa uns {peso}. Fins que no ho confirmis, no compta com a còpia de seguretat.",
+  "bk.yes": "✓ Sí, fa uns {peso}",
   "bk.no": "✗ No, pesa 0 o no es puja",
-  "bk.pending": "Còpia completa sense confirmar: «{name}» ({peso}), del {date}.",
+  "bk.pending": "Còpia completa sense confirmar: «{name}» (uns {peso}), de data {date}.",
   "bk.okMsg": "Còpia confirmada: ja compta com a còpia de seguretat.",
   "bk.badMsg": "No compta com a còpia. Torna-la a desar (a Drive, encara que la primera s'estigui pujant: la segona sol pujar bé) i després esborra de Drive la que pesa 0.",
   "bk.notZip": "el que s'ha desat no és un ZIP complet"
 });
 Object.assign(I18N.en, {
-  "bk.confirmQ": "One step left: open the place where you saved it (Drive, for example) and check that «{name}» is {peso}. Until you confirm it, it does not count as a backup.",
-  "bk.yes": "✓ Yes, it is {peso}",
+  "bk.confirmQ": "One step left: open the place where you saved it (Drive, for example) and check that «{name}» is not 0 and is around {peso}. Until you confirm it, it does not count as a backup.",
+  "bk.yes": "✓ Yes, around {peso}",
   "bk.no": "✗ No, it is 0 or won't upload",
-  "bk.pending": "Unconfirmed full backup: «{name}» ({peso}), from {date}.",
+  "bk.pending": "Unconfirmed full backup: «{name}» (about {peso}), from {date}.",
   "bk.okMsg": "Backup confirmed: it now counts as a backup.",
   "bk.badMsg": "It does not count as a backup. Save it again (to Drive, even if the first one is still uploading: the second one usually uploads fine) and then delete from Drive the one that is 0.",
   "bk.notZip": "what was saved is not a complete ZIP"
@@ -6894,7 +6905,7 @@ function countFullBackup(at) {
   try { localStorage.setItem('nomina-auditor-lastbackup', at); localStorage.setItem('nomina-auditor-lastfullbackup', at); } catch {}
 }
 function backupConfirmHtml(u) {
-  const peso = fmtBytes(u.size);
+  const peso = fmtBytesApprox(u.size);
   return `<div class="backup-confirm"><div>${esc(tr('bk.confirmQ', { name: u.name, peso }))}</div>
     <div class="doc-actions">
       <button class="btn btn-primary btn-sm" onclick="confirmBackup(true)">${esc(tr('bk.yes', { peso }))}</button>
@@ -6916,15 +6927,15 @@ function confirmBackup(ok) {
 // v2.8.10: guardado donde se eligió (con su nombre) o descargado (y cómo llevarlo a Drive)
 function fullBackupLabel() { return canPickSaveLocation() || canShareBackup() ? '🗂️ Guardar backup completo…' : '🗂️ Descargar backup completo'; }
 function backupDoneHtml(r) {
-  const peso = r.size ? fmtBytes(r.size) : '';
+  const peso = r.size ? fmtBytesApprox(r.size) : '';
   // v2.12.5: desde la hoja de compartir (iPhone): la app no sabe dónde ha ido, solo que se ha elegido un destino
-  if (r.how === 'shared') return `<strong>Backup completo enviado</strong> («${esc(r.name)}»${peso ? `, ${peso}` : ''}). ` +
-    `Si lo has guardado en <em>Archivos</em> → <strong>iCloud Drive</strong> o en <strong>Drive</strong>, compruébalo allí: debe pesar ${peso || 'lo mismo'}. ` +
+  if (r.how === 'shared') return `<strong>Backup completo enviado</strong> («${esc(r.name)}»${peso ? `, unos ${peso}` : ''}). ` +
+    `Si lo has guardado en <em>Archivos</em> → <strong>iCloud Drive</strong> o en <strong>Drive</strong>, compruébalo allí: no debe pesar 0${peso ? ` y debe rondar los ${peso}` : ''}. ` +
     `Si lo has guardado en <em>En mi iPhone</em>, sigue estando solo en el móvil: muévelo a iCloud Drive o a Drive.`;
-  if (r.how === 'saved') return `<strong>Backup completo guardado</strong> como «${esc(r.name)}»${peso ? ` (${peso})` : ''}.` +
+  if (r.how === 'saved') return `<strong>Backup completo guardado</strong> como «${esc(r.name)}»${peso ? ` (unos ${peso})` : ''}.` +
     (r.verified ? '' : ' No se ha podido comprobar que haya quedado entero: mira que el archivo no esté vacío.') +
     // v2.8.11: Drive lo sube después; si falla, el archivo queda vacío en Drive y la app no se entera
-    ` Si lo has guardado en Drive, se sube en segundo plano: <strong>comprueba en Drive que pesa ${peso || 'lo mismo'}</strong>. ` +
+    ` Si lo has guardado en Drive, se sube en segundo plano: <strong>comprueba en Drive que no pesa 0${peso ? ` y ronda los ${peso}` : ''}</strong>. ` +
     // v2.9.2: en Android, Drive a veces se queda en «Subiendo…» con el archivo a 0 bytes; guardar otra vez (con el primero
     // todavía subiendo) suele subir el segundo bien. El primero se queda vacío en Drive: hay que borrarlo a mano.
     'Si pesa 0, se queda en «Subiendo…» o Drive avisa de que no ha podido subirlo, <strong>vuelve a guardarlo en Drive</strong> ' +
@@ -6957,7 +6968,7 @@ function renderBackupReminder() {
   if (pendingBackup?.fromPanel) { el.innerHTML = pendingBackupHtml(); return; }   // v2.12.5: preparado, sin guardar aún
   const unc = unconfirmedBackup();   // v2.19.1: sigue sin confirmar (no se oculta con «Ahora no»)
   if (unc) {
-    el.innerHTML = `<div class="backup-reminder"><div class="backup-reminder-text">⏳ <span>${esc(tr('bk.pending', { name: unc.name, peso: fmtBytes(unc.size), date: new Date(unc.at).toLocaleString('es-ES') }))}</span></div>${backupConfirmHtml(unc)}</div>`;
+    el.innerHTML = `<div class="backup-reminder"><div class="backup-reminder-text">⏳ <span>${esc(tr('bk.pending', { name: unc.name, peso: fmtBytesApprox(unc.size), date: new Date(unc.at).toLocaleString('es-ES') }))}</span></div>${backupConfirmHtml(unc)}</div>`;
     return;
   }
   const dismissed = lsTime('nomina-auditor-backupnag-dismissed');
@@ -7156,7 +7167,7 @@ async function shareBackupFile(file) {
 function pendingBackupHtml() {
   const pb = pendingBackup;
   return `<div class="backup-reminder" id="pendingBackup">
-    <div class="backup-reminder-text">🗂️ <span><strong>Backup completo preparado</strong> («${esc(pb.file.name)}», ${fmtBytes(pb.size)}).
+    <div class="backup-reminder-text">🗂️ <span><strong>Backup completo preparado</strong> («${esc(pb.file.name)}», unos ${fmtBytesApprox(pb.size)}).
       Toca <strong>Guardar en…</strong> y elige <em>Guardar en Archivos</em> → <strong>iCloud Drive</strong>, o la app de <strong>Drive</strong>.</span></div>
     <div class="doc-actions">
       <button class="btn btn-primary btn-sm" onclick="sharePendingBackup()">📤 Guardar en… (iCloud, Drive…)</button>
