@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.19.5-blue)
+![Version](https://img.shields.io/badge/version-2.19.6-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.19.5)
+## 🆕 Novedades (v2.3 – v2.19.6)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -714,6 +714,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.19.6 (Noviembre 2026)
+- **Las fiestas locales se pueden quitar con una ✕.** En Datos → Festivos, cada fiesta local tiene al lado una ✕ que la vacía. Hacía falta porque en algunos móviles Android el calendario del sistema solo tiene «Cancelar» y «Aceptar», sin «Borrar», y una fecha mal puesta no se podía quitar.
+- **Si tus fiestas locales puestas a mano no coinciden con las del DOGC, la app te dice cuáles son las del DOGC** («…que para tu municipio son el … y el …») y ofrece el botón **«Usar las del DOGC»**. Pasaba al elegir el municipio después de haber escrito las fiestas a mano: las tuyas seguían mandando y no se veía que eran otras. Como el resto del formulario, se guarda al pulsar Guardar (la app lo recuerda).
+- **Textos:** `fest.muniManualDiff`, `fest.and`, `fest.useDogc`, `fest.clearLocal`, `fest.pressSave` y `fest.muniManual` actualizado, en es, ca y en. No cambia ningún cálculo ni dato guardado. **Pruebas:** `test_festivos.py` 16 (con clics reales) y el aviso del apartado 13.
 
 ### v2.19.5 (Noviembre 2026)
 - **La línea de validación de las bases ya no da el redondeo de la base C.C. por seguro.** Cuando la base C.C. está a unos céntimos de remuneración + prorrata y la app lo trata como redondeo (≈), la línea de la revisión decía «redondeo de la empresa» a secas; ahora dice, como el aviso de la v2.19.4, que puede ser un redondeo o una cifra mal leída y que se compare con el papel. El resto de la línea (✓, ≠ y las pagas que no son la nómina ordinaria) dice lo mismo que antes.

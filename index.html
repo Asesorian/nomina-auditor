@@ -283,6 +283,9 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 .fest-row select, .fest-row input { background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:12px;max-width:100%; }
 .fest-list { display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:2px 10px;margin-top:6px; }
 .fest-note { font-size:11px;color:var(--text-muted);margin:2px 0 6px; }
+.fest-local-wrap { display:inline-flex;align-items:center;gap:4px; }
+.fest-clear { background:none;border:1px solid var(--border);color:var(--text-dim);border-radius:6px;padding:3px 9px;font-size:12px;cursor:pointer;line-height:1.2; }
+.fest-clear:hover { color:var(--danger);border-color:var(--danger); }
 .fest-day { display:flex;flex-wrap:wrap;gap:4px 12px;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px; }
 .gl-link { background:none;border:none;color:var(--accent);font-size:12px;cursor:pointer;padding:0;margin:-6px 0 14px;font-family:inherit;text-align:left; }
 .price-amounts { font-size:11px;color:var(--text-dim);margin-top:3px;line-height:1.6;font-family:'JetBrains Mono',monospace; }
@@ -448,7 +451,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.19.5</span>
+    <span class="logo-badge">Forense v2.19.6</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -3762,7 +3765,12 @@ Object.assign(I18N.es, {
   "fest.muniHelp": "Escribe y elige de la lista (también los núcleos agregados). Las 2 fiestas locales salen de la orden del DOGC de cada año.",
   "fest.muniUnknown": "No encuentro «{m}» en la lista de municipios de Cataluña: elígelo de la lista o escribe tus fiestas locales a mano.",
   "fest.muniFrom": "Del DOGC ({m}).",
-  "fest.muniManual": "Puestas a mano: mandan sobre las del DOGC. Si las borras y guardas, vuelven las del DOGC.",
+  "fest.muniManual": "Puestas a mano: mandan sobre las del DOGC. Si las quitas con ✕ y guardas, vuelven las del DOGC.",   // v2.19.6
+  "fest.muniManualDiff": "Puestas a mano: mandan sobre las del DOGC, que para {m} son el {d}.",   // v2.19.6
+  "fest.and": " y el ",   // v2.19.6
+  "fest.useDogc": "Usar las del DOGC",   // v2.19.6
+  "fest.clearLocal": "Quitar esta fecha",   // v2.19.6
+  "fest.pressSave": "Pulsa Guardar para que se quede.",   // v2.19.6
   "fest.muniNoYear": "Las fiestas locales de {y} todavía no están en la app (el DOGC las publica en diciembre del año anterior): escríbelas a mano.",
   "fest.muniNone": "El DOGC no recoge fiestas locales para {m} en {y}: escríbelas a mano.",
   "fest.sourceMuni": "Calendario oficial: resolución anual de la Dirección General de Trabajo en el BOE ({src}). Fiestas locales ({m}): {loc}."
@@ -3771,10 +3779,10 @@ Object.assign(I18N.ca, {
   "fest.title": "Festius",
   "fest.card": "{w} treballats · {p} cobrats · {n} pendents",
   "fest.cardPrev": "+{k} d'abans",
-  "fest.late": "El festiu del {d} fa {m} mesos que no surt a les teves nòmines.",
+  "fest.late": "El festiu de data {d} fa {m} mesos que no surt a les teves nòmines.",   // v2.19.6: sense «del {d}» (l'1, l'11)
   "fest.lateOld": "Els festius pendents d'abans fa {m} mesos que no surten a les teves nòmines.",
   "fest.lateFix": "Si no el vas treballar, desmarca'l a Datos → Festius.",
-  "fest.extra": "T'han pagat {k} festius més dels que tens apuntats des del {d}. Tenies festius pendents d'abans? Posa'ls a Datos → Festius.",
+  "fest.extra": "T'han pagat {k} festius més dels que tens apuntats des de la data {d}. Tenies festius pendents d'abans? Posa'ls a Datos → Festius.",
   "fest.order": "La nòmina no diu a quin festiu correspon cada pagament: es compten per ordre, primer el més antic.",
   "fest.nocal": "Encara no tinc el calendari oficial del {y}: afegeix els teus festius a mà.",
   "fest.nounits": "Hi ha {k} pagaments de festius sense unitats: no es poden comptar. Revisa la columna d'unitats d'aquestes nòmines.",
@@ -3806,7 +3814,12 @@ Object.assign(I18N.ca, {
   "fest.muniHelp": "Escriu i tria de la llista (també els nuclis agregats). Les 2 festes locals surten de l'ordre del DOGC de cada any.",
   "fest.muniUnknown": "No trobo «{m}» a la llista de municipis de Catalunya: tria'l de la llista o escriu les teves festes locals a mà.",
   "fest.muniFrom": "Del DOGC ({m}).",
-  "fest.muniManual": "Posades a mà: manen sobre les del DOGC. Si les esborres i deses, tornen les del DOGC.",
+  "fest.muniManual": "Posades a mà: manen sobre les del DOGC. Si les treus amb ✕ i deses, tornen les del DOGC.",   // v2.19.6
+  "fest.muniManualDiff": "Posades a mà: manen sobre les del DOGC, que per a {m} són: {d}.",   // v2.19.6
+  "fest.and": " i ",   // v2.19.6
+  "fest.useDogc": "Fes servir les del DOGC",   // v2.19.6
+  "fest.clearLocal": "Treu aquesta data",   // v2.19.6
+  "fest.pressSave": "Prem Desa perquè es quedi.",   // v2.19.6
   "fest.muniNoYear": "Les festes locals del {y} encara no són a l'app (el DOGC les publica al desembre de l'any anterior): escriu-les a mà.",
   "fest.muniNone": "El DOGC no recull festes locals per a {m} el {y}: escriu-les a mà.",
   "fest.sourceMuni": "Calendari oficial: resolució anual de la Direcció General de Treball al BOE ({src}). Festes locals ({m}): {loc}."
@@ -3850,7 +3863,12 @@ Object.assign(I18N.en, {
   "fest.muniHelp": "Type and pick from the list (villages within a municipality too). The 2 local holidays come from each year's DOGC order.",
   "fest.muniUnknown": "I can't find «{m}» in the list of municipalities of Catalonia: pick it from the list or enter your local holidays by hand.",
   "fest.muniFrom": "From the DOGC ({m}).",
-  "fest.muniManual": "Entered by hand: they take priority over the DOGC ones. If you clear them and save, the DOGC ones come back.",
+  "fest.muniManual": "Entered by hand: they take priority over the DOGC ones. If you remove them with ✕ and save, the DOGC ones come back.",   // v2.19.6
+  "fest.muniManualDiff": "Entered by hand: they take priority over the DOGC ones, which for {m} are {d}.",   // v2.19.6
+  "fest.and": " and ",   // v2.19.6
+  "fest.useDogc": "Use the DOGC ones",   // v2.19.6
+  "fest.clearLocal": "Remove this date",   // v2.19.6
+  "fest.pressSave": "Press Save to keep it.",   // v2.19.6
   "fest.muniNoYear": "The {y} local holidays are not in the app yet (the DOGC publishes them in December of the previous year): enter them by hand.",
   "fest.muniNone": "The DOGC lists no local holidays for {m} in {y}: enter them by hand.",
   "fest.sourceMuni": "Official calendar: annual resolution of the Directorate-General for Labour in the BOE ({src}). Local holidays ({m}): {loc}."
@@ -5398,11 +5416,15 @@ function renderFestivosConfig(c = festCfg, soloCampos = false) {
   const y1 = Math.max(y0, Number.isFinite(last) ? Math.floor(last / 12) : y0);
   const years = []; for (let y = y0; y <= y1 && years.length < 5; y++) years.push(y);
   const locRow = y => { const man = c.locales?.[y], mu = festMuniLocales(c, y), l = man || mu?.dates || [];
-    const info = !mu ? '' : man ? tr('fest.muniManual') : mu.estado === 'ok' ? tr('fest.muniFrom', { m: c.municipio })
+    // v2.19.6: puestas a mano que no coinciden con las del DOGC → el aviso dice cuáles son las del DOGC y ofrece volver a ellas
+    const diff = man && mu?.estado === 'ok' && [...man].sort().join() !== [...mu.dates].sort().join();
+    const info = !mu ? '' : diff ? tr('fest.muniManualDiff', { m: c.municipio, d: mu.dates.map(md => festDMY(`${y}-${md}`)).join(tr('fest.and')) })
+      : man ? tr('fest.muniManual') : mu.estado === 'ok' ? tr('fest.muniFrom', { m: c.municipio })
       : mu.estado === 'sinAno' ? tr('fest.muniNoYear', { y }) : mu.estado === 'sinPropuesta' ? tr('fest.muniNone', { m: c.municipio, y }) : '';
-    return `<label class="fest-row">${esc(tr('fest.locales', { y }))}
-      ${[0, 1].map(i => `<input type="date" class="fest-local" data-year="${y}" min="${y}-01-01" max="${y}-12-31" value="${l[i] ? `${y}-${l[i]}` : ''}">`).join(' ')}</label>
-      ${info ? `<div class="fest-note fest-muni-info" data-year="${y}">${esc(info)}</div>` : ''}
+    // v2.19.6: una ✕ junto a cada fecha para quitarla: en Android el calendario del sistema puede no tener «Borrar»
+    return `<div class="fest-row">${esc(tr('fest.locales', { y }))}
+      ${[0, 1].map(i => `<span class="fest-local-wrap"><input type="date" class="fest-local" data-year="${y}" min="${y}-01-01" max="${y}-12-31" aria-label="${escAttr(tr('fest.locales', { y }))}" value="${l[i] ? `${y}-${l[i]}` : ''}"><button type="button" class="fest-clear" data-year="${y}" data-i="${i}" title="${escAttr(tr('fest.clearLocal'))}" aria-label="${escAttr(tr('fest.clearLocal'))}" onclick="festClearLocal(this)">✕</button></span>`).join(' ')}</div>
+      ${info ? `<div class="fest-note fest-muni-info" data-year="${y}">${esc(info)}${diff ? ` <button type="button" class="btn btn-secondary btn-sm fest-use-dogc" data-year="${y}" onclick="festUseDogc(${y})">${esc(tr('fest.useDogc'))}</button>` : ''}</div>` : ''}
       ${mu && mu.estado !== 'sinAno' && mu.estado !== 'desconocido' ? festMuniCheckHtml(y) : ''}`; };
   // v2.18.0: «Mi trabajo» (solo Cataluña, donde la app tiene las fiestas locales de cada municipio)
   const muniRow = c.region !== 'CT' ? '' : `<label class="fest-row">${esc(tr('fest.muni'))}
@@ -5468,6 +5490,22 @@ function festFormDraft() {
 // v2.18.1: al cambiar la comunidad, la fecha o el municipio, el formulario se vuelve a dibujar sin guardar nada (antes el
 // campo del municipio y las fiestas locales del DOGC solo salían después de pulsar Guardar)
 function festFormRefresh() { renderFestivosConfig(festFormDraft(), true); }
+// v2.19.6: quitar una fiesta local con la ✕ (en Android el calendario del sistema puede no tener «Borrar») y volver a las del
+// DOGC con un botón. Como el resto del formulario, no se guarda hasta pulsar Guardar: se avisa en lugar del «✓ Guardado».
+function festLocalsChanged() {
+  festFormRefresh();
+  const ok = document.getElementById('festSaved'); if (ok) ok.textContent = tr('fest.pressSave');
+}
+function festClearLocal(btn) {
+  const i = btn?.parentElement?.querySelector('.fest-local');
+  if (!i) return;
+  i.value = '';
+  festLocalsChanged();
+}
+function festUseDogc(y) {
+  document.querySelectorAll(`#festCfgCard .fest-local[data-year="${+y}"]`).forEach(i => { i.value = ''; });
+  festLocalsChanged();
+}
 // El municipio redibuja al elegir uno de la lista (o escribirlo entero), no al salir del campo: con «change», pulsar Guardar
 // justo después movía el botón antes del clic y no se guardaba. El cursor vuelve al campo, por si se sigue escribiendo.
 function festMuniInput(el) {
