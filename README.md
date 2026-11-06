@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.19.6-blue)
+![Version](https://img.shields.io/badge/version-2.19.7-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.19.6)
+## 🆕 Novedades (v2.3 – v2.19.7)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -714,6 +714,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.19.7 (Noviembre 2026)
+- **Festivos:** la ayuda de las fiestas locales dice que una fiesta que no trabajaste se desmarca en «Festivos que cuentan»; con un municipio elegido, quitarla con ✕ no basta, porque vuelven las del DOGC.
+- **Textos:** `fest.localesHelpCT` ampliado, en es, ca y en. No cambia ningún cálculo ni dato guardado. **Pruebas:** `test_festivos.py` 16 (datos inventados).
 
 ### v2.19.6 (Noviembre 2026)
 - **Las fiestas locales se pueden quitar con una ✕.** En Datos → Festivos, cada fiesta local tiene al lado una ✕ que la vacía. Hacía falta porque en algunos móviles Android el calendario del sistema solo tiene «Cancelar» y «Aceptar», sin «Borrar», y una fecha mal puesta no se podía quitar.
