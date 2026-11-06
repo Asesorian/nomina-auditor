@@ -296,6 +296,8 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 .hac-payer:first-of-type { border-top:none;margin-top:4px; }
 .hac-name { font-size:12px;font-weight:700;color:var(--text); }
 .hac-nif { font-size:11px;color:var(--text-muted);font-family:'JetBrains Mono',monospace; }
+.hac-nonomina { display:flex;gap:6px;align-items:flex-start;margin-top:8px;font-size:11px;color:var(--text-dim);line-height:1.4; }
+.hac-nonomina input { margin-top:2px;flex:none; }
 .hac-row { display:grid;grid-template-columns:1fr 112px;gap:4px 8px;align-items:center;margin-top:6px;font-size:11px;color:var(--text-dim); }
 .hac-input { width:100%;box-sizing:border-box;background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:4px;font-size:13px;font-family:'JetBrains Mono',monospace;text-align:right; }
 .hac-input:focus { border-color:var(--accent);outline:none; }
@@ -451,7 +453,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.19.8</span>
+    <span class="logo-badge">Forense v2.19.9</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -3941,7 +3943,11 @@ Object.assign(I18N.es, {
   "bk.pending": "Backup completo sin confirmar: «{name}» (unos {peso}), del {date}.",
   "bk.okMsg": "Backup confirmado: ya cuenta como copia de seguridad.",
   "bk.badMsg": "No cuenta como copia. Vuelve a guardar el backup (en Drive, aunque el primero siga subiendo: el segundo suele subir bien) y después borra de Drive el que pesa 0.",
-  "bk.notZip": "lo guardado no es un ZIP completo"
+  "bk.notZip": "lo guardado no es un ZIP completo",
+  "hac.noNomina": "No da nóminas (paro o subsidio del SEPE, una pensión, una baja pagada por el INSS o una mutua, FOGASA, el rescate de un plan de pensiones…)",
+  "hac.noNominaRes": "ℹ Este pagador no da nóminas: no se compara con tus nóminas. Sus cifras quedan anotadas.",
+  "hac.noNominaHint": "Parece un organismo que no da nóminas (SEPE, INSS, una mutua…). Si es así, márcalo y no saldrá como un trabajo que falta.",
+  "hac.noNominaMark": "Marcar «No da nóminas»"
 });
 Object.assign(I18N.ca, {
   "bk.confirmQ": "Falta un pas: obre el lloc on l'has desat (Drive, per exemple) i comprova que «{name}» no pesa 0 i que fa uns {peso}. Fins que no ho confirmis, no compta com a còpia de seguretat.",
@@ -3950,7 +3956,11 @@ Object.assign(I18N.ca, {
   "bk.pending": "Còpia completa sense confirmar: «{name}» (uns {peso}), de data {date}.",
   "bk.okMsg": "Còpia confirmada: ja compta com a còpia de seguretat.",
   "bk.badMsg": "No compta com a còpia. Torna-la a desar (a Drive, encara que la primera s'estigui pujant: la segona sol pujar bé) i després esborra de Drive la que pesa 0.",
-  "bk.notZip": "el que s'ha desat no és un ZIP complet"
+  "bk.notZip": "el que s'ha desat no és un ZIP complet",
+  "hac.noNomina": "No fa nòmines (atur o subsidi del SEPE, una pensió, una baixa pagada per l'INSS o una mútua, FOGASA, el rescat d'un pla de pensions…)",
+  "hac.noNominaRes": "ℹ Aquest pagador no fa nòmines: no es compara amb les teves nòmines. Les seves xifres queden anotades.",
+  "hac.noNominaHint": "Sembla un organisme que no fa nòmines (SEPE, INSS, una mútua…). Si és així, marca-ho i no sortirà com una feina que falta.",
+  "hac.noNominaMark": "Marca «No fa nòmines»"
 });
 Object.assign(I18N.en, {
   "bk.confirmQ": "One step left: open the place where you saved it (Drive, for example) and check that «{name}» is not 0 and is around {peso}. Until you confirm it, it does not count as a backup.",
@@ -3959,7 +3969,11 @@ Object.assign(I18N.en, {
   "bk.pending": "Unconfirmed full backup: «{name}» (about {peso}), from {date}.",
   "bk.okMsg": "Backup confirmed: it now counts as a backup.",
   "bk.badMsg": "It does not count as a backup. Save it again (to Drive, even if the first one is still uploading: the second one usually uploads fine) and then delete from Drive the one that is 0.",
-  "bk.notZip": "what was saved is not a complete ZIP"
+  "bk.notZip": "what was saved is not a complete ZIP",
+  "hac.noNomina": "Does not issue payslips (SEPE unemployment benefit or subsidy, a pension, sick leave paid by the INSS or a mutual insurer, FOGASA, a pension plan payout…)",
+  "hac.noNominaRes": "ℹ This payer does not issue payslips: it is not compared with your payslips. Its figures are kept for reference.",
+  "hac.noNominaHint": "This looks like a body that does not issue payslips (SEPE, INSS, a mutual insurer…). If so, tick it and it will not show up as a missing job.",
+  "hac.noNominaMark": "Tick «Does not issue payslips»"
 });
 // v2.19.2: devengos frente a la remuneración total, y total bruto no impreso. El català, pendiente de revisión.
 Object.assign(I18N.es, {
@@ -5631,7 +5645,7 @@ function hacYearStatus(year, payers) {
   }
   for (const k of Object.keys(saved).filter(k => k.startsWith('otro:'))) kinds.push(compareHacienda(null, saved[k])?.kind || 'vacio');
   if (kinds.some(k => k === 'falta' || k === 'haciendaMas' || k === 'sinNominas')) return 'falta';
-  if (kinds.every(k => k === 'ok' || k === 'cents' || k === 'vacio') && kinds.some(k => k === 'ok' || k === 'cents')) return 'ok';
+  if (kinds.every(k => k === 'ok' || k === 'cents' || k === 'vacio' || k === 'noNomina') && kinds.some(k => k === 'ok' || k === 'cents')) return 'ok';
   return null;
 }
 
@@ -5693,6 +5707,7 @@ function sanitizeHacienda(raw) {
       if (!HAC_KEY_RE.test(k) || !r || typeof r !== 'object' || Array.isArray(r)) continue;
       const row = { name: String(r.name ?? '').slice(0, 80), nif: String(r.nif ?? '').slice(0, 20) };
       for (const [f] of HAC_FIELDS) { const v = Number(r[f]); row[f] = r[f] !== null && r[f] !== '' && Number.isFinite(v) && Math.abs(v) < 1e8 ? round2(v) : null; }
+      if (r.sinNomina === true && k.startsWith('otro:')) row.sinNomina = true;   // v2.19.8: pagador que no da nóminas
       clean[k] = row;
     }
     if (Object.keys(clean).length) out[y] = clean;
@@ -5716,6 +5731,7 @@ const HAC_TOL = 1;
 function compareHacienda(app, h, baseIRPF = null) {
   const entered = HAC_FIELDS.filter(([f]) => h && h[f] !== null && h[f] !== undefined);
   if (!entered.length) return null;
+  if (!app && h.sinNomina) return { kind: 'noNomina' };   // v2.19.8: paro, pensión, baja del INSS…: no hay nóminas que subir
   if (!app) return { kind: 'sinNominas' };
   const appOf = { integro: app.bruto, retenciones: app.irpf, gastos: app.ss };
   const d = {};
@@ -5749,6 +5765,7 @@ function hacResultHtml(r, year) {
   const box = (cls, html) => `<div class="hac-res ${cls}">${html}</div>`;
   const diffs = () => HAC_FIELDS.filter(([f]) => r.d[f] !== undefined).map(([f, , short]) => `${short} ${fmtDiff(r.d[f])}`).join(' · ');
   let html;
+  if (r.kind === 'noNomina') return box('', esc(tr('hac.noNominaRes')));
   if (r.kind === 'sinNominas') return box('warn', `⚠ No tienes nóminas de este pagador en ${esc(year)}: ¿un trabajo que no has subido?`);
   if (r.kind === 'ok') html = box('ok', '✓ <strong>Coincide</strong> con lo que tu empresa declaró a Hacienda.');
   else if (r.kind === 'cents') html = box('ok', `≈ <strong>Coincide salvo unos céntimos</strong> (${esc(diffs())}): probablemente redondeos de la empresa o un céntimo mal leído en alguna nómina.`);
@@ -5787,11 +5804,14 @@ function haciendaCardHtml(year) {
     const appOf = app ? { integro: app.bruto, retenciones: app.irpf, gastos: app.ss } : null;
     return `<div class="hac-payer" data-k="${esc(k)}">
       ${other ? `<label class="hac-row"><span>Pagador</span><input class="hac-input hac-text" data-y="${esc(year)}" data-k="${esc(k)}" data-f="name" value="${esc(h?.name || '')}" onchange="hacInput(this)" placeholder="Nombre"></label>
-        <label class="hac-row"><span>NIF del pagador</span><input class="hac-input hac-text" data-y="${esc(year)}" data-k="${esc(k)}" data-f="nif" value="${esc(h?.nif || '')}" onchange="hacInput(this)" placeholder="NIF"></label>`
+        ${h?.sinNomina ? '' : `<label class="hac-row"><span>NIF del pagador (opcional)</span><input class="hac-input hac-text" data-y="${esc(year)}" data-k="${esc(k)}" data-f="nif" value="${esc(h?.nif || '')}" onchange="hacInput(this)" placeholder="NIF"></label>`}
+        <label class="hac-nonomina"><input type="checkbox" class="hac-nonomina-chk"${h?.sinNomina ? ' checked' : ''} onchange="hacSetNoNomina(${jsArg(year)},${jsArg(k)},this.checked)"> <span>${esc(tr('hac.noNomina'))}</span></label>`
       : `<div class="hac-name">${esc(title)}</div>${nif ? `<div class="hac-nif">${esc(nif)}</div>` : ''}`}
       ${HAC_FIELDS.map(([f, label]) => field(k, f, label, h?.[f] ?? null,
         appOf ? `<div class="hac-diff" data-f="${f}">Tus nóminas: ${esc(fmt(appOf[f]))} €${r?.d?.[f] !== undefined ? ` · diferencia ${esc(r.d[f] === 0 ? '0,00 €' : fmtDiff(r.d[f]))}` : ''}</div>` : '')).join('')}
       <div class="hac-out">${hacResultHtml(r, year)}
+      ${other && !h?.sinNomina && hacLooksNoPayslip(h) ? `<div class="hac-res">💡 ${esc(tr('hac.noNominaHint'))}
+        <div><button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="hacSetNoNomina(${jsArg(year)},${jsArg(k)},true)">${esc(tr('hac.noNominaMark'))}</button></div></div>` : ''}
       ${other ? `<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="hacRemove(${jsArg(year)},${jsArg(k)})">Quitar este pagador</button>`
         : !hacRowEmpty(h) ? `<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="hacRemove(${jsArg(year)},${jsArg(k)})">Borrar las cifras</button>` : ''}</div>
     </div>`;
@@ -5880,6 +5900,22 @@ function hacTyping(el) {
     saveHacienda();
     renderHaciendaCard(true);
   }, 500);
+}
+
+// v2.19.8: un pagador que no da nóminas (paro o subsidio del SEPE, pensión, baja pagada por el INSS o una mutua, FOGASA,
+// rescate de un plan de pensiones). Solo se SUGIERE marcarlo: un NIF con Q es de un organismo público, y un hospital o
+// una universidad públicos sí dan nóminas; un plan de pensiones sale con el nombre de una aseguradora y no se detecta.
+const HAC_NO_PAYSLIP_RE = /\b(SEPE|INSS|FOGASA|MUFACE|ISFAS|MUGEJU)\b|SERVICIO P[UÚ]BLICO DE EMPLEO|SEGURIDAD SOCIAL|SEGURETAT SOCIAL|INSTITUTO SOCIAL DE LA MARINA|CLASES PASIVAS|FONDO DE GARANT[IÍ]A SALARIAL|\bM[UÚ]TUA\b|PENSI[OÓ]N/i;
+function hacLooksNoPayslip(r) {
+  return !!r && (HAC_NO_PAYSLIP_RE.test(String(r.name || '')) || /^Q/i.test(String(r.nif || '').trim()));
+}
+function hacSetNoNomina(year, key, on) {
+  if (!HAC_YEAR_RE.test(year) || !String(key).startsWith('otro:')) return;
+  const row = hacienda[year]?.[key];
+  if (!row) return;
+  if (on) row.sinNomina = true; else delete row.sinNomina;
+  saveHacienda();
+  renderHaciendaCard();
 }
 
 function hacAddOther(year) {

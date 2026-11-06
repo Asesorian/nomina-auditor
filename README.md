@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.19.8-blue)
+![Version](https://img.shields.io/badge/version-2.19.9-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.19.8)
+## 🆕 Novedades (v2.3 – v2.19.9)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -714,6 +714,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.19.9 (Noviembre 2026)
+- **Comparar con Hacienda: pagadores que no dan nóminas.** En los datos fiscales pueden salir, además de la empresa, el SEPE (paro, subsidios, ERTE), el INSS (pensiones, una baja pagada directamente), una mutua, el FOGASA o el rescate de un plan de pensiones. Al añadirlos con «+ Otro pagador», la app decía «¿un trabajo que no has subido?» y quitaba el ✓ de «¿Está completo el año?», aunque la empresa coincidiera al céntimo. Ahora cada pagador añadido tiene la casilla **«No da nóminas»**: marcada, sale como información y el año vuelve a salir completo.
+- **Sugerencia, no decisión:** si el nombre parece el de uno de esos organismos (SEPE, INSS, Seguridad Social, mutua, FOGASA, Clases Pasivas, MUFACE, pensiones) o el NIF empieza por Q (organismos públicos), la app propone marcarla con un botón; nunca la marca sola, porque un hospital o una universidad públicos también tienen NIF con Q y sí dan nóminas.
+- El NIF del pagador añadido dice «(opcional)» (nunca ha sido obligatorio) y deja de pedirse si se marca «No da nóminas»: solo sirve para reconocer a otra empresa. La marca se guarda con las cifras de Hacienda y va en el backup. **Textos:** `hac.noNomina`, `hac.noNominaRes`, `hac.noNominaHint` y `hac.noNominaMark`, en es, ca y en. No cambia ningún cálculo ni dato guardado. **Pruebas:** `test_hacienda.py` 5, 6 y 7 (con clics reales; datos inventados).
 
 ### v2.19.8 (Noviembre 2026)
 - **Comprobar el backup ya no depende de cómo cuenta cada sistema.** Al guardar el backup completo, la app pedía comprobar que el archivo «pesa 31,6 MB». El mismo archivo sale como 31,6 MB en la app, 33,1 MB en un móvil (que cuenta 1 MB = 1.000.000 bytes) y 32.325 KB en el Explorador de Windows: se podía pensar que estaba mal. Ahora pide comprobar que **no pesa 0 y ronda los 32 MB**, un número redondo entre las dos medidas; el fallo que se busca es el archivo vacío.
