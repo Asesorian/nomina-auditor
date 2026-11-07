@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.20.0-blue)
+![Version](https://img.shields.io/badge/version-2.21.0-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.20.0)
+## 🆕 Novedades (v2.3 – v2.21.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 🏦 **Cobrado en el banco (v2.21.0)** | En cada nómina guardada puedes apuntar lo que te ingresaron (en uno o varios ingresos, con fecha si quieres) y la app lo compara **al céntimo** con el líquido. Si no coincide, te dice la diferencia y dónde mirar: el Líquido de la nómina (puede ser un error de lectura) o el ingreso. En el Anual, cuántas has anotado y cuáles no coinciden. Es opcional, solo informa y se queda en tu dispositivo. | Abre una nómina guardada → **🏦 Cobrado en el banco** |
 | 📑 **Pestaña Informes (v2.20.0)** | Una pestaña nueva, entre Anual y Datos, que responde a **«¿Para qué necesitas tus nóminas?»**: si el año está completo, **Comparar con Hacienda**, **Pedir las que faltan** (un texto para pedírselas a la empresa, por empresa, con los meses y las pagas extra que faltan: lo copias, pones tu nombre y tu DNI y lo envías tú) y **Copiar para el abogado**. Las tarjetas llevan a lo que ya existe y comparten el año con el Anual. En el Panel, si falta la nómina del mes pasado, un aviso **«Sube la nómina de…»** (solo sugiere). | Pestaña **Informes** y **Panel** |
 | 🗂️ **Nóminas almacenadas por años (v2.19.0)** | Con varios años guardados, la lista de nóminas ya no es una fila interminable de etiquetas: **una fila por año**, con su estado (**Completo** en verde, **Faltan N** en ámbar diciendo cuáles, **En curso** sin color de alarma). Al abrir un año, sus **12 meses** (lo que falta, con borde discontinuo) y, aparte y en azul, las pagas extra, atrasos y beneficios con su tipo escrito. Toca un mes para ver su nómina. El estado es el mismo que el de «¿Está completo el año?» del Anual. | **Datos** |
 | 🎌 **Saldo de festivos (v2.17.0)** | Muchas empresas pagan los festivos trabajados **por lotes y con meses de retraso**, y la nómina no dice a qué festivo corresponde cada pago. Elige tu comunidad autónoma (el calendario oficial del BOE ya está dentro de la app, 2026 y 2027), pon tus 2 fiestas locales y desde cuándo cuentas: la app compara los festivos que trabajas con los que te pagan, en orden (el más antiguo primero), y **avisa si uno lleva 2 meses sin aparecer**. Si no trabajaste alguno, lo desmarcas. **En Catalunya (v2.18.0)**, eliges el municipio de tu centro de trabajo y las 2 fiestas locales salen solas de la orden oficial del DOGC (los 947 municipios y sus núcleos agregados). Solo documenta: no dice cuánto vale un festivo ni si se puede reclamar (eso depende de tu convenio). Se guarda en tu dispositivo y en el backup | Datos → Festivos · Panel · Anual |
@@ -715,6 +716,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.21.0 (Noviembre 2026)
+- **Cobrado en el banco.** Tarjeta nueva en cada nómina guardada: lo ingresado en el banco (una o varias líneas, con fecha opcional) frente al **líquido**, al céntimo. Si no coincide, dice la diferencia y dónde mirar. En el Anual, una tarjeta con lo anotado del año y las nóminas que no coinciden (solo si hay algo anotado).
+- **Solo informa:** no cambia las comprobaciones de la nómina ni pone ⚠. Va en el backup y se conserva al corregir los datos; al importar, solo entran importes positivos y fechas válidas.
+- **Textos:** 16 claves `bank.*` en es, ca y en. **Pruebas:** `test_cobrado.py` (nueva; datos inventados).
 
 ### v2.20.0 (Noviembre 2026)
 - **Pestaña Informes.** La barra pasa a **Panel · Subir · Anual · Informes · Datos**. Informes reúne, con el selector de año (el mismo del Anual), una tarjeta por uso, solo de lo que ya funciona: **¿Está completo el año?** (resumen y botón al Anual), **Comparar con Hacienda** (abre la tarjeta del Anual), **Pedir las que faltan** y **Copiar para el abogado** (lleva a cada nómina, donde está el botón). Sin nóminas, el estado vacío de siempre. En el móvil, las pestañas se reparten el ancho con el icono encima del nombre (caben a 360 px con el botón Instalar).

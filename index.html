@@ -281,6 +281,10 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 .gl-lang.on { border-color:var(--accent);color:var(--accent);background:var(--accent-glow); }
 .fest-form { font-size:12px;color:var(--text-dim); }
 .fest-row { display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0; }
+.bank-row { display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:6px 0; }   /* v2.21.0 */
+.bank-row input { background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;max-width:100%; }
+.bank-row .bank-amount { width:130px;font-family:'JetBrains Mono',monospace;text-align:right; }
+.bank-error { color:var(--danger);font-size:12px;margin:4px 0; }
 .fest-row select, .fest-row input { background:var(--bg2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:12px;max-width:100%; }
 .fest-list { display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:2px 10px;margin-top:6px; }
 .fest-note { font-size:11px;color:var(--text-muted);margin:2px 0 6px; }
@@ -460,7 +464,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.20.0</span>
+    <span class="logo-badge">Forense v2.21.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -4097,6 +4101,61 @@ Object.assign(I18N.en, {
   "remEGrossSum": "This payslip does not print the gross total: the app used the sum of the earnings, so this is the only check on those amounts.",
   "grossSum": "The gross total is not printed on the payslip: it is the sum of the earnings, calculated by the app. If your payslip does show it, correct it with the figure on the paper."
 });
+// v2.21.0: «Cobrado en el banco»: lo ingresado frente al líquido de la nómina. El català, pendiente de revisión.
+Object.assign(I18N.es, {
+  "bank.title": "Cobrado en el banco",
+  "bank.hint": "Apunta lo que te ingresaron por esta nómina (si llegó en varios ingresos, uno por línea). La app lo compara con el líquido. Es opcional y se queda solo en este dispositivo.",
+  "bank.amount": "Importe",
+  "bank.date": "Fecha (opcional)",
+  "bank.add": "+ Añadir otro ingreso",
+  "bank.save": "Guardar",
+  "bank.remove": "Quitar este ingreso",
+  "bank.clearDate": "Borrar la fecha",
+  "bank.none": "Sin anotar: escribe abajo lo que te ingresaron y pulsa Guardar.",
+  "bank.ok": "✓ Coincide con el líquido ({net} €).",
+  "bank.diff": "Cobrado {paid} € y el líquido es {net} € (diferencia: {diff} €). Mira el Líquido de la nómina (puede ser un error de lectura) y el ingreso en el banco.",
+  "bank.bad": "«{v}» no es un importe válido. Escríbelo como en el banco, por ejemplo 1.234,56.",
+  "bank.noAmount": "Hay una fecha sin importe: escribe el importe o quita esa línea con 🗑.",
+  "bank.annual": "Anotado en {n} de {total} nóminas de {year}: cobrado {paid} € frente a un líquido de {net} € en esas nóminas.",
+  "bank.annualDiff": "No coinciden con el líquido: {list}. Ábrelas y mira el Líquido y el ingreso.",
+  "bank.annualOk": "✓ En todas las anotadas, lo cobrado coincide con el líquido."
+});
+Object.assign(I18N.ca, {
+  "bank.title": "Cobrat al banc",
+  "bank.hint": "Apunta el que et van ingressar per aquesta nòmina (si va arribar en diversos ingressos, un per línia). L'app ho compara amb el líquid. És opcional i només es desa en aquest dispositiu.",
+  "bank.amount": "Import",
+  "bank.date": "Data (opcional)",
+  "bank.add": "+ Afegeix un altre ingrés",
+  "bank.save": "Desa",
+  "bank.remove": "Treu aquest ingrés",
+  "bank.clearDate": "Esborra la data",
+  "bank.none": "Sense anotar: escriu a sota el que et van ingressar i prem Desa.",
+  "bank.ok": "✓ Coincideix amb el líquid ({net} €).",
+  "bank.diff": "Cobrat {paid} € i el líquid és {net} € (diferència: {diff} €). Mira el Líquido de la nòmina (pot ser un error de lectura) i l'ingrés al banc.",
+  "bank.bad": "«{v}» no és un import vàlid. Escriu-lo com al banc, per exemple 1.234,56.",
+  "bank.noAmount": "Hi ha una data sense import: escriu l'import o treu aquesta línia amb 🗑.",
+  "bank.annual": "Anotat en {n} de {total} nòmines del {year}: cobrat {paid} € davant d'un líquid de {net} € en aquestes nòmines.",
+  "bank.annualDiff": "No coincideixen amb el líquid: {list}. Obre-les i mira el Líquido i l'ingrés.",
+  "bank.annualOk": "✓ En totes les anotades, el que s'ha cobrat coincideix amb el líquid."
+});
+Object.assign(I18N.en, {
+  "bank.title": "Received in the bank (Cobrado)",
+  "bank.hint": "Enter what was paid into your account for this payslip (if it came in several deposits, one per line). The app compares it with the net pay (Líquido). It is optional and stays only on this device.",
+  "bank.amount": "Amount",
+  "bank.date": "Date (optional)",
+  "bank.add": "+ Add another deposit",
+  "bank.save": "Save",
+  "bank.remove": "Remove this deposit",
+  "bank.clearDate": "Clear the date",
+  "bank.none": "Not entered: write below what was paid in and press Save.",
+  "bank.ok": "✓ Matches the net pay (Líquido) ({net} €).",
+  "bank.diff": "Received {paid} € and the net pay (Líquido) is {net} € (difference: {diff} €). Check the payslip's Líquido (it may be a reading error) and the deposit in your bank.",
+  "bank.bad": "«{v}» is not a valid amount. Write it as in your bank, for example 1.234,56.",
+  "bank.noAmount": "There is a date without an amount: enter the amount or remove that line with 🗑.",
+  "bank.annual": "Entered for {n} of {total} payslips in {year}: received {paid} € against a net pay of {net} € on those payslips.",
+  "bank.annualDiff": "They do not match the net pay: {list}. Open them and check the Líquido and the deposit.",
+  "bank.annualOk": "✓ For all the entered ones, what was received matches the net pay."
+});
 // Textos fijos del HTML con data-tr="clave": se escriben con tr() al arrancar (v2.13.1)
 function trStatic(root = document) {
   root.querySelectorAll('[data-tr]').forEach(el => { el.textContent = tr(el.getAttribute('data-tr')); });
@@ -4377,6 +4436,7 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
         <button class="btn btn-secondary btn-sm" onclick="editIrpf(${jsArg(p.id)})">✏ Corregir %</button>
       </div>
     </div>
+    ${bankCardHtml(p)}
     <div class="card" style="padding:14px 16px">
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">📎 Documento original</div>
       <div id="originalBody" class="doc-meta"></div>
@@ -5222,6 +5282,7 @@ function renderAnnual() {
     </div>
 
     ${completenessCardHtml(yearCompleteness(currentYear))}
+    ${bankAnnualHtml(fp, currentYear)}
 
     ${haciendaCardHtml(currentYear)}
 
@@ -6545,6 +6606,90 @@ function editIrpf(id) {
   showReport(p);
 }
 
+// ── v2.21.0: «Cobrado en el banco» (docs/TECNICO.md §53) ──
+// Lo que la persona apunta que le ingresaron por esta nómina: p.bankDeposits = [{ amount, date? }].
+// Solo informa: no entra en checkPayroll ni pone ⚠ (la lectura puede estar bien y el pago no, o al revés).
+function bankPaid(p) {
+  const deps = Array.isArray(p?.bankDeposits) ? p.bankDeposits : [];
+  return deps.length ? round2(deps.reduce((s, d) => s + amt(d.amount), 0)) : null;
+}
+function bankStatus(p) {
+  const paid = bankPaid(p);
+  if (paid === null) return { state: 'none' };
+  const net = round2(amt(p.totals?.netPay)), diff = round2(paid - net);
+  return { state: Math.abs(diff) < 0.005 ? 'ok' : 'diff', paid, net, diff };   // al céntimo
+}
+function bankStatusText(st) {
+  if (st.state === 'none') return tr('bank.none');
+  if (st.state === 'ok') return tr('bank.ok', { net: fmt(st.net) });
+  return tr('bank.diff', { paid: fmt(st.paid), net: fmt(st.net), diff: fmt(st.diff) });
+}
+function bankRowHtml(d = {}) {
+  const has = d.amount !== undefined && d.amount !== null && d.amount !== '';
+  return `<div class="bank-row">
+      <input type="text" inputmode="decimal" class="bank-amount" placeholder="${esc(tr('bank.amount'))}" aria-label="${esc(tr('bank.amount'))}" value="${has ? esc(fmt(d.amount)) : ''}"> €
+      <input type="date" class="bank-date" aria-label="${esc(tr('bank.date'))}" title="${esc(tr('bank.date'))}" value="${esc(d.date || '')}">
+      <button type="button" class="btn btn-secondary btn-sm bank-cleardate" title="${esc(tr('bank.clearDate'))}" aria-label="${esc(tr('bank.clearDate'))}" onclick="this.parentElement.querySelector('.bank-date').value=''">✕</button>
+      <button type="button" class="btn btn-secondary btn-sm bank-remove" title="${esc(tr('bank.remove'))}" aria-label="${esc(tr('bank.remove'))}" onclick="removeBankRow(this)">🗑</button>
+    </div>`;
+}
+function bankCardHtml(p) {
+  const st = bankStatus(p);
+  const deps = Array.isArray(p.bankDeposits) && p.bankDeposits.length ? p.bankDeposits : [{}];
+  return `<div class="card" id="bankCard" style="padding:14px 16px">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">🏦 ${esc(tr('bank.title'))}</div>
+      <div id="bankStatus" class="chk ${st.state === 'ok' ? 'ok' : st.state === 'diff' ? 'warn' : 'info'}"><span>${esc(bankStatusText(st))}</span></div>
+      <div id="bankRows">${deps.map(bankRowHtml).join('')}</div>
+      <div id="bankError" class="bank-error"></div>
+      <div class="doc-actions">
+        <button class="btn btn-secondary btn-sm" onclick="addBankRow()">${esc(tr('bank.add'))}</button>
+        <button class="btn btn-primary btn-sm" id="bankSave" onclick="saveBankDeposits(${jsArg(p.id)})">${esc(tr('bank.save'))}</button>
+      </div>
+      <div class="chk-hint">${esc(tr('bank.hint'))}</div>
+    </div>`;
+}
+function addBankRow() { document.getElementById('bankRows').insertAdjacentHTML('beforeend', bankRowHtml()); }
+function removeBankRow(btn) {
+  const rows = document.getElementById('bankRows');
+  btn.closest('.bank-row').remove();
+  if (!rows.children.length) rows.insertAdjacentHTML('beforeend', bankRowHtml());   // siempre queda una línea para escribir
+}
+function saveBankDeposits(id) {
+  const p = payrolls.find(x => x.id === id);
+  if (!p) return;
+  const err = document.getElementById('bankError');
+  const deps = [];
+  for (const row of document.querySelectorAll('#bankRows .bank-row')) {
+    const inp = row.querySelector('.bank-amount');
+    const raw = inp.value.trim(), date = row.querySelector('.bank-date').value || '';
+    if (!raw) {
+      if (date) { err.textContent = tr('bank.noAmount'); inp.focus(); return; }
+      continue;                                       // línea vacía: no cuenta
+    }
+    const n = num(raw);                               // lo escribe una persona: 1.234,56 · 1234,56 · 1234.56
+    if (!Number.isFinite(n) || n <= 0) { err.textContent = tr('bank.bad', { v: raw }); inp.focus(); return; }
+    deps.push(date ? { amount: round2(n), date } : { amount: round2(n) });
+  }
+  if (deps.length) p.bankDeposits = deps; else delete p.bankDeposits;
+  saveData();
+  if (isAutoBackupEnabled()) autoBackup();
+  showReport(p);
+  document.getElementById('bankCard')?.scrollIntoView({ block: 'center' });
+}
+// Anual: solo si alguna nómina del año tiene lo cobrado anotado
+function bankAnnualHtml(fp, year) {
+  const withDep = fp.filter(p => bankPaid(p) !== null);
+  if (!withDep.length) return '';
+  const paid = round2(withDep.reduce((s, p) => s + bankPaid(p), 0));
+  const net = round2(withDep.reduce((s, p) => s + amt(p.totals?.netPay), 0));
+  const bad = withDep.filter(p => bankStatus(p).state === 'diff');
+  return `<div class="card" id="bankAnnual" style="padding:14px 16px">
+      <h3 style="margin:0 0 8px;font-size:13px;color:var(--accent)">🏦 ${esc(tr('bank.title'))}</h3>
+      <div class="chk info"><span>${esc(tr('bank.annual', { n: withDep.length, total: fp.length, year, paid: fmt(paid), net: fmt(net) }))}</span></div>
+      <div class="chk ${bad.length ? 'warn' : 'ok'}"><span>${esc(bad.length ? tr('bank.annualDiff', { list: bad.map(payName).join(', ') }) : tr('bank.annualOk'))}</span></div>
+    </div>`;
+}
+
 // S.S. del trabajador: TODAS las líneas de cotización (contingencias comunes, MEI, formación, desempleo,
 // solidaridad…), escritas como vengan ("CONT.COMU", "CONTING. COMUNES"…). Antes de la v2.7.2 solo contaba
 // las que decían "contingencia", "formación" o "desempleo" y dejaba fuera CONT.COMU y el MEI.
@@ -7468,6 +7613,15 @@ function sanitizeImportedPayroll(raw) {
   else if (p.docNumbers) p.docNumbers = [...p.docNumbers].sort((a, b) => a - b);   // inDocNumbers busca en una lista ordenada
   if (p.original !== undefined && !(p.original && typeof p.original === 'object' && typeof p.original.key === 'string' && DOC_KEY_RE.test(p.original.key))) {
     delete p.original;   // referencia rota o extraña: la nómina entra, sin documento
+  }
+  // v2.21.0: lo cobrado en el banco, solo importes positivos y fechas AAAA-MM-DD (lo demás se queda fuera)
+  if (p.bankDeposits !== undefined) {
+    const deps = Array.isArray(p.bankDeposits) ? p.bankDeposits.slice(0, 20).flatMap(d => {
+      const a = d && typeof d === 'object' ? (typeof d.amount === 'number' ? d.amount : num(d.amount)) : NaN;
+      if (!Number.isFinite(a) || a <= 0) return [];
+      return [typeof d.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.date) ? { amount: round2(a), date: d.date } : { amount: round2(a) }];
+    }) : [];
+    if (deps.length) p.bankDeposits = deps; else delete p.bankDeposits;
   }
   return p;
 }
