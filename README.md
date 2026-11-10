@@ -718,6 +718,9 @@ BASES Y TOTALES
 
 ## 📋 Changelog
 
+### v2.22.1 (Noviembre 2026)
+- **Textos en los tres idiomas:** los mensajes del backup completo y la tarjeta «Comparar con Hacienda» pasan a `tr()` (español, català e inglés), como el resto de textos nuevos. En español no cambia nada. **Pruebas:** `test_hacienda.py`, punto 9.
+
 ### v2.22.0 (Noviembre 2026)
 - **«Cobrado en el banco» es opcional.** Viene desactivado y se activa en **Informes** (tarjeta nueva, con la explicación de qué hace y para qué) o en **Datos** (casilla). Activado, la tarjeta sale en cada nómina guardada, como en la v2.21.0.
 - **Lo anotado nunca se esconde:** aunque se desactive, las nóminas con algo anotado lo siguen mostrando, y el Anual también. Quien ya tenía algo anotado la conserva activada al actualizar.

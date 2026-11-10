@@ -464,7 +464,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.22.0</span>
+    <span class="logo-badge">Forense v2.22.1</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -4201,6 +4201,170 @@ Object.assign(I18N.en, {
   "bank.activate": "Turn on",
   "bank.deactivate": "Turn off"
 });
+// v2.22.1 (deuda 25): mensajes del backup y tarjeta «Comparar con Hacienda», en los tres idiomas. Llevan <strong> y <em>:
+// se escriben con trHtml(), que escapa las variables y deja el marcado del texto (que es nuestro, no del usuario).
+Object.assign(I18N.es, {
+  "bkd.size": ", unos {peso}",
+  "bkd.sizeParen": " (unos {peso})",
+  "bkd.roundShared": " y debe rondar los {peso}",
+  "bkd.round": " y ronda los {peso}",
+  "bkd.shared": "<strong>Backup completo enviado</strong> («{name}»{size}). Si lo has guardado en <em>Archivos</em> → <strong>iCloud Drive</strong> o en <strong>Drive</strong>, compruébalo allí: no debe pesar 0{round}. Si lo has guardado en <em>En mi iPhone</em>, sigue estando solo en el móvil: muévelo a iCloud Drive o a Drive.",
+  "bkd.saved": "<strong>Backup completo guardado</strong> como «{name}»{size}.{unverified} Si lo has guardado en Drive, se sube en segundo plano: <strong>comprueba en Drive que no pesa 0{round}</strong>. Si pesa 0, se queda en «Subiendo…» o Drive avisa de que no ha podido subirlo, <strong>vuelve a guardarlo en Drive</strong> (aunque el primero siga subiendo): el segundo suele subir bien. <strong>Después borra en Drive el que pesa 0.</strong> Si lo has guardado en el móvil y no en Drive, llévalo también fuera del móvil.",
+  "bkd.unverified": " No se ha podido comprobar que haya quedado entero: mira que el archivo no esté vacío.",
+  "bkd.downloaded": "<strong>Backup completo descargado</strong> en Descargas. Guárdalo en Drive (o fuera del móvil): abre la app de archivos del móvil (<em>Archivos</em>, <em>Files</em> o <em>Mis archivos</em>) → <strong>Descargas</strong>, mantén pulsado el archivo y elige <strong>Compartir → Drive</strong>. En iPhone: <em>Archivos</em> → <em>Descargas</em> → mantén pulsado → <strong>Mover</strong> a iCloud Drive (o Compartir → Drive).",
+  "bkp.text": "<strong>Backup completo preparado</strong> («{name}», unos {peso}). Toca <strong>Guardar en…</strong> y elige <em>Guardar en Archivos</em> → <strong>iCloud Drive</strong>, o la app de <strong>Drive</strong>.",
+  "bkp.share": "📤 Guardar en… (iCloud, Drive…)",
+  "bkp.download": "⬇ Descargar",
+  "bkp.blocked": "Este navegador no ha abierto «Guardar en…». Usa «Descargar»: lo tendrás en Archivos → Descargas.",
+  "hac.title": "🏛️ Comparar con Hacienda",
+  "hac.intro": "Comprueba que lo que declaró tu empresa a Hacienda coincide con tus nóminas de {year}. Si Hacienda tiene más, suele ser una nómina aparte que no has subido.",
+  "hac.where": "Las cifras están en la app o la web de la Agencia Tributaria → <strong>Renta {year} → Datos fiscales → Rendimientos del trabajo</strong>{spring}, o en el <strong>certificado de retenciones</strong> que da la empresa (suele llegar en enero o febrero). Escribe las de cada pagador: se guardan en este dispositivo y en el backup. La app no entra en Hacienda: solo compara lo que escribes.",
+  "hac.spring": " (salen en primavera de {next})",
+  "hac.badPays": "⚠ Algunas nóminas no cuadran ({list}): corrígelas primero, las diferencias pueden venir de ahí.",
+  "hac.f.integro": "Retribuciones dinerarias (íntegro)",
+  "hac.f.retenciones": "Retenciones",
+  "hac.f.gastos": "Gastos deducibles (Seguridad Social)",
+  "hac.s.integro": "bruto",
+  "hac.s.retenciones": "IRPF",
+  "hac.s.gastos": "S.S.",
+  "hac.payer": "Pagador",
+  "hac.payerPh": "Nombre",
+  "hac.nif": "NIF del pagador (opcional)",
+  "hac.yours": "Tus nóminas: {v} €",
+  "hac.diffOf": " · diferencia {d}",
+  "hac.removePayer": "Quitar este pagador",
+  "hac.clear": "Borrar las cifras",
+  "hac.addOther": "+ Otro pagador",
+  "hac.note": "Compara el bruto de tus nóminas con el íntegro, el IRPF con las retenciones y la Seguridad Social con los gastos deducibles. Diferencias de hasta 1 € salen con ≈. Todo es orientativo: la app documenta, no aconseja sobre la declaración.",
+  "hac.badNumber": "No se entiende esa cifra. Escríbela como en Hacienda, por ejemplo 18.250,40.",
+  "hac.sinNominas": "⚠ No tienes nóminas de este pagador en {year}: ¿un trabajo que no has subido?",
+  "hac.ok": "✓ <strong>Coincide</strong> con lo que tu empresa declaró a Hacienda.",
+  "hac.cents": "≈ <strong>Coincide salvo unos céntimos</strong> ({diffs}): probablemente redondeos de la empresa o un céntimo mal leído en alguna nómina.",
+  "hac.falta": "⚠ <strong>Parece que falta una nómina.</strong> Hacienda tiene {bruto} € más de bruto que tus nóminas. Sería algo así:",
+  "hac.t.bruto": "Bruto",
+  "hac.t.ss": "Seguridad Social",
+  "hac.t.irpf": "IRPF",
+  "hac.t.liquido": "Líquido",
+  "hac.ssFits": "La Seguridad Social encaja con una nómina normal (el trabajador cotiza alrededor del 6,5 %).",
+  "hac.findBank": "Búscala en el banco por un ingreso de unos {liquido} € y pídesela a la empresa.",
+  "hac.findNoBank": "Búscala en el banco y pídesela a la empresa.",
+  "hac.findTail": "Suele ser una paga de beneficios o un bonus, unos atrasos o un finiquito en una nómina aparte: cuando la subas, esto debería coincidir.",
+  "hac.haciendaMas": "⚠ <strong>Hacienda tiene más</strong> que tus nóminas ({diffs}). Escribe también el íntegro para ver cómo sería la nómina que falta.",
+  "hac.appMas": "⚠ <strong>Tus nóminas suman más</strong> que lo que declaró la empresa ({diffs}). Causas posibles, sin saber cuál: la nómina de diciembre cobrada en enero (la empresa puede haberla declarado en el otro año), atrasos de otro año, una cifra mal leída (revisa las nóminas con ⚠) o una nómina repetida.",
+  "hac.mezcla": "⚠ <strong>No coincide</strong> ({diffs}): unas cifras son mayores en Hacienda y otras en tus nóminas. Revisa las nóminas con ⚠ y compáralas con el papel.",
+  "hac.baseCloser": "ℹ La suma de las bases de IRPF de tus nóminas se acerca más a Hacienda ({diff}): puede que el bruto lleve dietas o kilometraje exentos, que Hacienda no suma, o que parte se pague en especie."
+});
+Object.assign(I18N.ca, {
+  "bkd.size": ", uns {peso}",
+  "bkd.sizeParen": " (uns {peso})",
+  "bkd.roundShared": " i ha de fer uns {peso}",
+  "bkd.round": " i que fa uns {peso}",
+  "bkd.shared": "<strong>Còpia completa enviada</strong> («{name}»{size}). Si l'has desada a <em>Fitxers</em> → <strong>iCloud Drive</strong> o a <strong>Drive</strong>, comprova-ho allà: no ha de pesar 0{round}. Si l'has desada a <em>Al meu iPhone</em>, encara és només al mòbil: mou-la a iCloud Drive o a Drive.",
+  "bkd.saved": "<strong>Còpia completa desada</strong> com a «{name}»{size}.{unverified} Si l'has desada a Drive, es puja en segon pla: <strong>comprova a Drive que no pesa 0{round}</strong>. Si pesa 0, es queda a «Pujant…» o Drive avisa que no l'ha pogut pujar, <strong>torna-la a desar a Drive</strong> (encara que la primera s'estigui pujant): la segona sol pujar bé. <strong>Després esborra de Drive la que pesa 0.</strong> Si l'has desada al mòbil i no a Drive, porta-la també fora del mòbil.",
+  "bkd.unverified": " No s'ha pogut comprovar que hagi quedat sencera: mira que el fitxer no estigui buit.",
+  "bkd.downloaded": "<strong>Còpia completa baixada</strong> a Baixades. Desa-la a Drive (o fora del mòbil): obre l'app d'arxius del mòbil (<em>Fitxers</em>, <em>Files</em> o <em>Els meus arxius</em>) → <strong>Baixades</strong>, mantén premut l'arxiu i tria <strong>Comparteix → Drive</strong>. A l'iPhone: <em>Fitxers</em> → <em>Baixades</em> → mantén premut → <strong>Mou</strong> a iCloud Drive (o Comparteix → Drive).",
+  "bkp.text": "<strong>Còpia completa preparada</strong> («{name}», uns {peso}). Toca <strong>Desa a…</strong> i tria <em>Desa a Fitxers</em> → <strong>iCloud Drive</strong>, o l'app de <strong>Drive</strong>.",
+  "bkp.share": "📤 Desa a… (iCloud, Drive…)",
+  "bkp.download": "⬇ Baixa",
+  "bkp.blocked": "Aquest navegador no ha obert «Desa a…». Fes servir «Baixa»: la tindràs a Fitxers → Baixades.",
+  "hac.title": "🏛️ Comparar amb Hisenda",
+  "hac.intro": "Comprova que el que la teva empresa va declarar a Hisenda coincideix amb les teves nòmines del {year}. Si Hisenda en té més, sol ser una nòmina a part que no has pujat.",
+  "hac.where": "Les xifres són a l'app o al web de l'Agència Tributària → <strong>Renda {year} → Dades fiscals → Rendiments del treball</strong>{spring}, o al <strong>certificat de retencions</strong> que dona l'empresa (sol arribar al gener o al febrer). Escriu les de cada pagador: es desen en aquest dispositiu i a la còpia de seguretat. L'app no entra a Hisenda: només compara el que escrius.",
+  "hac.spring": " (surten a la primavera del {next})",
+  "hac.badPays": "⚠ Algunes nòmines no quadren ({list}): corregeix-les primer, les diferències poden venir d'aquí.",
+  "hac.f.integro": "Retribucions dineràries (íntegre)",
+  "hac.f.retenciones": "Retencions",
+  "hac.f.gastos": "Despeses deduïbles (Seguretat Social)",
+  "hac.s.integro": "brut",
+  "hac.s.retenciones": "IRPF",
+  "hac.s.gastos": "S.S.",
+  "hac.payer": "Pagador",
+  "hac.payerPh": "Nom",
+  "hac.nif": "NIF del pagador (opcional)",
+  "hac.yours": "Les teves nòmines: {v} €",
+  "hac.diffOf": " · diferència {d}",
+  "hac.removePayer": "Treu aquest pagador",
+  "hac.clear": "Esborra les xifres",
+  "hac.addOther": "+ Un altre pagador",
+  "hac.note": "Compara el brut de les teves nòmines amb l'íntegre, l'IRPF amb les retencions i la Seguretat Social amb les despeses deduïbles. Les diferències de fins a 1 € surten amb ≈. Tot és orientatiu: l'app documenta, no aconsella sobre la declaració.",
+  "hac.badNumber": "No s'entén aquesta xifra. Escriu-la com a Hisenda, per exemple 18.250,40.",
+  "hac.sinNominas": "⚠ No tens nòmines d'aquest pagador del {year}: una feina que no has pujat?",
+  "hac.ok": "✓ <strong>Coincideix</strong> amb el que la teva empresa va declarar a Hisenda.",
+  "hac.cents": "≈ <strong>Coincideix llevat d'uns cèntims</strong> ({diffs}): probablement arrodoniments de l'empresa o un cèntim mal llegit en alguna nòmina.",
+  "hac.falta": "⚠ <strong>Sembla que falta una nòmina.</strong> Hisenda té {bruto} € més de brut que les teves nòmines. Seria una cosa així:",
+  "hac.t.bruto": "Brut",
+  "hac.t.ss": "Seguretat Social",
+  "hac.t.irpf": "IRPF",
+  "hac.t.liquido": "Líquid",
+  "hac.ssFits": "La Seguretat Social encaixa amb una nòmina normal (el treballador cotitza al voltant del 6,5 %).",
+  "hac.findBank": "Cerca-la al banc per un ingrés d'uns {liquido} € i demana-la a l'empresa.",
+  "hac.findNoBank": "Cerca-la al banc i demana-la a l'empresa.",
+  "hac.findTail": "Sol ser una paga de beneficis o un bonus, uns endarreriments o una liquidació (finiquito) en una nòmina a part: quan la pugis, això hauria de coincidir.",
+  "hac.haciendaMas": "⚠ <strong>Hisenda en té més</strong> que les teves nòmines ({diffs}). Escriu també l'íntegre per veure com seria la nòmina que falta.",
+  "hac.appMas": "⚠ <strong>Les teves nòmines sumen més</strong> que el que va declarar l'empresa ({diffs}). Causes possibles, sense saber quina: la nòmina de desembre cobrada al gener (l'empresa pot haver-la declarat a l'altre any), endarreriments d'un altre any, una xifra mal llegida (revisa les nòmines amb ⚠) o una nòmina repetida.",
+  "hac.mezcla": "⚠ <strong>No coincideix</strong> ({diffs}): unes xifres són més grans a Hisenda i d'altres a les teves nòmines. Revisa les nòmines amb ⚠ i compara-les amb el paper.",
+  "hac.baseCloser": "ℹ La suma de les bases d'IRPF de les teves nòmines s'acosta més a Hisenda ({diff}): potser el brut porta dietes o quilometratge exempts, que Hisenda no suma, o potser una part es paga en espècie."
+});
+Object.assign(I18N.en, {
+  "bkd.size": ", about {peso}",
+  "bkd.sizeParen": " (about {peso})",
+  "bkd.roundShared": " and should be around {peso}",
+  "bkd.round": " and is around {peso}",
+  "bkd.shared": "<strong>Full backup sent</strong> («{name}»{size}). If you saved it in <em>Files</em> → <strong>iCloud Drive</strong> or in <strong>Drive</strong>, check it there: it must not be 0{round}. If you saved it in <em>On My iPhone</em>, it is still only on the phone: move it to iCloud Drive or to Drive.",
+  "bkd.saved": "<strong>Full backup saved</strong> as «{name}»{size}.{unverified} If you saved it to Drive, it uploads in the background: <strong>check in Drive that it is not 0{round}</strong>. If it is 0, stays on «Uploading…» or Drive says it could not upload it, <strong>save it to Drive again</strong> (even if the first one is still uploading): the second one usually uploads fine. <strong>Then delete from Drive the one that is 0.</strong> If you saved it on the phone and not in Drive, also take it off the phone.",
+  "bkd.unverified": " It could not be checked that it was saved complete: make sure the file is not empty.",
+  "bkd.downloaded": "<strong>Full backup downloaded</strong> to Downloads. Save it to Drive (or off the phone): open the phone's files app (<em>Files</em> or <em>My Files</em>) → <strong>Downloads</strong>, press and hold the file and choose <strong>Share → Drive</strong>. On iPhone: <em>Files</em> → <em>Downloads</em> → press and hold → <strong>Move</strong> to iCloud Drive (or Share → Drive).",
+  "bkp.text": "<strong>Full backup ready</strong> («{name}», about {peso}). Tap <strong>Save to…</strong> and choose <em>Save to Files</em> → <strong>iCloud Drive</strong>, or the <strong>Drive</strong> app.",
+  "bkp.share": "📤 Save to… (iCloud, Drive…)",
+  "bkp.download": "⬇ Download",
+  "bkp.blocked": "This browser did not open «Save to…». Use «Download»: you will find it in Files → Downloads.",
+  "hac.title": "🏛️ Compare with the Tax Agency (Hacienda)",
+  "hac.intro": "Check that what your company declared to the Tax Agency (Hacienda) matches your payslips for {year}. If the Tax Agency has more, it is usually a separate payslip you have not uploaded.",
+  "hac.where": "The figures are in the Tax Agency (Agencia Tributaria) app or website → <strong>Renta {year} → Datos fiscales → Rendimientos del trabajo</strong>{spring}, or in the <strong>withholding certificate (certificado de retenciones)</strong> your company gives you (it usually arrives in January or February). Enter those of each payer: they are stored on this device and in the backup. The app does not log into the Tax Agency: it only compares what you enter.",
+  "hac.spring": " (they come out in spring {next})",
+  "hac.badPays": "⚠ Some payslips do not add up ({list}): correct them first, the differences may come from there.",
+  "hac.f.integro": "Cash remuneration (Retribuciones dinerarias, íntegro)",
+  "hac.f.retenciones": "Withholdings (Retenciones)",
+  "hac.f.gastos": "Deductible expenses: Social Security (Gastos deducibles)",
+  "hac.s.integro": "gross",
+  "hac.s.retenciones": "IRPF",
+  "hac.s.gastos": "S.S.",
+  "hac.payer": "Payer",
+  "hac.payerPh": "Name",
+  "hac.nif": "Payer's tax ID (NIF, optional)",
+  "hac.yours": "Your payslips: {v} €",
+  "hac.diffOf": " · difference {d}",
+  "hac.removePayer": "Remove this payer",
+  "hac.clear": "Clear the figures",
+  "hac.addOther": "+ Another payer",
+  "hac.note": "It compares the gross pay on your payslips with the íntegro, the IRPF with the withholdings (retenciones) and the Social Security with the deductible expenses (gastos deducibles). Differences of up to 1 € are shown with ≈. Everything is for guidance only: the app documents, it does not give advice on the tax return.",
+  "hac.badNumber": "That figure is not understood. Write it as on the Tax Agency's site, for example 18.250,40.",
+  "hac.sinNominas": "⚠ You have no payslips from this payer in {year}: a job you have not uploaded?",
+  "hac.ok": "✓ <strong>It matches</strong> what your company declared to the Tax Agency.",
+  "hac.cents": "≈ <strong>It matches except for a few cents</strong> ({diffs}): probably the company's rounding or a cent misread on some payslip.",
+  "hac.falta": "⚠ <strong>A payslip seems to be missing.</strong> The Tax Agency has {bruto} € more gross pay than your payslips. It would look something like this:",
+  "hac.t.bruto": "Gross (Bruto)",
+  "hac.t.ss": "Social Security",
+  "hac.t.irpf": "IRPF",
+  "hac.t.liquido": "Net pay (Líquido)",
+  "hac.ssFits": "The Social Security fits a normal payslip (employees contribute around 6,5 %).",
+  "hac.findBank": "Look for it in your bank as a deposit of about {liquido} € and ask your company for it.",
+  "hac.findNoBank": "Look for it in your bank and ask your company for it.",
+  "hac.findTail": "It is usually a profit-sharing payment (paga de beneficios) or a bonus, back pay (atrasos) or a settlement (finiquito) on a separate payslip: when you upload it, this should match.",
+  "hac.haciendaMas": "⚠ <strong>The Tax Agency has more</strong> than your payslips ({diffs}). Also enter the íntegro to see what the missing payslip would look like.",
+  "hac.appMas": "⚠ <strong>Your payslips add up to more</strong> than what the company declared ({diffs}). Possible causes, without knowing which: December's payslip paid in January (the company may have declared it in the other year), back pay from another year, a misread figure (check the payslips with ⚠) or a duplicated payslip.",
+  "hac.mezcla": "⚠ <strong>It does not match</strong> ({diffs}): some figures are higher at the Tax Agency and others on your payslips. Check the payslips with ⚠ and compare them with the paper.",
+  "hac.baseCloser": "ℹ The sum of the IRPF bases on your payslips is closer to the Tax Agency's figure ({diff}): the gross pay may include tax-exempt allowances or mileage (dietas, kilometraje), which the Tax Agency does not add, or part may be paid in kind."
+});
+// Como tr(), para textos con marcado: las variables se escapan; {html: '…'} pasa un trozo ya escapado (otro trHtml).
+function trHtml(key, vars = {}, lang = 'es') {
+  const t = (I18N[lang] && I18N[lang][key]) ?? I18N.es[key] ?? key;
+  return t.replace(/\{(\w+)\}/g, (m, k) => {
+    if (!(k in vars)) return m;
+    const v = vars[k];
+    return v && typeof v === 'object' && 'html' in v ? v.html : esc(String(v ?? ''));
+  });
+}
 // Textos fijos del HTML con data-tr="clave": se escriben con tr() al arrancar (v2.13.1)
 function trStatic(root = document) {
   root.querySelectorAll('[data-tr]').forEach(el => { el.textContent = tr(el.getAttribute('data-tr')); });
@@ -5989,11 +6153,8 @@ function completenessCardHtml(c) {
 // hacienda[año][clave] = { name, nif, integro, retenciones, gastos } (importes en número o null).
 // Clave: la del pagador de la app (yearPayers) u 'otro:N' para un pagador que la app no tiene.
 const HACIENDA_KEY = 'nomina-auditor-hacienda';
-const HAC_FIELDS = [
-  ['integro', 'Retribuciones dinerarias (íntegro)', 'bruto'],
-  ['retenciones', 'Retenciones', 'IRPF'],
-  ['gastos', 'Gastos deducibles (Seguridad Social)', 'S.S.'],
-];
+// v2.22.1: las etiquetas, en tr('hac.f.' + campo) y tr('hac.s.' + campo) (la corta, en las diferencias)
+const HAC_FIELDS = [['integro'], ['retenciones'], ['gastos']];
 let hacienda = {};
 const HAC_YEAR_RE = /^\d{4}$/, HAC_KEY_RE = /^(cif:[a-z0-9]{1,20}|ccc:\d{9,20}|sin|otro:\d{1,3})$/;
 
@@ -6063,27 +6224,27 @@ function hacVal(v) { return v === null || v === undefined ? '' : fmt(v); }
 function hacResultHtml(r, year) {
   if (!r) return '';
   const box = (cls, html) => `<div class="hac-res ${cls}">${html}</div>`;
-  const diffs = () => HAC_FIELDS.filter(([f]) => r.d[f] !== undefined).map(([f, , short]) => `${short} ${fmtDiff(r.d[f])}`).join(' · ');
+  const diffs = () => HAC_FIELDS.filter(([f]) => r.d[f] !== undefined).map(([f]) => `${tr('hac.s.' + f)} ${fmtDiff(r.d[f])}`).join(' · ');
   let html;
   if (r.kind === 'noNomina') return box('', esc(tr('hac.noNominaRes')));
-  if (r.kind === 'sinNominas') return box('warn', `⚠ No tienes nóminas de este pagador en ${esc(year)}: ¿un trabajo que no has subido?`);
-  if (r.kind === 'ok') html = box('ok', '✓ <strong>Coincide</strong> con lo que tu empresa declaró a Hacienda.');
-  else if (r.kind === 'cents') html = box('ok', `≈ <strong>Coincide salvo unos céntimos</strong> (${esc(diffs())}): probablemente redondeos de la empresa o un céntimo mal leído en alguna nómina.`);
+  if (r.kind === 'sinNominas') return box('warn', trHtml('hac.sinNominas', { year }));
+  if (r.kind === 'ok') html = box('ok', trHtml('hac.ok'));
+  else if (r.kind === 'cents') html = box('ok', trHtml('hac.cents', { diffs: diffs() }));
   else if (r.kind === 'falta') {
     const w = r.draw;
-    html = box('warn', `⚠ <strong>Parece que falta una nómina.</strong> Hacienda tiene ${esc(fmt(w.bruto))} € más de bruto que tus nóminas. Sería algo así:
+    html = box('warn', `${trHtml('hac.falta', { bruto: fmt(w.bruto) })}
       <table>
-        <tr><td>Bruto</td><td class="r">≈ ${esc(fmt(w.bruto))} €</td></tr>
-        ${w.ssKnown ? `<tr><td>Seguridad Social</td><td class="r">≈ ${esc(fmt(w.ss))} € (${esc(fmtPct(w.ssPct))})</td></tr>` : ''}
-        ${w.irpfKnown ? `<tr><td>IRPF</td><td class="r">≈ ${esc(fmt(w.irpf))} € (${esc(fmtPct(w.irpfPct))})</td></tr>` : ''}
-        ${w.ssKnown && w.irpfKnown ? `<tr><td><strong>Líquido</strong></td><td class="r"><strong>≈ ${esc(fmt(w.liquido))} €</strong></td></tr>` : ''}
+        <tr><td>${esc(tr('hac.t.bruto'))}</td><td class="r">≈ ${esc(fmt(w.bruto))} €</td></tr>
+        ${w.ssKnown ? `<tr><td>${esc(tr('hac.t.ss'))}</td><td class="r">≈ ${esc(fmt(w.ss))} € (${esc(fmtPct(w.ssPct))})</td></tr>` : ''}
+        ${w.irpfKnown ? `<tr><td>${esc(tr('hac.t.irpf'))}</td><td class="r">≈ ${esc(fmt(w.irpf))} € (${esc(fmtPct(w.irpfPct))})</td></tr>` : ''}
+        ${w.ssKnown && w.irpfKnown ? `<tr><td><strong>${esc(tr('hac.t.liquido'))}</strong></td><td class="r"><strong>≈ ${esc(fmt(w.liquido))} €</strong></td></tr>` : ''}
       </table>
-      ${r.ssFits ? '<div style="margin-top:6px">La Seguridad Social encaja con una nómina normal (el trabajador cotiza alrededor del 6,5 %).</div>' : ''}
-      <div style="margin-top:6px">${w.ssKnown && w.irpfKnown ? `Búscala en el banco por un ingreso de unos ${esc(fmt(w.liquido))} € y` : 'Búscala en el banco y'} pídesela a la empresa. Suele ser una paga de beneficios o un bonus, unos atrasos o un finiquito en una nómina aparte: cuando la subas, esto debería coincidir.</div>`);
-  } else if (r.kind === 'haciendaMas') html = box('warn', `⚠ <strong>Hacienda tiene más</strong> que tus nóminas (${esc(diffs())}). Escribe también el íntegro para ver cómo sería la nómina que falta.`);
-  else if (r.kind === 'appMas') html = box('warn', `⚠ <strong>Tus nóminas suman más</strong> que lo que declaró la empresa (${esc(diffs())}). Causas posibles, sin saber cuál: la nómina de diciembre cobrada en enero (la empresa puede haberla declarado en el otro año), atrasos de otro año, una cifra mal leída (revisa las nóminas con ⚠) o una nómina repetida.`);
-  else html = box('warn', `⚠ <strong>No coincide</strong> (${esc(diffs())}): unas cifras son mayores en Hacienda y otras en tus nóminas. Revisa las nóminas con ⚠ y compáralas con el papel.`);
-  if (r.baseCloser !== undefined) html += box('', `ℹ La suma de las bases de IRPF de tus nóminas se acerca más a Hacienda (${esc(fmtDiff(r.baseCloser))}): puede que el bruto lleve dietas o kilometraje exentos, que Hacienda no suma, o que parte se pague en especie.`);
+      ${r.ssFits ? `<div style="margin-top:6px">${esc(tr('hac.ssFits'))}</div>` : ''}
+      <div style="margin-top:6px">${w.ssKnown && w.irpfKnown ? trHtml('hac.findBank', { liquido: fmt(w.liquido) }) : esc(tr('hac.findNoBank'))} ${esc(tr('hac.findTail'))}</div>`);
+  } else if (r.kind === 'haciendaMas') html = box('warn', trHtml('hac.haciendaMas', { diffs: diffs() }));
+  else if (r.kind === 'appMas') html = box('warn', trHtml('hac.appMas', { diffs: diffs() }));
+  else html = box('warn', trHtml('hac.mezcla', { diffs: diffs() }));
+  if (r.baseCloser !== undefined) html += box('', trHtml('hac.baseCloser', { diff: fmtDiff(r.baseCloser) }));
   return html;
 }
 
@@ -6091,11 +6252,11 @@ function haciendaCardHtml(year) {
   const payers = yearPayers(year);
   if (!payers.length) return '';
   const saved = hacienda[year] || {};
-  const head = '<h3 style="margin:0 0 8px;font-size:13px;color:var(--accent)">🏛️ Comparar con Hacienda</h3>';
-  const intro = `Comprueba que lo que declaró tu empresa a Hacienda coincide con tus nóminas de ${esc(year)}. Si Hacienda tiene más, suele ser una nómina aparte que no has subido.`;
+  const head = `<h3 style="margin:0 0 8px;font-size:13px;color:var(--accent)">${esc(tr('hac.title'))}</h3>`;
+  const intro = trHtml('hac.intro', { year });
   if (!hacOpen && !Object.keys(saved).length) return `<div class="card" id="hacCard">${head}
     <div class="price-intro">${intro}</div>
-    <button class="btn btn-secondary" onclick="hacOpen=true;renderHaciendaCard()">🏛️ Comparar con Hacienda</button></div>`;
+    <button class="btn btn-secondary" onclick="hacOpen=true;renderHaciendaCard()">${esc(tr('hac.title'))}</button></div>`;
   const yN = Number(year), cy = appToday().getFullYear();
   const field = (k, f, label, v, extra = '') => `<label class="hac-row"><span>${esc(label)}</span>
     <input class="hac-input" inputmode="decimal" autocomplete="off" data-y="${esc(year)}" data-k="${esc(k)}" data-f="${f}" value="${esc(hacVal(v))}" onchange="hacInput(this)" oninput="hacTyping(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur()}" placeholder="0,00"></label>${extra}`;
@@ -6103,28 +6264,28 @@ function haciendaCardHtml(year) {
     const r = compareHacienda(app, h, list ? round2(list.reduce((s, p) => s + amt(p.bases?.baseIRPF), 0)) : null);
     const appOf = app ? { integro: app.bruto, retenciones: app.irpf, gastos: app.ss } : null;
     return `<div class="hac-payer" data-k="${esc(k)}">
-      ${other ? `<label class="hac-row"><span>Pagador</span><input class="hac-input hac-text" data-y="${esc(year)}" data-k="${esc(k)}" data-f="name" value="${esc(h?.name || '')}" onchange="hacInput(this)" placeholder="Nombre"></label>
-        ${h?.sinNomina ? '' : `<label class="hac-row"><span>NIF del pagador (opcional)</span><input class="hac-input hac-text" data-y="${esc(year)}" data-k="${esc(k)}" data-f="nif" value="${esc(h?.nif || '')}" onchange="hacInput(this)" placeholder="NIF"></label>`}
+      ${other ? `<label class="hac-row"><span>${esc(tr('hac.payer'))}</span><input class="hac-input hac-text" data-y="${esc(year)}" data-k="${esc(k)}" data-f="name" value="${esc(h?.name || '')}" onchange="hacInput(this)" placeholder="${esc(tr('hac.payerPh'))}"></label>
+        ${h?.sinNomina ? '' : `<label class="hac-row"><span>${esc(tr('hac.nif'))}</span><input class="hac-input hac-text" data-y="${esc(year)}" data-k="${esc(k)}" data-f="nif" value="${esc(h?.nif || '')}" onchange="hacInput(this)" placeholder="NIF"></label>`}
         <label class="hac-nonomina"><input type="checkbox" class="hac-nonomina-chk"${h?.sinNomina ? ' checked' : ''} onchange="hacSetNoNomina(${jsArg(year)},${jsArg(k)},this.checked)"> <span>${esc(tr('hac.noNomina'))}</span></label>`
       : `<div class="hac-name">${esc(title)}</div>${nif ? `<div class="hac-nif">${esc(nif)}</div>` : ''}`}
-      ${HAC_FIELDS.map(([f, label]) => field(k, f, label, h?.[f] ?? null,
-        appOf ? `<div class="hac-diff" data-f="${f}">Tus nóminas: ${esc(fmt(appOf[f]))} €${r?.d?.[f] !== undefined ? ` · diferencia ${esc(r.d[f] === 0 ? '0,00 €' : fmtDiff(r.d[f]))}` : ''}</div>` : '')).join('')}
+      ${HAC_FIELDS.map(([f]) => field(k, f, tr('hac.f.' + f), h?.[f] ?? null,
+        appOf ? `<div class="hac-diff" data-f="${f}">${trHtml('hac.yours', { v: fmt(appOf[f]) })}${r?.d?.[f] !== undefined ? trHtml('hac.diffOf', { d: r.d[f] === 0 ? '0,00 €' : fmtDiff(r.d[f]) }) : ''}</div>` : '')).join('')}
       <div class="hac-out">${hacResultHtml(r, year)}
       ${other && !h?.sinNomina && hacLooksNoPayslip(h) ? `<div class="hac-res">💡 ${esc(tr('hac.noNominaHint'))}
         <div><button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="hacSetNoNomina(${jsArg(year)},${jsArg(k)},true)">${esc(tr('hac.noNominaMark'))}</button></div></div>` : ''}
-      ${other ? `<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="hacRemove(${jsArg(year)},${jsArg(k)})">Quitar este pagador</button>`
-        : !hacRowEmpty(h) ? `<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="hacRemove(${jsArg(year)},${jsArg(k)})">Borrar las cifras</button>` : ''}</div>
+      ${other ? `<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="hacRemove(${jsArg(year)},${jsArg(k)})">${esc(tr('hac.removePayer'))}</button>`
+        : !hacRowEmpty(h) ? `<button class="btn btn-secondary btn-sm" style="margin-top:8px" onclick="hacRemove(${jsArg(year)},${jsArg(k)})">${esc(tr('hac.clear'))}</button>` : ''}</div>
     </div>`;
   };
   const bad = payers.flatMap(b => b.list).filter(p => checkErrors(p).length);
   const others = Object.keys(saved).filter(k => k.startsWith('otro:')).sort((a, b) => +a.slice(5) - +b.slice(5));
   return `<div class="card" id="hacCard">${head}
-    <div class="price-intro">${intro} Las cifras están en la app o la web de la Agencia Tributaria → <strong>Renta ${esc(year)} → Datos fiscales → Rendimientos del trabajo</strong>${yN >= cy ? ` (salen en primavera de ${esc(yN + 1)})` : ''}, o en el <strong>certificado de retenciones</strong> que da la empresa (suele llegar en enero o febrero). Escribe las de cada pagador: se guardan en este dispositivo y en el backup. La app no entra en Hacienda: solo compara lo que escribes.</div>
-    ${bad.length ? `<div class="price-change big">⚠ Algunas nóminas no cuadran (${esc(bad.map(payName).join(', '))}): corrígelas primero, las diferencias pueden venir de ahí.</div>` : ''}
+    <div class="price-intro">${intro} ${trHtml('hac.where', { year, spring: { html: yN >= cy ? trHtml('hac.spring', { next: yN + 1 }) : '' } })}</div>
+    ${bad.length ? `<div class="price-change big">${trHtml('hac.badPays', { list: bad.map(payName).join(', ') })}</div>` : ''}
     ${payers.map(b => block(b.key, b.name, b.nif, saved[b.key], calcTotals(b.list), b.list, false)).join('')}
     ${others.map(k => block(k, '', '', saved[k], null, null, true)).join('')}
-    <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="hacAddOther(${jsArg(year)})">+ Otro pagador</button>
-    <div class="price-note">Compara el bruto de tus nóminas con el íntegro, el IRPF con las retenciones y la Seguridad Social con los gastos deducibles. Diferencias de hasta 1 € salen con ≈. Todo es orientativo: la app documenta, no aconseja sobre la declaración.</div>
+    <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="hacAddOther(${jsArg(year)})">${esc(tr('hac.addOther'))}</button>
+    <div class="price-note">${esc(tr('hac.note'))}</div>
   </div>`;
 }
 
@@ -6173,7 +6334,7 @@ function hacInput(el) {
   else if (HAC_FIELDS.some(([x]) => x === f)) {
     const t = el.value.trim();
     const v = t === '' ? null : num(t);
-    if (v !== null && !Number.isFinite(v)) { alert('No se entiende esa cifra. Escríbela como en Hacienda, por ejemplo 18.250,40.'); el.value = hacVal(row[f]); return; }
+    if (v !== null && !Number.isFinite(v)) { alert(tr('hac.badNumber')); el.value = hacVal(row[f]); return; }
     row[f] = v === null ? null : round2(v);
     el.value = hacVal(row[f]);
   } else return;
@@ -7367,22 +7528,15 @@ function confirmBackup(ok) {
 function fullBackupLabel() { return canPickSaveLocation() || canShareBackup() ? '🗂️ Guardar backup completo…' : '🗂️ Descargar backup completo'; }
 function backupDoneHtml(r) {
   const peso = r.size ? fmtBytesApprox(r.size) : '';
+  const opt = key => ({ html: peso ? trHtml(key, { peso }) : '' });
   // v2.12.5: desde la hoja de compartir (iPhone): la app no sabe dónde ha ido, solo que se ha elegido un destino
-  if (r.how === 'shared') return `<strong>Backup completo enviado</strong> («${esc(r.name)}»${peso ? `, unos ${peso}` : ''}). ` +
-    `Si lo has guardado en <em>Archivos</em> → <strong>iCloud Drive</strong> o en <strong>Drive</strong>, compruébalo allí: no debe pesar 0${peso ? ` y debe rondar los ${peso}` : ''}. ` +
-    `Si lo has guardado en <em>En mi iPhone</em>, sigue estando solo en el móvil: muévelo a iCloud Drive o a Drive.`;
-  if (r.how === 'saved') return `<strong>Backup completo guardado</strong> como «${esc(r.name)}»${peso ? ` (unos ${peso})` : ''}.` +
-    (r.verified ? '' : ' No se ha podido comprobar que haya quedado entero: mira que el archivo no esté vacío.') +
-    // v2.8.11: Drive lo sube después; si falla, el archivo queda vacío en Drive y la app no se entera
-    ` Si lo has guardado en Drive, se sube en segundo plano: <strong>comprueba en Drive que no pesa 0${peso ? ` y ronda los ${peso}` : ''}</strong>. ` +
-    // v2.9.2: en Android, Drive a veces se queda en «Subiendo…» con el archivo a 0 bytes; guardar otra vez (con el primero
-    // todavía subiendo) suele subir el segundo bien. El primero se queda vacío en Drive: hay que borrarlo a mano.
-    'Si pesa 0, se queda en «Subiendo…» o Drive avisa de que no ha podido subirlo, <strong>vuelve a guardarlo en Drive</strong> ' +
-    '(aunque el primero siga subiendo): el segundo suele subir bien. <strong>Después borra en Drive el que pesa 0.</strong> ' +
-    'Si lo has guardado en el móvil y no en Drive, llévalo también fuera del móvil.';
-  return `<strong>Backup completo descargado</strong> en Descargas. Guárdalo en Drive (o fuera del móvil): abre la app de archivos del móvil ` +
-    `(<em>Archivos</em>, <em>Files</em> o <em>Mis archivos</em>) → <strong>Descargas</strong>, mantén pulsado el archivo y elige <strong>Compartir → Drive</strong>. ` +
-    `En iPhone: <em>Archivos</em> → <em>Descargas</em> → mantén pulsado → <strong>Mover</strong> a iCloud Drive (o Compartir → Drive).`;
+  if (r.how === 'shared') return trHtml('bkd.shared', { name: r.name, size: opt('bkd.size'), round: opt('bkd.roundShared') });
+  // v2.8.11: Drive lo sube después; si falla, el archivo queda vacío en Drive y la app no se entera.
+  // v2.9.2: en Android, Drive a veces se queda en «Subiendo…» con el archivo a 0 bytes; guardar otra vez (con el primero
+  // todavía subiendo) suele subir el segundo bien. El primero se queda vacío en Drive: hay que borrarlo a mano.
+  if (r.how === 'saved') return trHtml('bkd.saved', { name: r.name, size: opt('bkd.sizeParen'),
+    unverified: { html: r.verified ? '' : esc(tr('bkd.unverified')) }, round: opt('bkd.round') });
+  return trHtml('bkd.downloaded');
 }
 
 function renderBackupReminder() {
@@ -7606,11 +7760,10 @@ async function shareBackupFile(file) {
 function pendingBackupHtml() {
   const pb = pendingBackup;
   return `<div class="backup-reminder" id="pendingBackup">
-    <div class="backup-reminder-text">🗂️ <span><strong>Backup completo preparado</strong> («${esc(pb.file.name)}», unos ${fmtBytesApprox(pb.size)}).
-      Toca <strong>Guardar en…</strong> y elige <em>Guardar en Archivos</em> → <strong>iCloud Drive</strong>, o la app de <strong>Drive</strong>.</span></div>
+    <div class="backup-reminder-text">🗂️ <span>${trHtml('bkp.text', { name: pb.file.name, peso: fmtBytesApprox(pb.size) })}</span></div>
     <div class="doc-actions">
-      <button class="btn btn-primary btn-sm" onclick="sharePendingBackup()">📤 Guardar en… (iCloud, Drive…)</button>
-      <button class="btn btn-secondary btn-sm" onclick="downloadPendingBackup()">⬇ Descargar</button>
+      <button class="btn btn-primary btn-sm" onclick="sharePendingBackup()">${esc(tr('bkp.share'))}</button>
+      <button class="btn btn-secondary btn-sm" onclick="downloadPendingBackup()">${esc(tr('bkp.download'))}</button>
     </div>
   </div>`;
 }
@@ -7628,7 +7781,7 @@ async function sharePendingBackup() {
   if (!pb) return;
   const r = await shareBackupFile(pb.file);
   if (r === 'cancel') return;   // sigue preparado: puede volver a tocar
-  if (r === 'blocked') { alert('Este navegador no ha abierto «Guardar en…». Usa «Descargar»: lo tendrás en Archivos → Descargas.'); return; }
+  if (r === 'blocked') { alert(tr('bkp.blocked')); return; }
   pendingBackup = null;
   markFullBackupDone({ how: 'shared', name: pb.file.name, verified: false, size: pb.size }, pb.fromPanel);
 }
