@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.21.0-blue)
+![Version](https://img.shields.io/badge/version-2.22.0-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.21.0)
+## 🆕 Novedades (v2.3 – v2.22.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 🔘 **«Cobrado en el banco», opcional (v2.22.0)** | La tarjeta para apuntar lo cobrado ya no sale en todas las nóminas: **la activas tú**, en **Informes** o en **Datos**, donde se explica qué hace y para qué sirve. Lo que ya tengas anotado se sigue viendo siempre, y si ya la usabas sigue activada | Informes · Datos |
 | 🏦 **Cobrado en el banco (v2.21.0)** | En cada nómina guardada puedes apuntar lo que te ingresaron (en uno o varios ingresos, con fecha si quieres) y la app lo compara **al céntimo** con el líquido. Si no coincide, te dice la diferencia y dónde mirar: el Líquido de la nómina (puede ser un error de lectura) o el ingreso. En el Anual, cuántas has anotado y cuáles no coinciden. Es opcional, solo informa y se queda en tu dispositivo. | Abre una nómina guardada → **🏦 Cobrado en el banco** |
 | 📑 **Pestaña Informes (v2.20.0)** | Una pestaña nueva, entre Anual y Datos, que responde a **«¿Para qué necesitas tus nóminas?»**: si el año está completo, **Comparar con Hacienda**, **Pedir las que faltan** (un texto para pedírselas a la empresa, por empresa, con los meses y las pagas extra que faltan: lo copias, pones tu nombre y tu DNI y lo envías tú) y **Copiar para el abogado**. Las tarjetas llevan a lo que ya existe y comparten el año con el Anual. En el Panel, si falta la nómina del mes pasado, un aviso **«Sube la nómina de…»** (solo sugiere). | Pestaña **Informes** y **Panel** |
 | 🗂️ **Nóminas almacenadas por años (v2.19.0)** | Con varios años guardados, la lista de nóminas ya no es una fila interminable de etiquetas: **una fila por año**, con su estado (**Completo** en verde, **Faltan N** en ámbar diciendo cuáles, **En curso** sin color de alarma). Al abrir un año, sus **12 meses** (lo que falta, con borde discontinuo) y, aparte y en azul, las pagas extra, atrasos y beneficios con su tipo escrito. Toca un mes para ver su nómina. El estado es el mismo que el de «¿Está completo el año?» del Anual. | **Datos** |
@@ -716,6 +717,11 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.22.0 (Noviembre 2026)
+- **«Cobrado en el banco» es opcional.** Viene desactivado y se activa en **Informes** (tarjeta nueva, con la explicación de qué hace y para qué) o en **Datos** (casilla). Activado, la tarjeta sale en cada nómina guardada, como en la v2.21.0.
+- **Lo anotado nunca se esconde:** aunque se desactive, las nóminas con algo anotado lo siguen mostrando, y el Anual también. Quien ya tenía algo anotado la conserva activada al actualizar.
+- **Textos:** 7 claves `bank.*` nuevas en es, ca y en. **Pruebas:** `test_cobrado.py`, punto 12.
 
 ### v2.21.0 (Noviembre 2026)
 - **Cobrado en el banco.** Tarjeta nueva en cada nómina guardada: lo ingresado en el banco (una o varias líneas, con fecha opcional) frente al **líquido**, al céntimo. Si no coincide, dice la diferencia y dónde mirar. En el Anual, una tarjeta con lo anotado del año y las nóminas que no coinciden (solo si hay algo anotado).

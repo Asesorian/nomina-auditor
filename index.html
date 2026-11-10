@@ -464,7 +464,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.21.0</span>
+    <span class="logo-badge">Forense v2.22.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -624,6 +624,23 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
         <input type="checkbox" id="autoBackupToggle" onchange="toggleAutoBackup(this.checked)"
           style="accent-color:var(--accent);width:16px;height:16px">
         Backup automático al guardar cada nómina
+      </label>
+    </div>
+  </div>
+
+  <!-- v2.22.0: «Cobrado en el banco», opcional -->
+  <div class="card" id="bankSettingCard" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+      <h3 style="margin:0;font-size:14px;color:var(--accent)">🏦 <span data-tr="bank.title">Cobrado en el banco</span></h3>
+      <span id="bankSettingStatus" class="status no" style="margin-left:auto">Desactivado</span>
+    </div>
+    <p style="color:var(--text-dim);font-size:12px;line-height:1.6" data-tr="bank.what"></p>
+    <p style="color:var(--text-dim);font-size:12px;line-height:1.6;margin-top:6px" data-tr="bank.offKeeps"></p>
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+      <label style="font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="bankToggle" onchange="setBankEnabled(this.checked)"
+          style="accent-color:var(--accent);width:16px;height:16px">
+        <span data-tr="bank.toggle">Mostrar «Cobrado en el banco» en cada nómina</span>
       </label>
     </div>
   </div>
@@ -4156,6 +4173,34 @@ Object.assign(I18N.en, {
   "bank.annualDiff": "They do not match the net pay: {list}. Open them and check the Líquido and the deposit.",
   "bank.annualOk": "✓ For all the entered ones, what was received matches the net pay."
 });
+// v2.22.0: «Cobrado en el banco» es opcional (se activa en Informes o en Datos).
+Object.assign(I18N.es, {
+  "bank.what": "Si lo activas, en cada nómina guardada sale una tarjeta para apuntar lo que te ingresaron en el banco, y la app lo compara al céntimo con el líquido. Sirve para comprobar que la app ha leído bien la nómina y que te han pagado lo que dice. Es opcional y lo que apuntes se guarda solo en este dispositivo.",
+  "bank.offKeeps": "Aunque lo desactives, lo que ya esté anotado se sigue viendo en su nómina y en el Anual.",
+  "bank.toggle": "Mostrar «Cobrado en el banco» en cada nómina",
+  "bank.on": "Activado",
+  "bank.off": "Desactivado",
+  "bank.activate": "Activar",
+  "bank.deactivate": "Desactivar"
+});
+Object.assign(I18N.ca, {
+  "bank.what": "Si ho actives, a cada nòmina desada surt una targeta per apuntar el que et van ingressar al banc, i l'app ho compara al cèntim amb el líquid. Serveix per comprovar que l'app ha llegit bé la nòmina i que t'han pagat el que diu. És opcional i el que apuntis només es desa en aquest dispositiu.",
+  "bank.offKeeps": "Encara que ho desactivis, el que ja estigui anotat es continua veient a la seva nòmina i a l'Anual.",
+  "bank.toggle": "Mostra «Cobrat al banc» a cada nòmina",
+  "bank.on": "Activat",
+  "bank.off": "Desactivat",
+  "bank.activate": "Activa",
+  "bank.deactivate": "Desactiva"
+});
+Object.assign(I18N.en, {
+  "bank.what": "If you turn it on, every saved payslip shows a card where you enter what was paid into your bank, and the app compares it to the cent with the net pay (Líquido). It checks that the app read the payslip correctly and that you were paid what it says. It is optional and what you enter is stored only on this device.",
+  "bank.offKeeps": "Even if you turn it off, what is already entered still shows on its payslip and in the yearly view (Anual).",
+  "bank.toggle": "Show “Received in the bank (Cobrado)” on every payslip",
+  "bank.on": "On",
+  "bank.off": "Off",
+  "bank.activate": "Turn on",
+  "bank.deactivate": "Turn off"
+});
 // Textos fijos del HTML con data-tr="clave": se escriben con tr() al arrancar (v2.13.1)
 function trStatic(root = document) {
   root.querySelectorAll('[data-tr]').forEach(el => { el.textContent = tr(el.getAttribute('data-tr')); });
@@ -5471,6 +5516,9 @@ function renderInformes() {
         <button class="btn btn-primary btn-sm" onclick="copyLetter(${i}, this)">${esc(tr('rep.copy'))}</button>`).join('') +
       (req.orphan.length ? `<p style="margin-top:10px">${esc(tr('rep.noCompany', { list: listJoin(req.orphan) }))}</p>` : '') +
       `<p style="margin-top:10px">${esc(tr('rep.requestInfo'))}</p>`) +
+    card('repBank', '🏦 ' + tr('bank.title'), `<p>${esc(tr('bank.what'))}</p><p>${esc(tr('bank.offKeeps'))}</p>
+      <span id="repBankStatus" class="status ${isBankEnabled() ? 'ok' : 'no'}">${esc(tr(isBankEnabled() ? 'bank.on' : 'bank.off'))}</span>
+      <button class="btn ${isBankEnabled() ? 'btn-secondary' : 'btn-primary'} btn-sm" id="repBankBtn" style="margin-left:8px" onclick="setBankEnabled(${!isBankEnabled()})">${esc(tr(isBankEnabled() ? 'bank.deactivate' : 'bank.activate'))}</button>`) +
     card('repLawyer', tr('rep.lawyer'), `<p>${esc(tr('rep.lawyerText', { year }))}</p>` +
       (fp.length ? `<div class="rep-list">${fp.map(p => `<button class="btn btn-secondary btn-sm" onclick="showReport(payrolls.find(x=>x.id===${jsArg(p.id)}))">${esc(payName(p))}</button>`).join('')}</div>`
         : `<p>${esc(tr('rep.noData', { year }))}</p>`));
@@ -6633,7 +6681,26 @@ function bankRowHtml(d = {}) {
       <button type="button" class="btn btn-secondary btn-sm bank-remove" title="${esc(tr('bank.remove'))}" aria-label="${esc(tr('bank.remove'))}" onclick="removeBankRow(this)">🗑</button>
     </div>`;
 }
+// v2.22.0: la tarjeta es opcional. Sin elegir nada, está activada solo si ya hay algo anotado (quien la usaba
+// la conserva); apagada, solo se esconden las tarjetas vacías: lo anotado se ve siempre (nómina y Anual).
+function isBankEnabled() {
+  const v = localStorage.getItem('nomina-auditor-bank');
+  return v === 'true' || (v === null && payrolls.some(p => bankPaid(p) !== null));
+}
+function setBankEnabled(on) {
+  localStorage.setItem('nomina-auditor-bank', on ? 'true' : 'false');
+  renderBankSetting();
+  if (!document.getElementById('view-informes').classList.contains('hidden')) renderInformes();
+}
+function renderBankSetting() {
+  const on = isBankEnabled();
+  const t = document.getElementById('bankToggle');
+  if (t) t.checked = on;
+  const st = document.getElementById('bankSettingStatus');
+  if (st) { st.textContent = tr(on ? 'bank.on' : 'bank.off'); st.className = 'status ' + (on ? 'ok' : 'no'); }
+}
 function bankCardHtml(p) {
+  if (!isBankEnabled() && bankPaid(p) === null) return '';
   const st = bankStatus(p);
   const deps = Array.isArray(p.bankDeposits) && p.bankDeposits.length ? p.bankDeposits : [{}];
   return `<div class="card" id="bankCard" style="padding:14px 16px">
@@ -7840,6 +7907,7 @@ function storedYearsHtml() {
 function renderBackupView() {
   renderOfflineStatus();
   renderFestivosConfig();   // v2.17.0
+  renderBankSetting();      // v2.22.0
   // Update export count
   const countEl = document.getElementById('exportCount');
   if (countEl) countEl.textContent = payrolls.length;
