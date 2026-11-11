@@ -221,8 +221,8 @@ code { font-family:'JetBrains Mono',monospace; }
 .type-opt { flex:1;min-width:100px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text-dim);cursor:pointer;font-size:12px;font-weight:700;font-family:'Inter',sans-serif; }
 .type-opt.active { border-color:var(--accent);color:var(--accent);background:var(--accent-glow); }
 #ssTable { min-width:0 !important; }   /* v2.23.1: cabe en el móvil (la regla general da 500 px a las tablas) */
-#ssTable td.ss-amt { white-space:nowrap; }
-@media (max-width:600px) { #ssTable { font-size:11px !important; } #ssTable th, #ssTable td { padding-left:3px !important; padding-right:3px !important; } #ssTable th { letter-spacing:0; } }
+#ssTable td.ss-amt, #ssTable td.ss-diff span { white-space:nowrap; font-variant-numeric:tabular-nums; }
+@media (max-width:600px) { #ssTable { font-size:11px !important; } #ssTable th, #ssTable td { padding-left:3px !important; padding-right:3px !important; } #ssTable th { letter-spacing:0; font-size:10px; } #ssTable .ss-eur { display:none; } #ssTable th.ss-eur-h::after { content:' (€)'; } }   /* v2.23.2: en el móvil, el € una vez en la cabecera */
 .cmp { width:100%;min-width:0 !important;font-size:12px;margin-top:12px;border-collapse:collapse; }
 .cmp th, .cmp td { padding:5px 6px;border-bottom:1px solid var(--border);text-align:left; }
 .cmp td.r, .cmp th.r { text-align:right;font-family:'JetBrains Mono',monospace; }
@@ -467,7 +467,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.23.1</span>
+    <span class="logo-badge">Forense v2.23.2</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -4394,6 +4394,8 @@ Object.assign(I18N.es, {
   "ss.thMonth": "Mes",
   "ss.thPay": "Tu nómina",
   "ss.thSS": "Seguridad Social",
+  "ss.thDiff": "Diferencia",
+  "ss.nMonths": "{n} meses (los marcados en la tabla)",
   "ss.k.igual": "✓ igual",
   "ss.k.casi": "≈ céntimos",
   "ss.k.ssMas": "ℹ más en la S.S.",
@@ -4445,6 +4447,8 @@ Object.assign(I18N.ca, {
   "ss.thMonth": "Mes",
   "ss.thPay": "La teva nòmina",
   "ss.thSS": "Seguretat Social",
+  "ss.thDiff": "Diferència",
+  "ss.nMonths": "{n} mesos (els marcats a la taula)",
   "ss.k.igual": "✓ igual",
   "ss.k.casi": "≈ cèntims",
   "ss.k.ssMas": "ℹ més a la S.S.",
@@ -4496,6 +4500,8 @@ Object.assign(I18N.en, {
   "ss.thMonth": "Month",
   "ss.thPay": "Your payslip",
   "ss.thSS": "Social Security",
+  "ss.thDiff": "Difference",
+  "ss.nMonths": "{n} months (the ones marked in the table)",
   "ss.k.igual": "✓ equal",
   "ss.k.casi": "≈ cents",
   "ss.k.ssMas": "ℹ higher at S.S.",
@@ -5998,6 +6004,28 @@ function compareBasesSS(year) {
   return { rows, count };
 }
 
+// v2.23.2: la columna «Diferencia», en una línea: con diferencia (más o menos en la S.S.), símbolo y cifra en color; el
+// texto entero va en el title y la explicación, en las notas. Sin diferencia, la palabra («✓ igual», «pendiente»…).
+function ssDiffCell(r) {
+  const col = { ssMas: 'var(--info)', ssMenos: 'var(--warning)' }[r.kind];
+  if (col && r.d && Math.abs(r.d) > 1) return `<span style="color:${col}">${r.kind === 'ssMas' ? 'ℹ' : '⚠'} ${esc((r.d > 0 ? '+' : '') + fmt(r.d))}<span class="ss-eur"> €</span></span>`;
+  return esc(tr('ss.k.' + r.kind));
+}
+// Las notas con {list} (los meses de un caso). Con más de 3 meses, «11 meses (los marcados en la tabla)» (v2.23.2) y la
+// preposición de delante cambia según el idioma: en català «a gener» pero «en 11 mesos»; en español «base de enero» pero
+// «base en 11 meses». Si la nota empieza por la lista, en mayúscula (v2.23.1: «Octubre: …»).
+const SS_MANY_PREP = {
+  es: [[/(^|\s)de \{list\}/, '$1en {list}']],
+  ca: [[/(^|\s)a \{list\}/, '$1en {list}'], [/(^|\s)A \{list\}/, '$1En {list}']],
+};
+function ssNoteHtml(key, months, lang = 'es') {
+  const many = months.length > 3;
+  let t = (I18N[lang] && I18N[lang][key]) ?? I18N.es[key] ?? key;
+  if (many) for (const [re, to] of SS_MANY_PREP[lang] || []) t = t.replace(re, to);
+  let list = many ? tr('ss.nMonths', { n: months.length }, lang) : listJoin(months);
+  if (/^(⚠ )?\{list\}/.test(t)) list = list.charAt(0).toUpperCase() + list.slice(1);
+  return t.replace(/\{list\}/g, esc(list));
+}
 function ssCardHtml(year) {
   const msg = ssMsg ? `<div class="alert alert-${ssMsg.level === 'error' ? 'error' : 'info'}" style="margin:0 0 10px">${ssMsg.html}</div>` : '';
   const input = `<input type="file" id="ssFileInput" accept="application/pdf,.pdf" style="display:none" onchange="ssUpload(this)">`;
@@ -6009,21 +6037,20 @@ function ssCardHtml(year) {
   let body = '';
   if (!c || c.noYear) body = `<p>${esc(tr('ss.noYear', { year }))}</p>`;
   else {
-    const L = k => listJoin(c.rows.filter(r => r.kind === k).map(r => r.name.toLowerCase()));
-    const cap = s => s.charAt(0).toUpperCase() + s.slice(1);   // v2.23.1: «Octubre: …» cuando la nota empieza por la lista
+    const ms = k => c.rows.filter(r => r.kind === k).map(r => r.name.toLowerCase());
     const parts = [['igual', 'ss.cIgual'], ['ssMas', 'ss.cMas'], ['ssMenos', 'ss.cMenos'], ['sinBase', 'ss.cSinBase'], ['falta', 'ss.cFalta'], ['pendiente', 'ss.cPend'], ['noBaseNomina', 'ss.cNoBase']]
       .map(([k, key]) => [k === 'igual' ? c.count('igual') + c.count('casi') : c.count(k), key]).filter(([n]) => n).map(([n, key]) => tr(n === 1 && I18N.es[key + '1'] ? key + '1' : key, { n }));   // «1 igual», «1 pendiente»
     const shown = c.rows.filter(r => r.kind);
     const cellStyle = 'padding:3px 6px;border-bottom:1px solid var(--border)';
     body = `<p><strong>${esc(tr('ss.summary', { year, list: listJoin(parts) }))}</strong></p>` +
       (shown.length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;margin:0 0 10px" id="ssTable">
-        <tr><th style="${cellStyle};text-align:left">${esc(tr('ss.thMonth'))}</th><th style="${cellStyle};text-align:right">${esc(tr('ss.thPay'))}</th><th style="${cellStyle};text-align:right">${esc(tr('ss.thSS'))}</th><th style="${cellStyle}"></th></tr>
+        <tr><th style="${cellStyle};text-align:left">${esc(tr('ss.thMonth'))}</th><th class="ss-eur-h" style="${cellStyle};text-align:center">${esc(tr('ss.thPay'))}</th><th class="ss-eur-h" style="${cellStyle};text-align:center">${esc(tr('ss.thSS'))}</th><th class="ss-eur-h" style="${cellStyle};text-align:center">${esc(tr('ss.thDiff'))}</th></tr>
         ${shown.map(r => `<tr data-m="${r.i + 1}" data-k="${r.kind}"><td style="${cellStyle}">${esc(r.name)}</td>
-          <td class="ss-amt" style="${cellStyle};text-align:right">${r.app !== null ? esc(fmt(r.app)) + ' €' : '—'}</td>
-          <td class="ss-amt" style="${cellStyle};text-align:right">${r.ss !== null ? esc(fmt(r.ss)) + ' €' + (r.prov ? '*' : '') : '—'}</td>
-          <td style="${cellStyle}">${esc(tr('ss.k.' + r.kind))}${r.d && Math.abs(r.d) > 1 ? ' (' + esc((r.d > 0 ? '+' : '') + fmt(r.d)) + ' €)' : ''}</td></tr>`).join('')}
+          <td class="ss-amt" style="${cellStyle};text-align:center">${r.app !== null ? esc(fmt(r.app)) + '<span class="ss-eur"> €</span>' : '—'}</td>
+          <td class="ss-amt" style="${cellStyle};text-align:center">${r.ss !== null ? esc(fmt(r.ss)) + '<span class="ss-eur"> €</span>' + (r.prov ? '*' : '') : '—'}</td>
+          <td class="ss-diff" style="${cellStyle};text-align:center" title="${escAttr(tr('ss.k.' + r.kind))}">${ssDiffCell(r)}</td></tr>`).join('')}
       </table>` : '');
-    const note = (k, key, warn) => c.count(k) ? `<p${warn ? ' style="color:var(--warning)"' : ''}>${trHtml(key, { list: /^(⚠ )?\{list\}/.test(tr(key)) ? cap(L(k)) : L(k) })}</p>` : '';
+    const note = (k, key, warn) => c.count(k) ? `<p${warn ? ' style="color:var(--warning)"' : ''}>${ssNoteHtml(key, ms(k))}</p>` : '';
     const open = rs => rs.map(r => r.pays.map(p => `<button class="btn btn-secondary btn-sm" style="margin:0 6px 6px 0" onclick="showReport(payrolls.find(x=>x.id===${jsArg(p.id)}))">${esc(tr('ss.openPay', { month: r.name.toLowerCase() }))}</button>`).join('')).join('');
     const fix = c.rows.filter(r => r.kind === 'ssMenos' || r.kind === 'noBaseNomina');
     body += note('ssMenos', 'ss.noteMenos', true) + note('sinBase', 'ss.noteSinBase', true) + note('noBaseNomina', 'ss.noteNoBase', true) +

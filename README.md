@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.23.1-blue)
+![Version](https://img.shields.io/badge/version-2.23.2-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.23.1)
+## 🆕 Novedades (v2.3 – v2.23.2)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -718,6 +718,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.23.2 (Noviembre 2026)
+- **«Comparar con la Seguridad Social», más fácil de leer en el móvil:** cifras y cabeceras centradas; la última columna pasa a ser **«Diferencia»**, en una sola línea: ℹ y la cifra en azul cuando la Seguridad Social tiene más base, ⚠ en naranja cuando tiene menos (el texto entero, al pasar el ratón; la explicación, en la nota de abajo). En el móvil, el € va una vez en la cabecera. Con más de 3 meses, la nota dice «en N meses (los marcados en la tabla)» en vez de enumerarlos. **Pruebas:** `test_bases_ss.py`, punto 5 (una línea por mes a 390 y 320 px).
 
 ### v2.23.1 (Noviembre 2026)
 - **«Comparar con la Seguridad Social» cabe en el móvil:** en pantallas estrechas la tarjeta entera se desplazaba de lado y la columna del resultado («✓ igual», «pendiente»…) quedaba fuera. Ahora la tabla se ajusta al ancho (letra y márgenes más pequeños; las cifras no se parten). Las notas que empiezan por el mes, con mayúscula («Octubre: …»). **Pruebas:** `test_bases_ss.py`, punto 5 (sin desplazamiento lateral a 390 y 320 px).
