@@ -464,7 +464,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.22.1</span>
+    <span class="logo-badge">Forense v2.23.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -902,6 +902,7 @@ function loadData() {
   loadHacienda();   // v2.10.0
   loadPayAnswers(); // v2.16.0
   loadFestivosCfg(); // v2.17.0
+  loadBasesSS();     // v2.23.0
   const key = localStorage.getItem('nomina-auditor-apikey') || '';
   document.getElementById('apiKeyInput').value = key;
   updateApiStatus(key);
@@ -4356,6 +4357,160 @@ Object.assign(I18N.en, {
   "hac.mezcla": "⚠ <strong>It does not match</strong> ({diffs}): some figures are higher at the Tax Agency and others on your payslips. Check the payslips with ⚠ and compare them with the paper.",
   "hac.baseCloser": "ℹ The sum of the IRPF bases on your payslips is closer to the Tax Agency's figure ({diff}): the gross pay may include tax-exempt allowances or mileage (dietas, kilometraje), which the Tax Agency does not add, or part may be paid in kind."
 });
+// v2.23.0: «Comparar con la Seguridad Social» (informe integral de bases de cotización, docs/TECNICO.md §56)
+Object.assign(I18N.es, {
+  "ss.title": "Comparar con la Seguridad Social",
+  "ss.what": "Compara, mes a mes, la base de cotización de tus nóminas (la de contingencias comunes) con la que tiene la Seguridad Social, y te dice qué meses tiene ella de los que no tienes nómina.",
+  "ss.where": "Descarga el informe en PDF desde <strong>Import@ss</strong>, la web de la Seguridad Social (con Cl@ve, certificado o SMS): <strong>Vida laboral e informes → Informe de bases de cotización</strong>, el informe completo.",
+  "ss.privacy": "Se lee en este dispositivo, sin IA. Solo se guardan las bases de las empresas de tus nóminas en los años que tienes en la app, no toda tu vida laboral. Van en el backup.",
+  "ss.upload": "📄 Subir el informe (PDF)",
+  "ss.uploadAgain": "Subir otro informe",
+  "ss.remove": "Quitar el informe",
+  "ss.removeConfirm": "¿Quitar de este dispositivo las bases de la Seguridad Social? Las nóminas no se tocan.",
+  "ss.reading": "⏳ Leyendo el informe…",
+  "ss.ok": "✓ Informe leído: se han guardado las bases de {years} de tu empresa.",
+  "ss.skipped": "{n} partes del informe no se han podido leer y no se han guardado.",
+  "ss.errNotPdf": "Ese archivo no es un PDF. Sube el PDF que descargas de Import@ss.",
+  "ss.errNoText": "Este PDF no tiene texto (es una foto o un escaneo). Sube el PDF que descargas de Import@ss, tal cual.",
+  "ss.errFormat": "No parece el informe de bases de cotización de la Seguridad Social: no se encuentran los meses ni los años.",
+  "ss.errNoMatch": "Ninguna empresa del informe coincide con las de tus nóminas. Se comparan por el código de cuenta de cotización (CCC) que sale en la nómina: revisa que esté bien leído.",
+  "ss.errNoYears": "El informe no tiene bases de tu empresa en los años de tus nóminas.",
+  "ss.errRead": "No se ha podido leer el PDF.",
+  "ss.uploadedOn": "Informe subido el {date}.",
+  "ss.noYear": "No hay bases de la Seguridad Social de {year} para tu empresa. Si has subido nóminas de ese año después del informe, vuelve a subirlo.",
+  "ss.cIgual": "{n} iguales",
+  "ss.cIgual1": "{n} igual",
+  "ss.cMas": "{n} con más base en la Seguridad Social",
+  "ss.cMenos": "{n} con menos base en la Seguridad Social",
+  "ss.cSinBase": "{n} sin base en la Seguridad Social",
+  "ss.cFalta": "{n} sin nómina",
+  "ss.cPend": "{n} pendientes",
+  "ss.cPend1": "{n} pendiente",
+  "ss.cNoBase": "{n} sin base en la nómina",
+  "ss.summary": "{year}: {list}.",
+  "ss.thMonth": "Mes",
+  "ss.thPay": "Tu nómina",
+  "ss.thSS": "Seguridad Social",
+  "ss.k.igual": "✓ igual",
+  "ss.k.casi": "≈ céntimos",
+  "ss.k.ssMas": "ℹ más en la S.S.",
+  "ss.k.ssMenos": "⚠ menos en la S.S.",
+  "ss.k.sinBase": "⚠ sin base en la S.S.",
+  "ss.k.falta": "falta la nómina",
+  "ss.k.pendiente": "pendiente",
+  "ss.k.noBaseNomina": "⚠ sin base en la nómina",
+  "ss.noteMas": "ℹ <strong>La Seguridad Social tiene más base</strong> en {list}. Suele pasar cuando la empresa reparte después en esos meses una paga de beneficios, un bonus o unos atrasos (liquidación complementaria): la base oficial sube aunque tu nómina de ese mes no cambie. Es a tu favor: cuenta para el paro y la jubilación.",
+  "ss.noteMenos": "⚠ <strong>La Seguridad Social tiene menos base</strong> que tu nómina en {list}. Mira primero en el papel la <strong>base de contingencias comunes</strong> de esa nómina (puede estar mal leída). Si está bien, pregunta a la empresa: con menos base, cobrarías menos de paro o de jubilación.",
+  "ss.noteSinBase": "⚠ En {list} tienes nómina, pero la Seguridad Social no tiene base de esa empresa (sin alta o sin base registrada). Pregunta a la empresa y, si hace falta, pide la corrección en Import@ss.",
+  "ss.noteFalta": "La Seguridad Social tiene base de {list}, pero no tienes esas nóminas en la app. Pídeselas a la empresa (tarjeta «Pedir las que faltan»).",
+  "ss.notePend": "{list}: la Seguridad Social aún no tiene la base (sale como pendiente o no está en el informe). Vuelve a descargarlo dentro de unas semanas.",
+  "ss.noteNoBase": "⚠ {list}: la nómina no tiene la base de contingencias comunes. Ábrela y escríbela desde el papel.",
+  "ss.noteProv": "* Base provisional (pendiente de regularizar), según la Seguridad Social.",
+  "ss.openPay": "Ver la nómina de {month}",
+  "ss.how": "Se compara la base de contingencias comunes de las nóminas mensuales (sin las pagas extra ni las nóminas aparte) con la del informe. Diferencias de hasta 1 € salen con ≈. Es orientativo: la app documenta, no asesora."
+});
+Object.assign(I18N.ca, {
+  "ss.title": "Comparar amb la Seguretat Social",
+  "ss.what": "Compara, mes a mes, la base de cotització de les teves nòmines (la de contingències comunes) amb la que té la Seguretat Social, i et diu quins mesos té ella dels quals no tens nòmina.",
+  "ss.where": "Baixa l'informe en PDF des d'<strong>Import@ss</strong>, el web de la Seguretat Social (amb Cl@ve, certificat o SMS): <strong>Vida laboral i informes → Informe de bases de cotització</strong>, l'informe complet.",
+  "ss.privacy": "Es llegeix en aquest dispositiu, sense IA. Només es desen les bases de les empreses de les teves nòmines en els anys que tens a l'app, no tota la teva vida laboral. Van a la còpia de seguretat.",
+  "ss.upload": "📄 Puja l'informe (PDF)",
+  "ss.uploadAgain": "Puja un altre informe",
+  "ss.remove": "Treu l'informe",
+  "ss.removeConfirm": "Vols treure d'aquest dispositiu les bases de la Seguretat Social? Les nòmines no es toquen.",
+  "ss.reading": "⏳ Llegint l'informe…",
+  "ss.ok": "✓ Informe llegit: s'han desat les bases corresponents a {years} de la teva empresa.",
+  "ss.skipped": "{n} parts de l'informe no s'han pogut llegir i no s'han desat.",
+  "ss.errNotPdf": "Aquest fitxer no és un PDF. Puja el PDF que baixes d'Import@ss.",
+  "ss.errNoText": "Aquest PDF no té text (és una foto o un escaneig). Puja el PDF que baixes d'Import@ss, tal com és.",
+  "ss.errFormat": "No sembla l'informe de bases de cotització de la Seguretat Social: no es troben els mesos ni els anys.",
+  "ss.errNoMatch": "Cap empresa de l'informe coincideix amb les de les teves nòmines. Es comparen pel codi de compte de cotització (CCC) que surt a la nòmina: revisa que estigui ben llegit.",
+  "ss.errNoYears": "L'informe no té bases de la teva empresa en els anys de les teves nòmines.",
+  "ss.errRead": "No s'ha pogut llegir el PDF.",
+  "ss.uploadedOn": "Informe pujat el dia {date}.",
+  "ss.noYear": "No hi ha bases de la Seguretat Social del {year} per a la teva empresa. Si has pujat nòmines d'aquell any després de l'informe, torna'l a pujar.",
+  "ss.cIgual": "{n} iguals",
+  "ss.cIgual1": "{n} igual",
+  "ss.cMas": "{n} amb més base a la Seguretat Social",
+  "ss.cMenos": "{n} amb menys base a la Seguretat Social",
+  "ss.cSinBase": "{n} sense base a la Seguretat Social",
+  "ss.cFalta": "{n} sense nòmina",
+  "ss.cPend": "{n} pendents",
+  "ss.cPend1": "{n} pendent",
+  "ss.cNoBase": "{n} sense base a la nòmina",
+  "ss.summary": "{year}: {list}.",
+  "ss.thMonth": "Mes",
+  "ss.thPay": "La teva nòmina",
+  "ss.thSS": "Seguretat Social",
+  "ss.k.igual": "✓ igual",
+  "ss.k.casi": "≈ cèntims",
+  "ss.k.ssMas": "ℹ més a la S.S.",
+  "ss.k.ssMenos": "⚠ menys a la S.S.",
+  "ss.k.sinBase": "⚠ sense base a la S.S.",
+  "ss.k.falta": "falta la nòmina",
+  "ss.k.pendiente": "pendent",
+  "ss.k.noBaseNomina": "⚠ sense base a la nòmina",
+  "ss.noteMas": "ℹ <strong>La Seguretat Social té més base</strong> a {list}. Sol passar quan l'empresa reparteix després en aquests mesos una paga de beneficis, un bonus o uns endarreriments (liquidació complementària): la base oficial puja encara que la teva nòmina d'aquell mes no canviï. És a favor teu: compta per a l'atur i la jubilació.",
+  "ss.noteMenos": "⚠ <strong>La Seguretat Social té menys base</strong> que la teva nòmina a {list}. Mira primer al paper la <strong>base de contingències comunes</strong> d'aquella nòmina (pot estar mal llegida). Si està bé, pregunta a l'empresa: amb menys base, cobraries menys d'atur o de jubilació.",
+  "ss.noteSinBase": "⚠ A {list} tens nòmina, però la Seguretat Social no té base d'aquella empresa (sense alta o sense base registrada). Pregunta a l'empresa i, si cal, demana la correcció a Import@ss.",
+  "ss.noteFalta": "La Seguretat Social té base a {list}, però no tens aquestes nòmines a l'app. Demana-les a l'empresa (targeta «Demanar les que falten»).",
+  "ss.notePend": "{list}: la Seguretat Social encara no té la base (surt com a pendent o no és a l'informe). Torna'l a baixar d'aquí a unes setmanes.",
+  "ss.noteNoBase": "⚠ {list}: la nòmina no té la base de contingències comunes. Obre-la i escriu-la des del paper.",
+  "ss.noteProv": "* Base provisional (pendent de regularitzar), segons la Seguretat Social.",
+  "ss.openPay": "Mostra la nòmina corresponent a {month}",
+  "ss.how": "Es compara la base de contingències comunes de les nòmines mensuals (sense les pagues extres ni les nòmines a part) amb la de l'informe. Les diferències de fins a 1 € surten amb ≈. És orientatiu: l'app documenta, no assessora."
+});
+Object.assign(I18N.en, {
+  "ss.title": "Compare with Social Security",
+  "ss.what": "It compares, month by month, the contribution base on your payslips (the common contingencies base, base de contingencias comunes) with the one Social Security has, and tells you which months Social Security has for which you have no payslip.",
+  "ss.where": "Download the report as a PDF from <strong>Import@ss</strong>, the Social Security website (with Cl@ve, a certificate or SMS): <strong>Vida laboral e informes → Informe de bases de cotización</strong>, the full report.",
+  "ss.privacy": "It is read on this device, without AI. Only the bases of the companies on your payslips are stored, for the years you have in the app, not your whole working life. They go into the backup.",
+  "ss.upload": "📄 Upload the report (PDF)",
+  "ss.uploadAgain": "Upload another report",
+  "ss.remove": "Remove the report",
+  "ss.removeConfirm": "Remove the Social Security bases from this device? Payslips are not touched.",
+  "ss.reading": "⏳ Reading the report…",
+  "ss.ok": "✓ Report read: the bases for {years} of your company have been stored.",
+  "ss.skipped": "{n} parts of the report could not be read and were not stored.",
+  "ss.errNotPdf": "That file is not a PDF. Upload the PDF you download from Import@ss.",
+  "ss.errNoText": "This PDF has no text (it is a photo or a scan). Upload the PDF you download from Import@ss, as it is.",
+  "ss.errFormat": "It does not look like the Social Security contribution bases report: the months and years cannot be found.",
+  "ss.errNoMatch": "No company in the report matches those on your payslips. They are matched by the contribution account code (CCC) shown on the payslip: check that it was read correctly.",
+  "ss.errNoYears": "The report has no bases for your company in the years of your payslips.",
+  "ss.errRead": "The PDF could not be read.",
+  "ss.uploadedOn": "Report uploaded on {date}.",
+  "ss.noYear": "There are no Social Security bases for {year} for your company. If you uploaded payslips for that year after the report, upload it again.",
+  "ss.cIgual": "{n} equal",
+  "ss.cIgual1": "{n} equal",
+  "ss.cMas": "{n} with a higher base at Social Security",
+  "ss.cMenos": "{n} with a lower base at Social Security",
+  "ss.cSinBase": "{n} with no base at Social Security",
+  "ss.cFalta": "{n} without a payslip",
+  "ss.cPend": "{n} pending",
+  "ss.cPend1": "{n} pending",
+  "ss.cNoBase": "{n} with no base on the payslip",
+  "ss.summary": "{year}: {list}.",
+  "ss.thMonth": "Month",
+  "ss.thPay": "Your payslip",
+  "ss.thSS": "Social Security",
+  "ss.k.igual": "✓ equal",
+  "ss.k.casi": "≈ cents",
+  "ss.k.ssMas": "ℹ higher at S.S.",
+  "ss.k.ssMenos": "⚠ lower at S.S.",
+  "ss.k.sinBase": "⚠ no base at S.S.",
+  "ss.k.falta": "payslip missing",
+  "ss.k.pendiente": "pending",
+  "ss.k.noBaseNomina": "⚠ no base on the payslip",
+  "ss.noteMas": "ℹ <strong>Social Security has a higher base</strong> in {list}. This usually happens when the company later spreads a profit-sharing payment, a bonus or back pay over those months (a supplementary settlement, liquidación complementaria): the official base goes up even though your payslip for that month does not change. It is in your favour: it counts for unemployment benefit and retirement.",
+  "ss.noteMenos": "⚠ <strong>Social Security has a lower base</strong> than your payslip in {list}. First check on paper the <strong>common contingencies base (base de contingencias comunes)</strong> of that payslip (it may have been misread). If it is correct, ask your company: with a lower base you would receive less unemployment benefit or pension.",
+  "ss.noteSinBase": "⚠ In {list} you have a payslip, but Social Security has no base from that company (not registered or no base recorded). Ask your company and, if needed, request the correction in Import@ss.",
+  "ss.noteFalta": "Social Security has a base for {list}, but you do not have those payslips in the app. Ask your company for them («Pedir las que faltan» card).",
+  "ss.notePend": "{list}: Social Security does not have the base yet (it shows as pending or is not in the report). Download it again in a few weeks.",
+  "ss.noteNoBase": "⚠ {list}: the payslip has no common contingencies base. Open it and enter it from the paper.",
+  "ss.noteProv": "* Provisional base (pending adjustment), according to Social Security.",
+  "ss.openPay": "See the {month} payslip",
+  "ss.how": "The common contingencies base of the monthly payslips (without the extra payments or separate payslips) is compared with the one in the report. Differences of up to 1 € are shown with ≈. It is for guidance only: the app documents, it does not advise."
+});
 // Como tr(), para textos con marcado: las variables se escapan; {html: '…'} pasa un trozo ya escapado (otro trHtml).
 function trHtml(key, vars = {}, lang = 'es') {
   const t = (I18N[lang] && I18N[lang][key]) ?? I18N.es[key] ?? key;
@@ -5660,7 +5815,7 @@ function renderInformes() {
   if (!years.includes(currentYear)) years.push(currentYear);
   years.sort();
   const pills = `<div class="year-pills">${years.map(y =>
-    `<button class="year-pill ${y === currentYear ? 'active' : ''}" onclick="currentYear=${jsArg(y)};hacOpen=false;renderInformes()">${esc(y)}</button>`).join('')}</div>`;
+    `<button class="year-pill ${y === currentYear ? 'active' : ''}" onclick="currentYear=${jsArg(y)};hacOpen=false;ssMsg=null;renderInformes()">${esc(y)}</button>`).join('')}</div>`;
   const year = currentYear, fp = payrolls.filter(p => p.period?.year === year);
   const c = yearCompleteness(year);
   const req = missingRequestText(year, c);
@@ -5673,6 +5828,7 @@ function renderInformes() {
       <button class="btn btn-secondary btn-sm" onclick="goAnnual('completeCard')">${esc(tr('rep.seeAnnual'))}</button>`) +
     card('repHacienda', tr('rep.hacienda'), `<p>${esc(tr('rep.haciendaText'))}</p>
       <button class="btn btn-secondary btn-sm" onclick="goAnnual('hacCard', true)">${esc(tr('rep.open'))}</button>`) +
+    card('repSS', tr('ss.title'), ssCardHtml(year)) +
     card('repRequest', tr('rep.request'), !req.letters.length && !req.orphan.length ? `<p>${esc(tr(c ? 'rep.requestNone' : 'rep.noData', { year }))}</p>` :
       `<p>${esc(tr('rep.requestText'))}</p>` +
       req.letters.map((l, i) => `${req.letters.length > 1 || l.name ? `<div class="rep-to">${esc(l.name || tr('rep.companyBlank'))}</div>` : ''}
@@ -5686,6 +5842,231 @@ function renderInformes() {
     card('repLawyer', tr('rep.lawyer'), `<p>${esc(tr('rep.lawyerText', { year }))}</p>` +
       (fp.length ? `<div class="rep-list">${fp.map(p => `<button class="btn btn-secondary btn-sm" onclick="showReport(payrolls.find(x=>x.id===${jsArg(p.id)}))">${esc(payName(p))}</button>`).join('')}</div>`
         : `<p>${esc(tr('rep.noData', { year }))}</p>`));
+}
+
+// ═══════════ v2.23.0: COMPARAR CON LA SEGURIDAD SOCIAL (docs/TECNICO.md §56) ═══════════
+// El «Informe integral de bases de cotización» de Import@ss es un PDF con texto: lo lee el código con pdf.js, sin IA.
+// Cada bloque (empresa y CCC) trae una cabecera con los 12 meses y una fila por año. Solo se guardan los bloques cuyo CCC
+// coincide con el de alguna nómina y los años que tienen nóminas en la app (decidido por Jordi, 11-11-2026). Nunca se
+// guarda el texto del informe (nombre, DNI, código de verificación): solo las bases y el estado de cada mes.
+// basesSS = { at: 'AAAA-MM-DD', blocks: [{ ccc, years: { 'AAAA': [12 celdas] } }] }; celda: { b, p? } (base; p = provisional),
+// { s: '-' } (sin alta en esa empresa), { s: 'S' } (sin base registrada), { s: 'P' } (pendiente de actualizar) o null.
+const SS_KEY = 'nomina-auditor-ss';
+const SS_NUM_RE = /^\*?\s*\d{1,3}(\.\d{3})*,\d{2}\s*\*?$/;
+const SS_COL_TOL = 40;   // distancia máxima (en puntos del PDF) de una cifra a la cabecera de su mes
+const SS_ROW_TOL = 10;   // «Pendiente de actualizar» y «Sin base registrada» van en dos líneas, encima y debajo de la fila
+let basesSS = {};
+let ssMsg = null;        // el resultado de la última subida (solo en pantalla)
+
+function sanitizeBasesSS(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
+  const cell = c => {
+    if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
+    const b = Number(c.b);
+    if (c.b !== null && c.b !== undefined && c.b !== '' && Number.isFinite(b) && b >= 0 && b < 1e7) return c.p ? { b: round2(b), p: 1 } : { b: round2(b) };
+    return ['-', 'S', 'P'].includes(c.s) ? { s: c.s } : null;
+  };
+  const blocks = (Array.isArray(raw.blocks) ? raw.blocks : []).slice(0, 30).map(b => {
+    if (!b || typeof b !== 'object' || !/^\d{9,15}$/.test(String(b.ccc ?? ''))) return null;
+    const years = {};
+    for (const [y, cells] of Object.entries(b.years && typeof b.years === 'object' ? b.years : {}).slice(0, 80))
+      if (HAC_YEAR_RE.test(y) && Array.isArray(cells) && cells.length === 12) years[y] = cells.map(cell);
+    return Object.keys(years).length ? { ccc: String(b.ccc), years } : null;
+  }).filter(Boolean);
+  return blocks.length ? { at: /^\d{4}-\d{2}-\d{2}$/.test(String(raw.at ?? '')) ? raw.at : '', blocks } : {};
+}
+function loadBasesSS() { try { basesSS = sanitizeBasesSS(JSON.parse(localStorage.getItem(SS_KEY) || '{}')); } catch { basesSS = {}; } }
+function saveBasesSS() {
+  if (basesSS.blocks?.length) localStorage.setItem(SS_KEY, JSON.stringify(basesSS)); else localStorage.removeItem(SS_KEY);
+  try { localStorage.setItem('nomina-auditor-lastchange', new Date().toISOString()); } catch {}   // cuenta para el aviso de backup
+}
+function ssNum(s) { return Number(String(s).replace(/[*\s]/g, '').replace(/\./g, '').replace(',', '.')); }
+
+// Lee el informe: { blocks: [{ ccc, years }], skipped } o { error: 'noText' | 'format' }. Un bloque con una cifra fuera de
+// su columna, dos cifras en la misma celda o una cabecera sin los 12 meses no se guarda (skipped): mejor nada que mal.
+async function parseBasesReport(lib, pdf) {
+  const blocks = [];
+  let cur = null, cols = null, chars = 0;
+  const monthOf = (cs, it) => {
+    const x0 = it.transform[4], w = it.width || 0;
+    let best = null, bd = Infinity;
+    for (const c of cs) { const d = Math.min(Math.abs(x0 + w / 2 - c.xc), Math.abs(x0 + w - c.x1)); if (d < bd) { bd = d; best = c; } }
+    return bd <= SS_COL_TOL ? best.m : -1;
+  };
+  for (let i = 1; i <= Math.min(pdf.numPages, 60); i++) {
+    const page = await pdf.getPage(i);
+    const ops = await page.getOperatorList();
+    if (ops.fnArray.some((fn, k) => fn === lib.OPS.setTextRenderingMode && (ops.argsArray[k]?.[0] & 3) === 3)) return { error: 'noText' };
+    const rows = new Map();
+    for (const it of (await page.getTextContent()).items) {
+      if (!it.str || !it.transform || !it.str.trim()) continue;
+      chars += it.str.trim().length;
+      const y = Math.round(it.transform[5] / 2);
+      if (!rows.has(y)) rows.set(y, []);
+      rows.get(y).push(it);
+    }
+    const yearRows = [], loose = [];
+    for (const y of [...rows.keys()].sort((a, b) => b - a)) {
+      const row = rows.get(y).sort((a, b) => a.transform[4] - b.transform[4]);
+      const txt = row.map(it => it.str).join(' ');
+      const ccc = txt.match(/\bCCC:\s*([\d\s]{9,25})/);
+      if (ccc) { cur = { ccc: ccc[1].replace(/\D/g, ''), years: {}, bad: false }; blocks.push(cur); cols = null; continue; }
+      const months = row.filter(it => MONTHS.includes(it.str.trim()));
+      if (months.length >= 6) {
+        cols = new Set(months.map(it => it.str.trim())).size === 12 && months.length === 12
+          ? months.map(it => ({ m: MONTHS.indexOf(it.str.trim()), xc: it.transform[4] + (it.width || 0) / 2, x1: it.transform[4] + (it.width || 0) })) : null;
+        if (!cols && cur) cur.bad = true;
+        continue;
+      }
+      if (!cur || !cols) continue;
+      const first = row[0].str.trim();
+      if (/^(19|20)\d{2}$/.test(first)) yearRows.push({ y: row[0].transform[5], year: first, block: cur, cols, items: row.slice(1) });
+      else if (/Pendiente|Sin base/i.test(txt)) loose.push({ y: row[0].transform[5], block: cur, items: row });
+    }
+    for (const r of yearRows) {
+      const cells = r.block.years[r.year] || (r.block.years[r.year] = Array(12).fill(null));
+      for (const it of r.items) {
+        const s = it.str.trim(), m = monthOf(r.cols, it);
+        if (SS_NUM_RE.test(s)) {
+          if (m < 0 || (cells[m] && 'b' in cells[m])) { r.block.bad = true; continue; }
+          cells[m] = s.includes('*') ? { b: ssNum(s), p: 1 } : { b: ssNum(s) };
+        } else if (s === '*') { if (m >= 0 && cells[m] && 'b' in cells[m]) cells[m].p = 1; }
+        else if (m < 0) continue;
+        else if (/^-{2,}$/.test(s)) { if (!cells[m]) cells[m] = { s: '-' }; }
+        else if (/^Pendiente/i.test(s)) { if (!cells[m] || cells[m].s) cells[m] = { s: 'P' }; }
+        else if (/^Sin base/i.test(s)) { if (!cells[m] || cells[m].s === '-') cells[m] = { s: 'S' }; }
+      }
+    }
+    for (const l of loose) {
+      const near = yearRows.filter(r => r.block === l.block).sort((a, b) => Math.abs(a.y - l.y) - Math.abs(b.y - l.y))[0];
+      if (!near || Math.abs(near.y - l.y) > SS_ROW_TOL) continue;
+      const cells = near.block.years[near.year];
+      for (const it of l.items) {
+        const s = it.str.trim(), m = monthOf(near.cols, it);
+        if (m < 0) continue;
+        if (/^Pendiente/i.test(s) && (!cells[m] || cells[m].s)) cells[m] = { s: 'P' };
+        else if (/^Sin base/i.test(s) && (!cells[m] || cells[m].s === '-')) cells[m] = { s: 'S' };
+      }
+    }
+  }
+  if (chars < 200) return { error: 'noText' };
+  const good = blocks.filter(b => !b.bad && Object.keys(b.years).length);
+  if (!good.length) return { error: 'format' };
+  return { blocks: good.map(({ ccc, years }) => ({ ccc, years })), skipped: blocks.filter(b => b.bad).length };
+}
+
+// Solo las empresas de las nóminas (por CCC, comparando los 11 últimos dígitos) y los años que tienen nóminas
+function ssKeepForPayrolls(blocks) {
+  const years = new Set(payrolls.map(p => p.period?.year).filter(Boolean));
+  const ccc = new Set(payrolls.map(cccKey).filter(Boolean).map(c => c.slice(-11)));
+  const matched = blocks.filter(b => ccc.has(b.ccc.slice(-11)));
+  const kept = matched.map(b => ({ ccc: b.ccc, years: Object.fromEntries(Object.entries(b.years).filter(([y]) => years.has(y))) }))
+    .filter(b => Object.keys(b.years).length);
+  return { matched: matched.length, kept };
+}
+
+// Compara un año: por cada mes, la base C.C. de las mensuales de la empresa (o empresas) del informe con la oficial.
+// kind: igual · casi (≤ 1 €) · ssMas · ssMenos · sinBase (hay nómina y la S.S. dice sin alta o sin base) · falta (base
+// oficial sin nómina) · pendiente (hay nómina y la S.S. aún no tiene el mes) · noBaseNomina (la nómina no trae la base).
+function compareBasesSS(year) {
+  if (!basesSS.blocks?.length) return null;
+  const idx = companyIndex();
+  const ccc = new Set(basesSS.blocks.map(b => b.ccc.slice(-11)));
+  const keys = new Set(payrolls.filter(p => ccc.has(cccKey(p).slice(-11)) && cccKey(p)).map(p => idx.get(p)).filter(Boolean));
+  const ord = payrolls.filter(p => p.period?.year === year && payTypeOf(p) === 'ordinaria' && keys.has(idx.get(p)));
+  const blocks = basesSS.blocks.filter(b => b.years[year]);
+  if (!blocks.length) return ord.length ? { noYear: true } : null;
+  const rows = MONTHS.map((name, i) => {
+    const cells = blocks.map(b => b.years[year][i]).filter(Boolean);
+    const bases = cells.filter(c => 'b' in c);
+    const ss = bases.length ? round2(bases.reduce((t, c) => t + c.b, 0)) : null;
+    const st = cells.some(c => c.s === 'P') ? 'P' : cells.some(c => c.s === 'S') ? 'S' : cells.some(c => c.s === '-') ? '-' : null;
+    const pays = ord.filter(p => p.period?.month === name);
+    const noBase = pays.some(p => !(Number(p.bases?.baseCC) > 0));
+    const app = pays.length && !noBase ? round2(pays.reduce((t, p) => t + Number(p.bases.baseCC), 0)) : null;
+    let kind = null, d = null;
+    if (!pays.length) kind = ss !== null ? 'falta' : null;
+    else if (noBase) kind = 'noBaseNomina';
+    else if (ss === null) kind = st === '-' || st === 'S' ? 'sinBase' : 'pendiente';
+    else { d = round2(ss - app); kind = d === 0 ? 'igual' : Math.abs(d) <= 1 ? 'casi' : d > 0 ? 'ssMas' : 'ssMenos'; }
+    return { i, name, ss, prov: bases.some(c => c.p), app, d, kind, pays };
+  });
+  const count = k => rows.filter(r => r.kind === k).length;
+  return { rows, count };
+}
+
+function ssCardHtml(year) {
+  const msg = ssMsg ? `<div class="alert alert-${ssMsg.level === 'error' ? 'error' : 'info'}" style="margin:0 0 10px">${ssMsg.html}</div>` : '';
+  const input = `<input type="file" id="ssFileInput" accept="application/pdf,.pdf" style="display:none" onchange="ssUpload(this)">`;
+  const upBtn = (key, primary) => `<button class="btn ${primary ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="document.getElementById('ssFileInput').click()">${esc(tr(key))}</button>`;
+  if (!basesSS.blocks?.length) {
+    return `<p>${esc(tr('ss.what'))}</p><p>${trHtml('ss.where')}</p><p>${esc(tr('ss.privacy'))}</p>${msg}${input}${upBtn('ss.upload', true)}`;
+  }
+  const c = compareBasesSS(year);
+  let body = '';
+  if (!c || c.noYear) body = `<p>${esc(tr('ss.noYear', { year }))}</p>`;
+  else {
+    const L = k => listJoin(c.rows.filter(r => r.kind === k).map(r => r.name.toLowerCase()));
+    const parts = [['igual', 'ss.cIgual'], ['ssMas', 'ss.cMas'], ['ssMenos', 'ss.cMenos'], ['sinBase', 'ss.cSinBase'], ['falta', 'ss.cFalta'], ['pendiente', 'ss.cPend'], ['noBaseNomina', 'ss.cNoBase']]
+      .map(([k, key]) => [k === 'igual' ? c.count('igual') + c.count('casi') : c.count(k), key]).filter(([n]) => n).map(([n, key]) => tr(n === 1 && I18N.es[key + '1'] ? key + '1' : key, { n }));   // «1 igual», «1 pendiente»
+    const shown = c.rows.filter(r => r.kind);
+    const cellStyle = 'padding:3px 6px;border-bottom:1px solid var(--border)';
+    body = `<p><strong>${esc(tr('ss.summary', { year, list: listJoin(parts) }))}</strong></p>` +
+      (shown.length ? `<table style="width:100%;border-collapse:collapse;font-size:12px;margin:0 0 10px" id="ssTable">
+        <tr><th style="${cellStyle};text-align:left">${esc(tr('ss.thMonth'))}</th><th style="${cellStyle};text-align:right">${esc(tr('ss.thPay'))}</th><th style="${cellStyle};text-align:right">${esc(tr('ss.thSS'))}</th><th style="${cellStyle}"></th></tr>
+        ${shown.map(r => `<tr data-m="${r.i + 1}" data-k="${r.kind}"><td style="${cellStyle}">${esc(r.name)}</td>
+          <td style="${cellStyle};text-align:right">${r.app !== null ? esc(fmt(r.app)) + ' €' : '—'}</td>
+          <td style="${cellStyle};text-align:right">${r.ss !== null ? esc(fmt(r.ss)) + ' €' + (r.prov ? '*' : '') : '—'}</td>
+          <td style="${cellStyle}">${esc(tr('ss.k.' + r.kind))}${r.d && Math.abs(r.d) > 1 ? ' (' + esc((r.d > 0 ? '+' : '') + fmt(r.d)) + ' €)' : ''}</td></tr>`).join('')}
+      </table>` : '');
+    const note = (k, key, warn) => c.count(k) ? `<p${warn ? ' style="color:var(--warning)"' : ''}>${trHtml(key, { list: L(k) })}</p>` : '';
+    const open = rs => rs.map(r => r.pays.map(p => `<button class="btn btn-secondary btn-sm" style="margin:0 6px 6px 0" onclick="showReport(payrolls.find(x=>x.id===${jsArg(p.id)}))">${esc(tr('ss.openPay', { month: r.name.toLowerCase() }))}</button>`).join('')).join('');
+    const fix = c.rows.filter(r => r.kind === 'ssMenos' || r.kind === 'noBaseNomina');
+    body += note('ssMenos', 'ss.noteMenos', true) + note('sinBase', 'ss.noteSinBase', true) + note('noBaseNomina', 'ss.noteNoBase', true) +
+      (fix.length ? `<div>${open(fix)}</div>` : '') +
+      note('ssMas', 'ss.noteMas') + note('falta', 'ss.noteFalta') + note('pendiente', 'ss.notePend') +
+      (c.rows.some(r => r.prov) ? `<p>${esc(tr('ss.noteProv'))}</p>` : '') + `<p>${esc(tr('ss.how'))}</p>`;
+  }
+  const at = basesSS.at ? basesSS.at.split('-').reverse().join('/') : '';
+  return body + msg + (at ? `<p>${esc(tr('ss.uploadedOn', { date: at }))}</p>` : '') + input + upBtn('ss.uploadAgain', false) +
+    ` <button class="btn btn-secondary btn-sm" onclick="ssRemove()">${esc(tr('ss.remove'))}</button>`;
+}
+
+async function ssUpload(input) {
+  const file = input?.files?.[0];
+  if (input) input.value = '';
+  if (!file) return;
+  const done = (level, html) => { ssMsg = { level, html }; renderInformes(); };
+  ssMsg = { level: 'info', html: esc(tr('ss.reading')) };
+  renderInformes();
+  let pdf = null;
+  try {
+    const buf = new Uint8Array(await file.arrayBuffer());
+    if (buf.length < 5 || String.fromCharCode(...buf.slice(0, 5)) !== '%PDF-') return done('error', esc(tr('ss.errNotPdf')));
+    const lib = await loadPdfJs();
+    const task = openPdf(lib, buf);
+    task.onPassword = update => update(new Error('PDF con contraseña'));
+    pdf = await task.promise;
+    const r = await parseBasesReport(lib, pdf);
+    if (r.error) return done('error', esc(tr(r.error === 'noText' ? 'ss.errNoText' : 'ss.errFormat')));
+    const k = ssKeepForPayrolls(r.blocks);
+    if (!k.matched) return done('error', esc(tr('ss.errNoMatch')));
+    if (!k.kept.length) return done('error', esc(tr('ss.errNoYears')));
+    const t = appToday();
+    basesSS = sanitizeBasesSS({ at: `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`, blocks: k.kept });
+    saveBasesSS();
+    const years = [...new Set(k.kept.flatMap(b => Object.keys(b.years)))].sort();
+    done('info', esc(tr('ss.ok', { years: listJoin(years) })) + (r.skipped ? ' ' + esc(tr('ss.skipped', { n: r.skipped })) : ''));
+  } catch {
+    done('error', esc(tr('ss.errRead')));
+  } finally { try { await pdf?.destroy(); } catch {} }
+}
+function ssRemove() {
+  if (!confirm(tr('ss.removeConfirm'))) return;
+  basesSS = {};
+  ssMsg = null;
+  saveBasesSS();
+  renderInformes();
 }
 
 // v2.17.0: festivos nacionales y autonómicos por año y región (código), de la resolución anual de la Dirección
@@ -7618,7 +7999,9 @@ function createBackupData() {
     // v2.16.0: ¿la empresa paga una paga de beneficios o un bonus? (solo si la persona ha contestado)
     ...(Object.keys(payAnswers).length ? { pagas: payAnswers } : {}),
     // v2.17.0: configuración del saldo de festivos (solo si hay alguna)
-    ...(Object.keys(festCfg).length ? { festivos: festCfg } : {})
+    ...(Object.keys(festCfg).length ? { festivos: festCfg } : {}),
+    // v2.23.0: las bases de la Seguridad Social del informe que subió la persona (solo si hay)
+    ...(basesSS.blocks?.length ? { basesSS } : {})
   };
 }
 
@@ -7886,6 +8269,8 @@ async function processImportedJSON(jsonText, resultDiv, restoredDocs = 0) {
     if (Object.keys(payIn).length) { payAnswers = { ...payAnswers, ...payIn }; savePayAnswers(); }
     const festIn = sanitizeFestivosCfg(data && !Array.isArray(data) ? data.festivos : null);   // v2.17.0: la del backup sustituye a la de aquí
     if (Object.keys(festIn).length) { festCfg = festIn; saveFestivosCfg(); }
+    const ssIn = sanitizeBasesSS(data && !Array.isArray(data) ? data.basesSS : null);   // v2.23.0: el del backup sustituye al de aquí
+    if (ssIn.blocks?.length) { basesSS = ssIn; saveBasesSS(); }
     // Restaurar en un dispositivo vacío: lo que hay ahora es justo lo que ya está en ese backup
     if (wasEmpty) lsSetNow('nomina-auditor-lastfullbackup');
     const exportedAt = data._meta?.exportedAt ? new Date(data._meta.exportedAt) : null;
@@ -7978,6 +8363,8 @@ async function clearAllData() {
   savePayAnswers();
   festCfg = {};           // v2.17.0
   saveFestivosCfg();
+  basesSS = {};           // v2.23.0
+  saveBasesSS();
   batch = emptyBatch();
   batchPause = null;
   saveBatch();

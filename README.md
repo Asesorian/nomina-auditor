@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.22.0)
+## 🆕 Novedades (v2.3 – v2.23.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 🏛️ **Comparar con la Seguridad Social (v2.23.0)** | Subes el PDF del **informe de bases de cotización** de Import@ss y la app compara, mes a mes, la base de cotización de tus nóminas con la que tiene la Seguridad Social. Si la Seguridad Social tiene **menos**, te avisa y te dice qué mirar en la nómina (afecta al paro y a la jubilación); si tiene **más**, te explica por qué suele pasar; y te dice qué meses tiene ella de los que **no tienes nómina**. Lo lee la app, **sin IA**, y solo guarda las bases de tu empresa en los años de tus nóminas. | Informes → Comparar con la Seguridad Social |
 | 🔘 **«Cobrado en el banco», opcional (v2.22.0)** | La tarjeta para apuntar lo cobrado ya no sale en todas las nóminas: **la activas tú**, en **Informes** o en **Datos**, donde se explica qué hace y para qué sirve. Lo que ya tengas anotado se sigue viendo siempre, y si ya la usabas sigue activada | Informes · Datos |
 | 🏦 **Cobrado en el banco (v2.21.0)** | En cada nómina guardada puedes apuntar lo que te ingresaron (en uno o varios ingresos, con fecha si quieres) y la app lo compara **al céntimo** con el líquido. Si no coincide, te dice la diferencia y dónde mirar: el Líquido de la nómina (puede ser un error de lectura) o el ingreso. En el Anual, cuántas has anotado y cuáles no coinciden. Es opcional, solo informa y se queda en tu dispositivo. | Abre una nómina guardada → **🏦 Cobrado en el banco** |
 | 📑 **Pestaña Informes (v2.20.0)** | Una pestaña nueva, entre Anual y Datos, que responde a **«¿Para qué necesitas tus nóminas?»**: si el año está completo, **Comparar con Hacienda**, **Pedir las que faltan** (un texto para pedírselas a la empresa, por empresa, con los meses y las pagas extra que faltan: lo copias, pones tu nombre y tu DNI y lo envías tú) y **Copiar para el abogado**. Las tarjetas llevan a lo que ya existe y comparten el año con el Anual. En el Panel, si falta la nómina del mes pasado, un aviso **«Sube la nómina de…»** (solo sugiere). | Pestaña **Informes** y **Panel** |
@@ -717,6 +718,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.23.0 (Noviembre 2026)
+- **Comparar con la Seguridad Social** (pestaña Informes): sube el PDF del informe de bases de cotización de Import@ss y la app compara, mes a mes, la base de contingencias comunes de tus nóminas con la oficial, y te dice qué meses tiene la Seguridad Social de los que no tienes nómina. Lo lee el código, sin IA; solo se guardan las bases de tu empresa en los años de tus nóminas. **Pruebas:** `test_bases_ss.py`.
 
 ### v2.22.1 (Noviembre 2026)
 - **Textos en los tres idiomas:** los mensajes del backup completo y la tarjeta «Comparar con Hacienda» pasan a `tr()` (español, català e inglés), como el resto de textos nuevos. En español no cambia nada. **Pruebas:** `test_hacienda.py`, punto 9.
