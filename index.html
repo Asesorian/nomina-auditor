@@ -491,7 +491,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.26.0</span>
+    <span class="logo-badge">Forense v2.27.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -1494,7 +1494,7 @@ function parseGeminiJSON(text) {
   let clean = String(text || '').replace(/```json\s*/gi, '').replace(/```\s*/g, '');
   const firstBrace = clean.indexOf('{');
   const lastBrace = clean.lastIndexOf('}');
-  if (firstBrace === -1 || lastBrace <= firstBrace) throw new Error('Gemini no devolvió un JSON válido. Intenta con otra foto más nítida.');
+  if (firstBrace === -1 || lastBrace <= firstBrace) throw new Error(tr('gem.noJson'));
   clean = clean.substring(firstBrace, lastBrace + 1);
   try { return JSON.parse(clean); } catch {}
   // v2.13.1: varias nóminas seguidas ({…}{…}): un PDF con varios meses, o los dos ejemplares de la misma nómina
@@ -1505,7 +1505,7 @@ function parseGeminiJSON(text) {
   }
   const repaired = repairJSON(clean);
   try { return JSON.parse(repaired); }
-  catch (e) { throw new Error(`Error leyendo la respuesta de Gemini (no es JSON válido): ${e.message}\n\nRespuesta recibida (primeros 500 caracteres):\n${String(text).substring(0, 500)}`); }
+  catch (e) { throw new Error(tr('gem.badJson', { msg: e.message, text: String(text).substring(0, 500) })); }
 }
 
 // extra: instrucciones añadidas al final del prompt (en la segunda lectura, qué cuentas no cuadraron)
@@ -1513,10 +1513,11 @@ function parseGeminiJSON(text) {
 async function callGemini(base64, mediaType, extra, onStatus = updateProcessStatus) {
   const key = getApiKey();
   const prompt = extra ? `${EXTRACTION_PROMPT}\n\n${extra}` : EXTRACTION_PROMPT;
-  if (!key) throw new Error('Falta la clave de Gemini (barra superior).\n\n→ Si alguien te ha pasado la app, pídele la clave o el enlace con la clave.\n→ Si quieres usar la tuya, aquí se explica cómo crearla: ' + KEY_GUIDE_URL);
+  // v2.27.0: kind = 'key' para que batchErrorKind lo reconozca en cualquier idioma (antes, por el texto)
+  if (!key) throw keyError(tr('gem.noKey', { url: KEY_GUIDE_URL }));
   // Va en una cabecera: un espacio o una letra con acento en medio haría fallar la llamada con un error incomprensible
   // v2.8.12: sin decir cómo empieza (las claves de Google empezaban por «AIza…»; las nuevas, desde 2026, por «AQ.»)
-  if (!/^[\x21-\x7e]+$/.test(key)) { showApiBar(); throw new Error('La clave de Gemini tiene espacios o caracteres raros. Vuelve a pegarla en la barra superior: solo la clave, o el enlace entero que te pasaron.'); }
+  if (!/^[\x21-\x7e]+$/.test(key)) { showApiBar(); throw keyError(tr('gem.oddKey')); }
 
   let lastError = null;
   const allErrors = [];
@@ -1524,7 +1525,7 @@ async function callGemini(base64, mediaType, extra, onStatus = updateProcessStat
 
   for (const model of GEMINI_MODELS) {
     try {
-      onStatus(`Probando ${model}...`);
+      onStatus(tr('gem.trying', { model }));
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: 'POST',
         // La clave va en la cabecera, no en la dirección: así no queda en historiales ni registros de URLs.
@@ -1544,13 +1545,13 @@ async function callGemini(base64, mediaType, extra, onStatus = updateProcessStat
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        const msg = err.error?.message || `Error ${res.status}`;
+        const msg = err.error?.message || tr('gem.httpErr', { status: res.status });
         // v2.8.9: sin saldo de prepago (402) no lee ningún modelo (la cuenta es la misma): no se prueban los demás
         if (res.status === 402 || /prepayment credits/i.test(msg)) throw creditError(msg);
         httpStatuses.push(res.status);
         lastError = new Error(`${model}: ${msg}`);
         allErrors.push(`❌ ${model}: ${msg}`);
-        onStatus(`${model} falló (${res.status}), probando siguiente...`);
+        onStatus(tr('gem.modelFail', { model, status: res.status }));
         continue;
       }
 
@@ -1558,20 +1559,20 @@ async function callGemini(base64, mediaType, extra, onStatus = updateProcessStat
       const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
       let parsed = parseGeminiJSON(text);   // si no es JSON válido, lanza error → siguiente modelo
       if (Array.isArray(parsed) && parsed.length && parsed.every(o => o && typeof o === 'object' && !Array.isArray(o))) parsed = singlePayroll(parsed);
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Gemini no devolvió los datos de la nómina en el formato esperado.');
-      onStatus(`✓ Extraído con ${model}`);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error(tr('gem.notPayroll'));
+      onStatus(tr('gem.ok', { model }));
       return parsed;
     } catch (e) {
       if (e?.kind === 'credit') throw e;
       if (e?.kind === 'multi') throw e;   // v2.13.1: el archivo trae varias nóminas; otro modelo leería lo mismo
       lastError = e;
       allErrors.push(`❌ ${model}: ${e.message?.split("\n")[0]}`);
-      onStatus(`${model} error, probando siguiente...`);
+      onStatus(tr('gem.modelErr', { model }));
       continue;
     }
   }
 
-  const failed = new Error(`Todos los modelos fallaron:\n${allErrors.join("\n")}\n\n🔧 Si la clave te la dio otra persona, mándale este mensaje: el problema suele estar en la clave o en su límite de gasto.\n🔧 Si la clave es tuya y ves "API key not valid", "limit: 0" o "quota", aquí tienes qué hacer: ${KEY_GUIDE_URL}`);
+  const failed = new Error(tr('gem.allFailed', { errors: allErrors.join("\n"), url: KEY_GUIDE_URL }));
   failed.httpStatuses = httpStatuses;
   throw failed;
 }
@@ -1580,11 +1581,14 @@ async function callGemini(base64, mediaType, extra, onStatus = updateProcessStat
 // API es de prepago (antes, 429). Con saldo 0 se paran todas las claves de esa cuenta hasta que se recargue.
 // kind = 'credit': la bandeja se para (batchErrorKind) y no se prueba otro modelo.
 function creditError(googleMsg) {
-  const e = new Error('Se ha acabado el saldo de Gemini de esta clave (error 402): no se puede leer ninguna nómina hasta que se recargue.\n\n' +
-    '🔧 Si la clave te la dio otra persona, avísale: tiene que añadir crédito en su cuenta de Google AI Studio.\n' +
-    '🔧 Si la clave es tuya: en Google AI Studio (ai.studio/projects), en la facturación, añade crédito y vuelve a probar.\n\n' +
-    `Google: ${googleMsg}`);
+  const e = new Error(tr('gem.credit', { msg: googleMsg }));
   e.kind = 'credit';
+  return e;
+}
+// v2.27.0: la clave falta o tiene caracteres raros (la bandeja se para y despliega la barra, como con un 401/403)
+function keyError(msg) {
+  const e = new Error(msg);
+  e.kind = 'key';
   return e;
 }
 
@@ -1611,11 +1615,7 @@ function readApiKeyFromUrl() {
   window.history.replaceState({}, document.title, window.location.pathname);
   var current = getApiKey();
   if (current === keyFromUrl) return;
-  if (current && !confirm(
-      'Este enlace trae una clave de Gemini distinta de la que ya tienes.\n\n' +
-      'Tu clave: ' + maskKey(current) + '\nLa del enlace: ' + maskKey(keyFromUrl) + '\n\n' +
-      'Si la cambias, las nóminas que proceses a partir de ahora se leerán con la cuenta de Google de quien creó esa clave. ' +
-      'Acepta solo si te la ha dado alguien de confianza (por ejemplo, quien te pasó la app).\n\n¿Cambiar la clave?')) return;
+  if (current && !confirm(tr('file.keyLinkAsk', { mine: maskKey(current), link: maskKey(keyFromUrl) }))) return;
   localStorage.setItem('nomina-auditor-apikey', keyFromUrl);
   var input = document.getElementById('apiKeyInput');
   if (input) input.value = keyFromUrl;
@@ -1696,7 +1696,7 @@ function isPDF(arrayBuffer) {
 function showPreviewPDF() {
   const preview = document.getElementById('previewImg');
   // Mostrar icono PDF en lugar de imagen
-  preview.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 260' width='200' height='260'%3E%3Crect width='200' height='260' rx='12' fill='%2314161f' stroke='%23c9a227' stroke-width='2'/%3E%3Ctext x='100' y='100' text-anchor='middle' font-size='60'%3E%F0%9F%93%84%3C/text%3E%3Ctext x='100' y='150' text-anchor='middle' font-size='18' fill='%23c9a227' font-family='monospace' font-weight='bold'%3EPDF%3C/text%3E%3Ctext x='100' y='180' text-anchor='middle' font-size='11' fill='%238b8d95'%3EListo para procesar%3C/text%3E%3C/svg%3E";
+  preview.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 260' width='200' height='260'%3E%3Crect width='200' height='260' rx='12' fill='%2314161f' stroke='%23c9a227' stroke-width='2'/%3E%3Ctext x='100' y='100' text-anchor='middle' font-size='60'%3E%F0%9F%93%84%3C/text%3E%3Ctext x='100' y='150' text-anchor='middle' font-size='18' fill='%23c9a227' font-family='monospace' font-weight='bold'%3EPDF%3C/text%3E%3Ctext x='100' y='180' text-anchor='middle' font-size='11' fill='%238b8d95'%3E" + encodeURIComponent(tr('file.pdfReady')) + "%3C/text%3E%3C/svg%3E";
   preview.classList.remove('hidden');
 }
 
@@ -1706,10 +1706,10 @@ function showPreviewPDF() {
 function readNominaFile(file) {
   return new Promise((resolve, reject) => {
     const sniffer = new FileReader();
-    sniffer.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    sniffer.onerror = () => reject(new Error(tr('file.cantRead')));
     sniffer.onload = () => {
       const reader = new FileReader();
-      reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+      reader.onerror = () => reject(new Error(tr('file.cantRead')));
       if (isPDF(sniffer.result)) {
         reader.onload = () => resolve({ base64: reader.result.split(',')[1], type: 'application/pdf', name: file.name || '' });
         reader.readAsDataURL(file);
@@ -1762,7 +1762,7 @@ async function handleFile(file) {
     if (f.type === 'application/pdf') {
       showPreviewPDF();
       document.getElementById('uploadError').innerHTML =
-        '<div class="alert alert-info" style="margin-top:8px">📄 PDF detectado — se enviará directamente a Gemini</div>';
+        `<div class="alert alert-info" style="margin-top:8px">${esc(tr('file.pdfDetected'))}</div>`;
     } else {
       const preview = document.getElementById('previewImg');
       preview.src = f.dataUrl;
@@ -1773,7 +1773,7 @@ async function handleFile(file) {
     document.getElementById('uploadBtns').classList.remove('hidden');
   } catch (e) {
     document.getElementById('uploadError').innerHTML =
-      '<div class="alert alert-error" style="margin-top:16px"><b>Formato no reconocido</b><br>Prueba con JPG, PNG o PDF.</div>';
+      `<div class="alert alert-error" style="margin-top:16px">${tr('file.badFormatHtml')}</div>`;
   }
 }
 
@@ -1818,13 +1818,12 @@ async function processImage() {
   if (!imageBase64) return;
   if (!navigator.onLine) {
     document.getElementById('uploadError').innerHTML = `
-      <div class="alert alert-error" style="margin-top:16px"><div><b>Sin conexión</b><br>
-      Para leer la nómina hace falta internet (la lectura la hace Gemini). Cuando vuelvas a tener conexión, pulsa otra vez "Procesar".</div></div>`;
+      <div class="alert alert-error" style="margin-top:16px"><div>${tr('proc.offlineHtml')}</div></div>`;
     return;
   }
   const btn = document.getElementById('processBtn');
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Extrayendo datos... <span id="processStatus" style="font-weight:400;opacity:0.7"></span>';
+  btn.innerHTML = `<span class="spinner"></span> ${esc(tr('proc.extracting'))} <span id="processStatus" style="font-weight:400;opacity:0.7"></span>`;
   document.getElementById('uploadError').innerHTML = '';
 
   try {
@@ -1837,12 +1836,12 @@ async function processImage() {
     if (batchErrorKind(e) === 'key') showApiBar();
     document.getElementById('uploadError').innerHTML = `
       <div class="alert alert-error" style="margin-top:16px">
-        <div><b>Error</b><pre style="margin:8px 0 0;white-space:pre-wrap;font-size:12px;color:inherit;background:none;border:none;padding:0;font-family:inherit">${esc(e.message)}</pre></div>
+        <div><b>${esc(tr('proc.error'))}</b><pre style="margin:8px 0 0;white-space:pre-wrap;font-size:12px;color:inherit;background:none;border:none;padding:0;font-family:inherit">${esc(e.message)}</pre></div>
       </div>`;
   }
 
   btn.disabled = false;
-  btn.innerHTML = '✓ Procesar con Gemini IA';
+  btn.textContent = tr('up.process');
 }
 
 // Normaliza mes/año, importes y tipo de nómina antes de la verificación. Devuelve la detección del tipo.
@@ -1902,7 +1901,7 @@ async function readWithChecks(base64, mediaType, onStatus = updateProcessStatus,
   const pdfMiss1 = docMissingStrong(first);   // v2.12.0: una cifra que no está en el PDF también pide otra lectura
   if (!errs1.length && !pdfMiss1) return { data: first, detection: det1, info: { reads: 1 } };
 
-  onStatus(errs1.length ? 'Los importes no cuadran: segunda lectura…' : 'Alguna cifra no está en el PDF: segunda lectura…');
+  onStatus(tr(errs1.length ? 'proc.retrySums' : 'proc.retryPdf'));
   let second, det2;
   try {
     second = await callGemini(base64, mediaType, feedbackFor(first), onStatus);
@@ -1959,15 +1958,15 @@ function renderTypeCard(d) {
   let info = '';
   if (typeDetection?.saved) {
     info = typeDetection.manual
-      ? `✋ Cambiado por ti (estaba guardada como ${esc(PAY_TYPES[typeDetection.type].label.toLowerCase())}).`
-      : `📌 Guardada como <strong>${esc(PAY_TYPES[typeDetection.type].label.toLowerCase())}</strong>. Si no es así, cámbialo.`;
+      ? esc(tr('type.changed', { type: PAY_TYPES[typeDetection.type].label.toLowerCase() }))
+      : trHtml('type.savedAsHtml', { type: PAY_TYPES[typeDetection.type].label.toLowerCase() });
   } else if (typeDetection?.unsure && !typeDetection.manual) {
     info = `<span class="type-ask">❓ ${esc(tr('typeAsk', { why: typeDetection.reason }))}</span>`;   // v2.15.0
   } else if (typeDetection) {
     const det = PAY_TYPES[typeDetection.type].label.toLowerCase();
     info = typeDetection.manual
-      ? `✋ Elegido por ti (la detección automática decía: ${det}, porque ${esc(typeDetection.reason)})`
-      : `🔎 Detectada como <strong>${det}</strong>: ${esc(typeDetection.reason)}. Si no es así, cámbialo.`;
+      ? esc(tr('type.chosen', { type: det, why: typeDetection.reason }))
+      : trHtml('type.detectedHtml', { type: det, why: typeDetection.reason });
   }
   return `
     <div class="card" id="typeCard" style="${t !== 'ordinaria' || typeNeedsChoice() ? 'border-color:var(--warning)' : ''}">
@@ -1979,7 +1978,7 @@ function renderTypeCard(d) {
       <div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.5">${info}</div>
       ${t !== 'ordinaria' || typeNeedsChoice() ? `<div style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5">💡 ${esc(tr('payHelp'))}</div>` : ''}
       ${typeClashHtml(d)}
-      ${validPeriod(d) ? `<div style="font-size:12px;color:var(--text-dim);margin-top:8px">Se guardará como: <strong style="color:var(--text)">${esc(payName(d))}</strong></div>`
+      ${validPeriod(d) ? `<div style="font-size:12px;color:var(--text-dim);margin-top:8px">${trHtml('type.willSaveHtml', { name: payName(d) })}</div>`
         : `<div class="type-ask" style="margin-top:8px">⚠ ${esc(tr('noPeriod'))}</div>`}
     </div>`;
 }
@@ -1993,9 +1992,7 @@ function typeClashHtml(d) {
   if (!it) return '';
   const others = batch.items.filter(o => o !== it && o.status === 'read' && typeClash(o.data, d));
   if (!others.length) return '';
-  return `<div class="type-clash">⚠ En la bandeja hay otra nómina <strong>mensual</strong> de ${esc(`${d.period.month} ${d.period.year}`)}
-    con otros importes (bruto ${others.map(o => fmt(o.data.totals?.grossTotal) + ' €').join(', ')}).
-    Si una de las dos es de <strong>atrasos</strong> o una <strong>paga extra</strong>, elige aquí su tipo.</div>`;
+  return `<div class="type-clash">${trHtml('type.clashHtml', { period: `${monthName(d.period.month)} ${d.period.year}`, gross: others.map(o => fmt(o.data.totals?.grossTotal) + ' €').join(', ') })}</div>`;
 }
 
 // ═══════════ RENDER VERIFICATION (FASE 1) ═══════════
@@ -2949,7 +2946,7 @@ function loadBatch() {
   // Si la app se cerró mientras leía, esas vuelven a la cola. No se sigue gastando lecturas sin que la persona lo pida.
   let pending = false;
   batch.items.forEach(it => { if (it.status === 'reading') it.status = 'queued'; if (it.status === 'queued') pending = true; });
-  if (pending) batchPause = { kind: 'reopened', text: 'La app se cerró antes de terminar de leer.' };
+  if (pending) batchPause = { kind: 'reopened', text: batchPauseText('reopened') };
 }
 
 function saveBatch() {
@@ -3004,14 +3001,14 @@ async function addToBatch(files, ready = []) {
   let skipped = 0;
   const hashes = new Set(batch.items.map(it => it.hash).filter(Boolean));
   let seq = batch.items.reduce((m, it) => Math.max(m, +it.seq || 0), 0);
-  batchAdding = 'Preparando…';
+  batchAdding = tr('batch.preparing');
   showView('upload');
   try {
     for (let i = 0; i < entries.length; i++) {
       if (batch.items.length >= BATCH_MAX) { skipped = entries.length - i; break; }
-      batchAdding = `Preparando ${i + 1} de ${entries.length}…`;
+      batchAdding = tr('batch.preparingN', { i: i + 1, n: entries.length });
       renderBatchIfVisible();
-      const label = entries[i].ready?.name || entries[i].file?.name || 'archivo';
+      const label = entries[i].ready?.name || entries[i].file?.name || tr('batch.file');
       let f;
       try { f = entries[i].ready || await readNominaFile(entries[i].file); }
       catch { failed.push(label); continue; }
@@ -3097,7 +3094,7 @@ async function batchWorker() {
     saveBatch(); batchTick();
     try {
       const rec = await getDoc(it.docKey);
-      if (!rec) throw new Error('El documento ya no está en este dispositivo.');
+      if (!rec) throw new Error(tr('batch.docGone'));
       const r = await readWithChecks(arrayBufferToB64(rec.data), rec.type, msg => { it.note = msg; renderBatchIfVisible(); }, it.name || rec.name || '');
       if (!batch.items.includes(it)) continue;   // la quitaron de la bandeja mientras se leía
       Object.assign(it, { status: 'read', data: r.data, detection: r.detection, info: r.info, note: '' });
@@ -3126,6 +3123,7 @@ function batchErrorKind(e) {
   const m = String(e?.message || e || '').split('\n').filter(l => !l.trim().startsWith('🔧')).join('\n');
   if (!navigator.onLine) return 'offline';
   if (e?.kind === 'credit' || /prepayment credits|saldo de Gemini/i.test(m)) return 'credit';   // v2.8.9: sin saldo (402)
+  if (e?.kind === 'key') return 'key';   // v2.27.0: falta la clave o tiene caracteres raros (keyError), en cualquier idioma
   // v2.8.12: por el código HTTP de cada modelo (callGemini lo guarda en e.httpStatuses), no por números sueltos en el
   // texto: un JSON roto «at position 403» salía como error de la clave, y un 403 sin las palabras de siempre, no salía.
   const st = Array.isArray(e?.httpStatuses) ? e.httpStatuses : [];
@@ -3140,23 +3138,21 @@ function batchErrorKind(e) {
 // El error en pocas palabras: sin «Todos los modelos fallaron» ni el nombre de cada modelo, y sin repetir
 function errorFirstLines(e) {
   const lines = String(e?.message || e || '').split('\n').map(l => l.trim())
-    .filter(l => l && !l.startsWith('🔧') && !/^Todos los modelos fallaron/.test(l))
+    .filter(l => l && !l.startsWith('🔧') && !ALL_FAILED_HEADS().some(h => l.startsWith(h)))
     .map(l => l.replace(/^❌\s*[\w.-]+:\s*/, ''));
   return [...new Set(lines)].slice(0, 2).join(' · ').slice(0, 240);
 }
 
-const BATCH_PAUSE_TEXT = {
-  offline: 'Sin conexión. La lectura sigue sola cuando vuelva internet.',
-  network: 'Se ha cortado la conexión con Gemini.',
-  key: 'Gemini no acepta la clave: falta, está mal copiada o no vale para esta web. Revísala en la barra de arriba (está desplegada) y pulsa «Reanudar».',
-  limit: 'Gemini ha dejado de leer: la clave ha llegado a su límite de uso o de gasto. Prueba más tarde o revisa el límite.',
-  credit: 'Se ha acabado el saldo de Gemini de esta clave. Cuando se recargue (si la clave te la dio otra persona, avísale), pulsa «Reanudar». No se ha perdido nada.',
-  errors: 'Dos lecturas seguidas han fallado. Mira el error y prueba otra vez.',
-  reopened: 'La app se cerró antes de terminar de leer.'
-};
+// v2.27.0: la primera línea de «Todos los modelos fallaron» en cada idioma (errorFirstLines la quita)
+const ALL_FAILED_HEADS = () => Object.keys(LANGS).map(l => tr('gem.allFailed', {}, l).split('\n')[0]);
+
+// Por qué se ha parado la lectura (v2.27.0: claves batch.pause.<motivo>; se escribe al pintar, en el idioma de la app)
+function batchPauseText(kind) {
+  return I18N.es['batch.pause.' + kind] ? tr('batch.pause.' + kind) : tr('batch.paused');
+}
 
 function pauseBatch(kind, e) {
-  batchPause = { kind, text: BATCH_PAUSE_TEXT[kind] || 'Lectura en pausa.', detail: e ? errorFirstLines(e) : '' };
+  batchPause = { kind, text: batchPauseText(kind), detail: e ? errorFirstLines(e) : '' };
   if (kind === 'key') showApiBar();
   batchTick();
 }
@@ -3242,22 +3238,22 @@ function batchTypeClashes(it) {
 }
 
 function batchChips(it) {
-  if (it.status === 'waiting') return [['mu', 'Sin leer']];
-  if (it.status === 'queued') return [['mu', 'En cola']];
-  if (it.status === 'reading') return [['mu', 'Leyendo']];
-  if (it.status === 'error') return [['err', 'Error']];
+  if (it.status === 'waiting') return [['mu', tr('batch.chip.waiting')]];
+  if (it.status === 'queued') return [['mu', tr('batch.chip.queued')]];
+  if (it.status === 'reading') return [['mu', tr('batch.chip.reading')]];
+  if (it.status === 'error') return [['err', tr('batch.chip.error')]];
   const d = it.data, chips = [];
-  if (!validPeriod(d)) chips.push(['err', 'Sin fecha']);
+  if (!validPeriod(d)) chips.push(['err', tr('batch.chip.noDate')]);
   if (pageWithoutNet(it)) chips.push(['warn', tr('chipNoNet')]);
-  if (batch.items.some(o => o !== it && o.status === 'read' && sameSlot(o.data, d))) chips.push(['warn', 'Repetida']);
-  else if (batchTypeClashes(it).length) chips.push(['warn', 'Revisa el tipo']);
+  if (batch.items.some(o => o !== it && o.status === 'read' && sameSlot(o.data, d))) chips.push(['warn', tr('batch.chip.repeated')]);
+  else if (batchTypeClashes(it).length) chips.push(['warn', tr('batch.chip.checkType')]);
   const saved = validPeriod(d) ? payrolls.filter(p => monthKey(p) === monthKey(d) && payTypeOf(p) === payTypeOf(d)) : [];
-  if (saved.some(p => sameAmounts(p, d))) chips.push(['warn', 'Ya guardada']);
-  else if (saved.length && payTypeOf(d) === 'ordinaria') chips.push(['warn', 'Mes ocupado']);
+  if (saved.some(p => sameAmounts(p, d))) chips.push(['warn', tr('batch.chip.saved')]);
+  else if (saved.length && payTypeOf(d) === 'ordinaria') chips.push(['warn', tr('batch.chip.busy')]);
   const checks = checkPayroll(d);
-  if (checks.some(c => c.level === 'err')) chips.push(['err', 'No cuadra']);
-  else if (realChecks(checks).length) chips.push(['warn', 'Con avisos']);
-  else chips.push(['ok', 'Cuadra']);
+  if (checks.some(c => c.level === 'err')) chips.push(['err', tr('batch.chip.bad')]);
+  else if (realChecks(checks).length) chips.push(['warn', tr('batch.chip.warn')]);
+  else chips.push(['ok', tr('batch.chip.ok')]);
   return chips;
 }
 
@@ -3270,29 +3266,31 @@ function renderBatchIfVisible() {
 
 function batchRowHtml(it) {
   const chips = batchChips(it).map(([c, t]) => `<span class="chip ${c}">${esc(t)}</span>`).join('');
-  const del = `<button class="icon-btn" title="Quitar de la bandeja" aria-label="Quitar de la bandeja" onclick="event.stopPropagation();removeBatchItemAsk(${jsArg(it.uid)})">✕</button>`;
-  const file = it.name || (it.type === 'application/pdf' ? 'PDF' : 'Foto');
+  const del = `<button class="icon-btn" title="${escAttr(tr('batch.remove'))}" aria-label="${escAttr(tr('batch.remove'))}" onclick="event.stopPropagation();removeBatchItemAsk(${jsArg(it.uid)})">✕</button>`;
+  const file = it.name || (it.type === 'application/pdf' ? 'PDF' : tr('batch.photo'));
   if (it.status === 'read') {
     const d = it.data;
     return `<div class="batch-row open" onclick="openBatchItem(${jsArg(it.uid)})">
       <div class="batch-main">
-        <div class="batch-name">${validPeriod(d) ? esc(`${d.period.month} ${d.period.year}`) : 'Mes sin leer'}${payTypeOf(d) !== 'ordinaria' ? `<span class="type-badge">· ${esc(PAY_TYPES[payTypeOf(d)].label)}</span>` : ''}</div>
-        <div class="batch-sub">Bruto ${fmt(d.totals?.grossTotal)} € · Neto ${fmt(d.totals?.netPay)} €</div>
+        <div class="batch-name">${validPeriod(d) ? esc(`${monthName(d.period.month)} ${d.period.year}`) : esc(tr('batch.noMonth'))}${payTypeOf(d) !== 'ordinaria' ? `<span class="type-badge">· ${esc(PAY_TYPES[payTypeOf(d)].label)}</span>` : ''}</div>
+        <div class="batch-sub">${esc(tr('batch.amounts', { gross: fmt(d.totals?.grossTotal), net: fmt(d.totals?.netPay) }))}</div>
         <div class="batch-file" title="${escAttr(file)}">${esc(file)}</div>
         ${joinHtml(it)}
       </div>
       <div class="chips">${chips}</div>${del}
     </div>`;
   }
-  const sub = it.status === 'reading' ? `<span class="spinner light"></span>${esc(it.note && /segunda/.test(it.note) ? 'Segunda lectura (la primera no cuadraba)…' : 'Leyendo…')}`
-    : it.status === 'error' ? esc(it.error || 'No se ha podido leer.')
-    : it.status === 'queued' ? 'Esperando su turno'
-    : `${it.type === 'application/pdf' ? 'PDF' : 'Foto'} · ${fmtBytes(it.size)}`;
+  // v2.27.0: la nota de la segunda lectura se reconoce por su clave, no por la palabra «segunda» (en ca y en, otra)
+  const second = it.note && ['proc.retrySums', 'proc.retryPdf'].some(k => it.note === tr(k));
+  const sub = it.status === 'reading' ? `<span class="spinner light"></span>${esc(tr(second ? 'batch.second' : 'batch.reading'))}`
+    : it.status === 'error' ? esc(it.error || tr('batch.readFail'))
+    : it.status === 'queued' ? esc(tr('batch.waitTurn'))
+    : `${it.type === 'application/pdf' ? 'PDF' : esc(tr('batch.photo'))} · ${fmtBytes(it.size)}`;
   return `<div class="batch-row">
     <div class="batch-main">
       <div class="batch-name">${esc(file)}</div>
       <div class="batch-sub">${sub}</div>
-      ${it.status === 'error' ? `<div class="doc-actions"><button class="btn btn-secondary btn-sm" onclick="retryBatchItem(${jsArg(it.uid)})">🔁 Reintentar</button></div>` : ''}
+      ${it.status === 'error' ? `<div class="doc-actions"><button class="btn btn-secondary btn-sm" onclick="retryBatchItem(${jsArg(it.uid)})">${esc(tr('batch.retry'))}</button></div>` : ''}
       ${joinHtml(it)}
     </div>
     <div class="chips">${chips}</div>${del}
@@ -3305,10 +3303,10 @@ function renderBatch() {
   updateBatchBadge();
   const items = batchOrdered();
   const noteHtml = pagesAskHtml() + (batchNote ? `<div class="alert alert-info"><div style="flex:1">
-      ${batchNote.repeated.length ? `<div>↺ ${batchNote.repeated.length === 1 ? 'Un archivo ya estaba' : `${batchNote.repeated.length} archivos ya estaban`} en la bandeja y no se ha${batchNote.repeated.length === 1 ? '' : 'n'} añadido otra vez: ${esc(batchNote.repeated.join(', '))}.</div>` : ''}
-      ${batchNote.failed.length ? `<div>✗ No se ha${batchNote.failed.length === 1 ? '' : 'n'} podido abrir: ${esc(batchNote.failed.join(', '))}. Prueba con JPG, PNG o PDF.</div>` : ''}
-      ${batchNote.skipped ? `<div>La bandeja admite ${BATCH_MAX} documentos a la vez: se ${batchNote.skipped === 1 ? 'ha quedado fuera 1' : `han quedado fuera ${batchNote.skipped}`}. Añádelos cuando termines con estos.</div>` : ''}
-    </div><button class="icon-btn" aria-label="Cerrar aviso" onclick="batchNote=null;renderBatch()">✕</button></div>` : '');
+      ${batchNote.repeated.length ? `<div>↺ ${esc(tr(batchNote.repeated.length === 1 ? 'batch.repeated1' : 'batch.repeatedN', { n: batchNote.repeated.length, list: batchNote.repeated.join(', ') }))}</div>` : ''}
+      ${batchNote.failed.length ? `<div>✗ ${esc(tr(batchNote.failed.length === 1 ? 'batch.failed1' : 'batch.failedN', { list: batchNote.failed.join(', ') }))}</div>` : ''}
+      ${batchNote.skipped ? `<div>${esc(tr(batchNote.skipped === 1 ? 'batch.skipped1' : 'batch.skippedN', { max: BATCH_MAX, n: batchNote.skipped }))}</div>` : ''}
+    </div><button class="icon-btn" aria-label="${escAttr(tr('batch.closeNote'))}" onclick="batchNote=null;renderBatch()">✕</button></div>` : '');
   const addBtns = `<div class="doc-actions">
       <button class="btn btn-secondary btn-sm" onclick="document.getElementById('fileInput').click()">${esc(tr('addBtn'))}</button>
     </div>`;
@@ -3320,15 +3318,15 @@ function renderBatch() {
     el.innerHTML = `${noteHtml}
       <div class="card" style="text-align:center;padding:28px 20px">
         <div style="font-size:30px;margin-bottom:8px">✓</div>
-        <div style="font-size:16px;font-weight:800;color:var(--success)">${n === 1 ? '1 nómina guardada' : `${n} nóminas guardadas`}</div>
-        ${batch.discarded ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px">${batch.discarded === 1 ? '1 descartada' : `${batch.discarded} descartadas`}</div>` : ''}
+        <div style="font-size:16px;font-weight:800;color:var(--success)">${esc(tr(n === 1 ? 'batch.saved1' : 'batch.savedN', { n }))}</div>
+        ${batch.discarded ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px">${esc(tr(batch.discarded === 1 ? 'batch.discarded1' : 'batch.discardedN', { n: batch.discarded }))}</div>` : ''}
         ${batch.copies ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px" id="batchCopies">${esc(copiesText())}</div>` : ''}
         ${batch.resplits ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px" id="batchResplits">${esc(resplitsText())}</div>` : ''}
-        <p style="font-size:12px;color:var(--text-dim);margin:14px auto 0;max-width:420px;line-height:1.6">Están solo en este dispositivo. Cuando acabes, descarga el <strong style="color:var(--text)">backup completo</strong> y guárdalo en Drive.</p>
+        <p style="font-size:12px;color:var(--text-dim);margin:14px auto 0;max-width:420px;line-height:1.6">${tr('batch.onlyHereHtml')}</p>
         <div class="btn-group">
-          ${years.slice(-3).map(y => `<button class="btn btn-primary" onclick="currentYear=${jsArg(y)};showView('annual')">📊 Ver el año ${esc(y)}</button>`).join('')}
-          <button class="btn btn-secondary" onclick="showView('dashboard')">Ir al Panel</button>
-          <button class="btn btn-secondary" onclick="batch=emptyBatch();saveBatch();renderUploadArea()">Subir más</button>
+          ${years.slice(-3).map(y => `<button class="btn btn-primary" onclick="currentYear=${jsArg(y)};showView('annual')">${esc(tr('batch.seeYear', { y }))}</button>`).join('')}
+          <button class="btn btn-secondary" onclick="showView('dashboard')">${esc(tr('batch.toPanel'))}</button>
+          <button class="btn btn-secondary" onclick="batch=emptyBatch();saveBatch();renderUploadArea()">${esc(tr('batch.uploadMore'))}</button>
         </div>
       </div>`;
     return;
@@ -3340,16 +3338,14 @@ function renderBatch() {
   let top = '';
   if (batchAdding) {
     top = `<div class="card"><div style="display:flex;gap:10px;align-items:center"><span class="spinner light"></span><strong>${esc(batchAdding)}</strong></div>
-      <div class="batch-sub" style="margin-top:6px">Se guardan en este dispositivo antes de leerlas.</div></div>`;
+      <div class="batch-sub" style="margin-top:6px">${esc(tr('batch.storing'))}</div></div>`;
   } else if (!started) {
     top = `<div class="card">
-      <div style="font-size:14px;font-weight:800;color:var(--text)">${waiting === 1 ? '1 documento listo' : `${waiting} documentos listos`} para leer</div>
+      <div style="font-size:14px;font-weight:800;color:var(--text)">${esc(tr(waiting === 1 ? 'batch.ready1' : 'batch.readyN', { n: waiting }))}</div>
       <p style="font-size:12px;color:var(--text-dim);line-height:1.6;margin:8px 0 0">
-        Gemini hará ${waiting === 1 ? 'una lectura' : `unas ${waiting} lecturas`} (menos de 1 céntimo cada una con una clave de pago; alguna puede necesitar una segunda lectura).
-        Las lee de dos en dos y <strong style="color:var(--text)">puedes empezar a revisar en cuanto esté la primera</strong>.
-        La bandeja se guarda en este dispositivo: si cierras la app, sigue aquí.</p>
+        ${tr(waiting === 1 ? 'batch.cost1Html' : 'batch.costNHtml', { n: waiting })}</p>
       <div class="btn-group" style="justify-content:flex-start">
-        <button class="btn btn-primary" id="batchStartBtn" onclick="startBatch()">▶ Leer ${waiting === 1 ? 'la nómina' : `las ${waiting}`}</button>
+        <button class="btn btn-primary" id="batchStartBtn" onclick="startBatch()">${esc(tr(waiting === 1 ? 'batch.start1' : 'batch.startN', { n: waiting }))}</button>
       </div>
     </div>`;
   } else {
@@ -3358,29 +3354,29 @@ function renderBatch() {
     const active = (queued || reading) && !batchPause;
     const pct = total ? Math.round(done / total * 100) : 100;
     top = `<div class="card">
-      <div style="font-size:14px;font-weight:800;color:var(--text)">${active ? `Leyendo… ${done} de ${total}` : (queued ? `Leídas ${done} de ${total}` : `✓ Leídas todas (${total})`)}</div>
+      <div style="font-size:14px;font-weight:800;color:var(--text)">${esc(tr(active ? 'batch.progReading' : (queued ? 'batch.progRead' : 'batch.progAll'), { done, total }))}</div>
       <div class="batch-progress"><div style="width:${pct}%"></div></div>
       <div class="batch-sub">${active
-        ? (('wakeLock' in navigator) ? 'La pantalla se queda encendida mientras lee. ' : 'No cierres la app mientras lee. ') + 'Puedes ir revisando las que ya están.'
-        : `${read === 1 ? 'Queda 1 por revisar' : `Quedan ${read} por revisar`}${batch.saved.length ? ` · ${batch.saved.length} guardada${batch.saved.length === 1 ? '' : 's'}` : ''}${errors ? ` · ${errors} con error` : ''}.`}</div>
+        ? esc(tr(('wakeLock' in navigator) ? 'batch.screenOn' : 'batch.dontClose') + tr('batch.reviewWhile'))
+        : esc(`${tr(read === 1 ? 'batch.left1' : 'batch.leftN', { n: read })}${batch.saved.length ? tr(batch.saved.length === 1 ? 'batch.savedSmall1' : 'batch.savedSmallN', { n: batch.saved.length }) : ''}${errors ? tr('batch.withErr', { n: errors }) : ''}.`)}</div>
       ${batch.copies ? `<div class="batch-sub" id="batchCopies">${esc(copiesText())}</div>` : ''}
       ${batch.resplits ? `<div class="batch-sub" id="batchResplits">${esc(resplitsText())}</div>` : ''}
-      ${batchPause && (queued || waiting) ? `<div class="batch-pause">⏸ <strong>Lectura en pausa.</strong> ${esc(batchPause.text)}
+      ${batchPause && (queued || waiting) ? `<div class="batch-pause">⏸ <strong>${esc(tr('batch.paused'))}</strong> ${esc(batchPauseText(batchPause.kind))}
           ${batchPause.detail ? `<div class="batch-detail">${esc(batchPause.detail)}</div>` : ''}
-          <div class="doc-actions"><button class="btn btn-primary btn-sm" id="batchResumeBtn" onclick="resumeBatch()">▶ Reanudar</button></div>
+          <div class="doc-actions"><button class="btn btn-primary btn-sm" id="batchResumeBtn" onclick="resumeBatch()">${esc(tr('batch.resume'))}</button></div>
         </div>` : ''}
       ${read ? `<div class="btn-group" style="justify-content:flex-start">
-          <button class="btn btn-primary" id="batchReviewBtn" onclick="openBatchItem(${jsArg(batchReadOrdered()[0].uid)})">Revisar ${read === 1 ? 'la nómina leída' : `las ${read} leídas`} →</button>
-        </div>` : (reading ? `<div class="batch-sub" style="margin-top:8px">En cuanto esté leída la primera podrás revisarla.</div>` : '')}
+          <button class="btn btn-primary" id="batchReviewBtn" onclick="openBatchItem(${jsArg(batchReadOrdered()[0].uid)})">${esc(tr(read === 1 ? 'batch.review1' : 'batch.reviewN', { n: read }))}</button>
+        </div>` : (reading ? `<div class="batch-sub" style="margin-top:8px">${esc(tr('batch.firstSoon'))}</div>` : '')}
     </div>`;
   }
 
   el.innerHTML = `${noteHtml}${top}
     <div class="card">
-      <h3 style="margin:0 0 6px;font-size:13px;color:var(--accent)">BANDEJA · ${items.length}</h3>
+      <h3 style="margin:0 0 6px;font-size:13px;color:var(--accent)">${esc(tr('batch.title', { n: items.length }))}</h3>
       <div class="batch-list">${items.map(batchRowHtml).join('')}</div>
       ${addBtns}
-      <div style="margin-top:12px;text-align:right"><button class="link-btn" onclick="clearBatchAsk()">Vaciar la bandeja</button></div>
+      <div style="margin-top:12px;text-align:right"><button class="link-btn" onclick="clearBatchAsk()">${esc(tr('batch.empty'))}</button></div>
     </div>`;
 }
 
@@ -3391,9 +3387,9 @@ function renderBatchReminder() {
   if (!batch.items.length) { el.innerHTML = ''; return; }
   const read = batchCount('read'), unread = batch.items.length - read;
   const reading = isBatchReading();
-  el.innerHTML = `<div class="batch-reminder">📥 <strong>Tienes ${batch.items.length === 1 ? '1 nómina' : `${batch.items.length} nóminas`} en la bandeja:</strong>
-    ${read ? `${read} por revisar` : ''}${read && unread ? ' y ' : ''}${unread ? `${unread} ${reading ? 'leyéndose' : 'sin leer'}` : ''}. No están guardadas hasta que las confirmes.
-    <div class="doc-actions"><button class="btn btn-primary btn-sm" onclick="showView('upload')">Continuar →</button></div></div>`;
+  el.innerHTML = `<div class="batch-reminder">📥 <strong>${esc(tr(batch.items.length === 1 ? 'batch.remind1' : 'batch.remindN', { n: batch.items.length }))}</strong>
+    ${esc(`${read ? tr('batch.toReview', { n: read }) : ''}${read && unread ? tr('batch.and') : ''}${unread ? tr(reading ? 'batch.beingRead' : 'batch.unread', { n: unread }) : ''}. ${tr('batch.notSaved')}`)}
+    <div class="doc-actions"><button class="btn btn-primary btn-sm" onclick="showView('upload')">${esc(tr('batch.continue'))}</button></div></div>`;
 }
 
 // ── Quitar ──
@@ -3406,7 +3402,7 @@ async function removeBatchItem(it, { keepDoc = false } = {}) {
 async function removeBatchItemAsk(uid) {
   const it = batch.items.find(x => x.uid === uid);
   if (!it) return;
-  if (it.status === 'read' && !confirm(`¿Quitar ${validPeriod(it.data) ? `${it.data.period.month} ${it.data.period.year}` : 'esta nómina'} de la bandeja?\n\nNo se guardará y se borra su documento de este dispositivo.`)) return;
+  if (it.status === 'read' && !confirm(tr('batch.removeAsk', { what: validPeriod(it.data) ? `${monthName(it.data.period.month)} ${it.data.period.year}` : tr('batch.thisOne') }))) return;
   await removeBatchItem(it);
   if (it.status === 'read') batch.discarded++;   // quitar un archivo antes de leerlo no cuenta como descartada
   saveBatch();
@@ -3415,7 +3411,7 @@ async function removeBatchItemAsk(uid) {
 
 async function clearBatchAsk() {
   const n = batch.items.length;
-  if (n && !confirm(`¿Vaciar la bandeja?\n\nSe quitan ${n === 1 ? '1 nómina sin guardar' : `${n} nóminas sin guardar`} y sus documentos de este dispositivo. Las que ya has guardado no se tocan.`)) return;
+  if (n && !confirm(tr(n === 1 ? 'batch.clearAsk1' : 'batch.clearAskN', { n }))) return;
   const items = batch.items;
   batch = emptyBatch();
   batchPause = null;
@@ -3473,12 +3469,12 @@ function batchNavHtml(d) {
   const pos = all.findIndex(x => x.uid === batchReviewUid) + 1;
   const unread = batch.items.length - list.length;
   return `<div class="batch-nav">
-      <button class="btn btn-secondary ${i > 0 ? '' : 'off'}" aria-label="Anterior" onclick="batchStep(-1)">‹</button>
+      <button class="btn btn-secondary ${i > 0 ? '' : 'off'}" aria-label="${escAttr(tr('batch.prev'))}" onclick="batchStep(-1)">‹</button>
       <div class="batch-nav-title"><strong>${esc(payName(d))}</strong>
-        <span>Bandeja: ${pos} de ${all.length}${unread ? ` · ${unread} sin leer todavía` : ''}</span></div>
-      <button class="btn btn-secondary ${i >= 0 && i < list.length - 1 ? '' : 'off'}" aria-label="Siguiente" onclick="batchStep(1)">›</button>
+        <span>${esc(tr('batch.navPos', { pos, all: all.length }) + (unread ? tr('batch.navUnread', { n: unread }) : ''))}</span></div>
+      <button class="btn btn-secondary ${i >= 0 && i < list.length - 1 ? '' : 'off'}" aria-label="${escAttr(tr('batch.next'))}" onclick="batchStep(1)">›</button>
     </div>
-    <div class="batch-back"><button class="link-btn" onclick="backToBatch()">← Volver a la bandeja</button></div>`;
+    <div class="batch-back"><button class="link-btn" onclick="backToBatch()">${esc(tr('batch.back'))}</button></div>`;
 }
 
 function batchStep(dir) {
@@ -3504,7 +3500,7 @@ async function goToBatchItem(uid) {
 async function discardBatchItem(skipConfirm) {
   const it = batch.items.find(x => x.uid === batchReviewUid);
   if (!it) { backToBatch(); return; }
-  if (!skipConfirm && !confirm('¿Descartar esta nómina?\n\nNo se guardará y se borra su documento de este dispositivo.')) return;
+  if (!skipConfirm && !confirm(tr('batch.discardAsk'))) return;
   const next = batchNextUid();
   await removeBatchItem(it);
   batch.discarded++;
@@ -4926,6 +4922,367 @@ Object.assign(I18N.en, {
   "qr.title": "📱 Scan from your phone",
   "qr.desc": "Open the camera and point it at the QR code. The app will open with the key already set up.",
   "qr.close": "Close"
+});
+// v2.27.0: idioma de la app, tanda 2 (Subir, bandeja, procesar y errores de Gemini)
+Object.assign(I18N.es, {
+  "gem.noJson": "Gemini no devolvió un JSON válido. Intenta con otra foto más nítida.",
+  "gem.badJson": "Error leyendo la respuesta de Gemini (no es JSON válido): {msg}\n\nRespuesta recibida (primeros 500 caracteres):\n{text}",
+  "gem.noKey": "Falta la clave de Gemini (barra superior).\n\n→ Si alguien te ha pasado la app, pídele la clave o el enlace con la clave.\n→ Si quieres usar la tuya, aquí se explica cómo crearla: {url}",
+  "gem.oddKey": "La clave de Gemini tiene espacios o caracteres raros. Vuelve a pegarla en la barra superior: solo la clave, o el enlace entero que te pasaron.",
+  "gem.trying": "Probando {model}...",
+  "gem.httpErr": "Error {status}",
+  "gem.modelFail": "{model} falló ({status}), probando siguiente...",
+  "gem.notPayroll": "Gemini no devolvió los datos de la nómina en el formato esperado.",
+  "gem.ok": "✓ Extraído con {model}",
+  "gem.modelErr": "{model} error, probando siguiente...",
+  "gem.allFailed": "Todos los modelos fallaron:\n{errors}\n\n🔧 Si la clave te la dio otra persona, mándale este mensaje: el problema suele estar en la clave o en su límite de gasto.\n🔧 Si la clave es tuya y ves \"API key not valid\", \"limit: 0\" o \"quota\", aquí tienes qué hacer: {url}",
+  "gem.credit": "Se ha acabado el saldo de Gemini de esta clave (error 402): no se puede leer ninguna nómina hasta que se recargue.\n\n🔧 Si la clave te la dio otra persona, avísale: tiene que añadir crédito en su cuenta de Google AI Studio.\n🔧 Si la clave es tuya: en Google AI Studio (ai.studio/projects), en la facturación, añade crédito y vuelve a probar.\n\nGoogle: {msg}",
+  "file.keyLinkAsk": "Este enlace trae una clave de Gemini distinta de la que ya tienes.\n\nTu clave: {mine}\nLa del enlace: {link}\n\nSi la cambias, las nóminas que proceses a partir de ahora se leerán con la cuenta de Google de quien creó esa clave. Acepta solo si te la ha dado alguien de confianza (por ejemplo, quien te pasó la app).\n\n¿Cambiar la clave?",
+  "file.pdfReady": "Listo para procesar",
+  "file.cantRead": "No se pudo leer el archivo",
+  "file.pdfDetected": "📄 PDF detectado — se enviará directamente a Gemini",
+  "file.badFormatHtml": "<b>Formato no reconocido</b><br>Prueba con JPG, PNG o PDF.",
+  "proc.offlineHtml": "<b>Sin conexión</b><br> Para leer la nómina hace falta internet (la lectura la hace Gemini). Cuando vuelvas a tener conexión, pulsa otra vez \"Procesar\".",
+  "proc.extracting": "Extrayendo datos...",
+  "proc.error": "Error",
+  "proc.retrySums": "Los importes no cuadran: segunda lectura…",
+  "proc.retryPdf": "Alguna cifra no está en el PDF: segunda lectura…",
+  "type.changed": "✋ Cambiado por ti (estaba guardada como {type}).",
+  "type.savedAsHtml": "📌 Guardada como <strong>{type}</strong>. Si no es así, cámbialo.",
+  "type.chosen": "✋ Elegido por ti (la detección automática decía: {type}; motivo: {why})",
+  "type.detectedHtml": "🔎 Detectada como <strong>{type}</strong>: {why}. Si no es así, cámbialo.",
+  "type.willSaveHtml": "Se guardará como: <strong style=\"color:var(--text)\">{name}</strong>",
+  "type.clashHtml": "⚠ En la bandeja hay otra nómina <strong>mensual</strong> de {period} con otros importes (bruto {gross}). Si una de las dos es de <strong>atrasos</strong> o una <strong>paga extra</strong>, elige aquí su tipo.",
+  "batch.pause.reopened": "La app se cerró antes de terminar de leer.",
+  "batch.pause.offline": "Sin conexión. La lectura sigue sola cuando vuelva internet.",
+  "batch.pause.network": "Se ha cortado la conexión con Gemini.",
+  "batch.pause.key": "Gemini no acepta la clave: falta, está mal copiada o no vale para esta web. Revísala en la barra de arriba (está desplegada) y pulsa «Reanudar».",
+  "batch.pause.limit": "Gemini ha dejado de leer: la clave ha llegado a su límite de uso o de gasto. Prueba más tarde o revisa el límite.",
+  "batch.pause.credit": "Se ha acabado el saldo de Gemini de esta clave. Cuando se recargue (si la clave te la dio otra persona, avísale), pulsa «Reanudar». No se ha perdido nada.",
+  "batch.pause.errors": "Dos lecturas seguidas han fallado. Mira el error y prueba otra vez.",
+  "batch.paused": "Lectura en pausa.",
+  "batch.preparing": "Preparando…",
+  "batch.preparingN": "Preparando {i} de {n}…",
+  "batch.file": "archivo",
+  "batch.docGone": "El documento ya no está en este dispositivo.",
+  "batch.chip.waiting": "Sin leer",
+  "batch.chip.queued": "En cola",
+  "batch.chip.reading": "Leyendo",
+  "batch.chip.error": "Error",
+  "batch.chip.noDate": "Sin fecha",
+  "batch.chip.repeated": "Repetida",
+  "batch.chip.checkType": "Revisa el tipo",
+  "batch.chip.saved": "Ya guardada",
+  "batch.chip.busy": "Mes ocupado",
+  "batch.chip.bad": "No cuadra",
+  "batch.chip.warn": "Con avisos",
+  "batch.chip.ok": "Cuadra",
+  "batch.remove": "Quitar de la bandeja",
+  "batch.photo": "Foto",
+  "batch.noMonth": "Mes sin leer",
+  "batch.amounts": "Bruto {gross} € · Neto {net} €",
+  "batch.second": "Segunda lectura (la primera no cuadraba)…",
+  "batch.reading": "Leyendo…",
+  "batch.readFail": "No se ha podido leer.",
+  "batch.waitTurn": "Esperando su turno",
+  "batch.retry": "🔁 Reintentar",
+  "batch.repeated1": "Un archivo ya estaba en la bandeja y no se ha añadido otra vez: {list}.",
+  "batch.repeatedN": "{n} archivos ya estaban en la bandeja y no se han añadido otra vez: {list}.",
+  "batch.failed1": "No se ha podido abrir: {list}. Prueba con JPG, PNG o PDF.",
+  "batch.failedN": "No se han podido abrir: {list}. Prueba con JPG, PNG o PDF.",
+  "batch.skipped1": "La bandeja admite {max} documentos a la vez: se ha quedado fuera 1. Añádelos cuando termines con estos.",
+  "batch.skippedN": "La bandeja admite {max} documentos a la vez: se han quedado fuera {n}. Añádelos cuando termines con estos.",
+  "batch.closeNote": "Cerrar aviso",
+  "batch.saved1": "1 nómina guardada",
+  "batch.savedN": "{n} nóminas guardadas",
+  "batch.discarded1": "1 descartada",
+  "batch.discardedN": "{n} descartadas",
+  "batch.onlyHereHtml": "Están solo en este dispositivo. Cuando acabes, descarga el <strong style=\"color:var(--text)\">backup completo</strong> y guárdalo en Drive.",
+  "batch.seeYear": "📊 Ver el año {y}",
+  "batch.toPanel": "Ir al Panel",
+  "batch.uploadMore": "Subir más",
+  "batch.storing": "Se guardan en este dispositivo antes de leerlas.",
+  "batch.ready1": "1 documento listo para leer",
+  "batch.readyN": "{n} documentos listos para leer",
+  "batch.cost1Html": "Gemini hará una lectura (menos de 1 céntimo cada una con una clave de pago; alguna puede necesitar una segunda lectura). Las lee de dos en dos y <strong style=\"color:var(--text)\">puedes empezar a revisar en cuanto esté la primera</strong>. La bandeja se guarda en este dispositivo: si cierras la app, sigue aquí.",
+  "batch.costNHtml": "Gemini hará unas {n} lecturas (menos de 1 céntimo cada una con una clave de pago; alguna puede necesitar una segunda lectura). Las lee de dos en dos y <strong style=\"color:var(--text)\">puedes empezar a revisar en cuanto esté la primera</strong>. La bandeja se guarda en este dispositivo: si cierras la app, sigue aquí.",
+  "batch.start1": "▶ Leer la nómina",
+  "batch.startN": "▶ Leer las {n}",
+  "batch.progReading": "Leyendo… {done} de {total}",
+  "batch.progRead": "Leídas {done} de {total}",
+  "batch.progAll": "✓ Leídas todas ({total})",
+  "batch.screenOn": "La pantalla se queda encendida mientras lee. ",
+  "batch.dontClose": "No cierres la app mientras lee. ",
+  "batch.reviewWhile": "Puedes ir revisando las que ya están.",
+  "batch.left1": "Queda 1 por revisar",
+  "batch.leftN": "Quedan {n} por revisar",
+  "batch.savedSmall1": " · 1 guardada",
+  "batch.savedSmallN": " · {n} guardadas",
+  "batch.withErr": " · {n} con error",
+  "batch.resume": "▶ Reanudar",
+  "batch.review1": "Revisar la nómina leída →",
+  "batch.reviewN": "Revisar las {n} leídas →",
+  "batch.firstSoon": "En cuanto esté leída la primera podrás revisarla.",
+  "batch.title": "BANDEJA · {n}",
+  "batch.empty": "Vaciar la bandeja",
+  "batch.remind1": "Tienes 1 nómina en la bandeja:",
+  "batch.remindN": "Tienes {n} nóminas en la bandeja:",
+  "batch.toReview": "{n} por revisar",
+  "batch.and": " y ",
+  "batch.beingRead": "{n} leyéndose",
+  "batch.unread": "{n} sin leer",
+  "batch.notSaved": "No están guardadas hasta que las confirmes.",
+  "batch.continue": "Continuar →",
+  "batch.thisOne": "esta nómina",
+  "batch.removeAsk": "¿Quitar {what} de la bandeja?\n\nNo se guardará y se borra su documento de este dispositivo.",
+  "batch.clearAsk1": "¿Vaciar la bandeja?\n\nSe quitan 1 nómina sin guardar y sus documentos de este dispositivo. Las que ya has guardado no se tocan.",
+  "batch.clearAskN": "¿Vaciar la bandeja?\n\nSe quitan {n} nóminas sin guardar y sus documentos de este dispositivo. Las que ya has guardado no se tocan.",
+  "batch.prev": "Anterior",
+  "batch.next": "Siguiente",
+  "batch.navPos": "Bandeja: {pos} de {all}",
+  "batch.navUnread": " · {n} sin leer todavía",
+  "batch.back": "← Volver a la bandeja",
+  "batch.discardAsk": "¿Descartar esta nómina?\n\nNo se guardará y se borra su documento de este dispositivo."
+});
+Object.assign(I18N.ca, {
+  "gem.noJson": "Gemini no ha retornat un JSON vàlid. Prova-ho amb una altra foto més nítida.",
+  "gem.badJson": "Error en llegir la resposta de Gemini (no és un JSON vàlid): {msg}\n\nResposta rebuda (primers 500 caràcters):\n{text}",
+  "gem.noKey": "Falta la clau de Gemini (barra superior).\n\n→ Si algú t'ha passat l'app, demana-li la clau o l'enllaç amb la clau.\n→ Si vols fer servir la teva, aquí s'explica com crear-la: {url}",
+  "gem.oddKey": "La clau de Gemini té espais o caràcters estranys. Torna a enganxar-la a la barra superior: només la clau, o l'enllaç sencer que et van passar.",
+  "gem.trying": "Provant {model}...",
+  "gem.httpErr": "Error {status}",
+  "gem.modelFail": "{model} ha fallat ({status}), provant el següent...",
+  "gem.notPayroll": "Gemini no ha retornat les dades de la nòmina en el format esperat.",
+  "gem.ok": "✓ Extret amb {model}",
+  "gem.modelErr": "{model}: error, provant el següent...",
+  "gem.allFailed": "Tots els models han fallat:\n{errors}\n\n🔧 Si la clau te la va donar una altra persona, envia-li aquest missatge: el problema sol ser la clau o el seu límit de despesa.\n🔧 Si la clau és teva i veus \"API key not valid\", \"limit: 0\" o \"quota\", aquí tens què has de fer: {url}",
+  "gem.credit": "S'ha acabat el saldo de Gemini d'aquesta clau (error 402): no es pot llegir cap nòmina fins que no es recarregui.\n\n🔧 Si la clau te la va donar una altra persona, avisa-la: ha d'afegir crèdit al seu compte de Google AI Studio.\n🔧 Si la clau és teva: a Google AI Studio (ai.studio/projects), a la facturació, afegeix crèdit i torna-ho a provar.\n\nGoogle: {msg}",
+  "file.keyLinkAsk": "Aquest enllaç porta una clau de Gemini diferent de la que ja tens.\n\nLa teva clau: {mine}\nLa de l'enllaç: {link}\n\nSi la canvies, les nòmines que processis a partir d'ara es llegiran amb el compte de Google de qui va crear aquesta clau. Accepta-ho només si te l'ha donat algú de confiança (per exemple, qui et va passar l'app).\n\nVols canviar la clau?",
+  "file.pdfReady": "A punt per processar",
+  "file.cantRead": "No s'ha pogut llegir el fitxer",
+  "file.pdfDetected": "📄 PDF detectat — s'enviarà directament a Gemini",
+  "file.badFormatHtml": "<b>Format no reconegut</b><br>Prova-ho amb JPG, PNG o PDF.",
+  "proc.offlineHtml": "<b>Sense connexió</b><br> Per llegir la nòmina cal internet (la lectura la fa Gemini). Quan tornis a tenir connexió, torna a prémer «Processa».",
+  "proc.extracting": "Extraient dades...",
+  "proc.error": "Error",
+  "proc.retrySums": "Els imports no quadren: segona lectura…",
+  "proc.retryPdf": "Alguna xifra no és al PDF: segona lectura…",
+  "type.changed": "✋ Canviat per tu (estava desada com a {type}).",
+  "type.savedAsHtml": "📌 Desada com a <strong>{type}</strong>. Si no és així, canvia-ho.",
+  "type.chosen": "✋ Triat per tu (la detecció automàtica deia: {type}; motiu: {why})",
+  "type.detectedHtml": "🔎 Detectada com a <strong>{type}</strong>: {why}. Si no és així, canvia-ho.",
+  "type.willSaveHtml": "Es desarà com a: <strong style=\"color:var(--text)\">{name}</strong>",
+  "type.clashHtml": "⚠ A la safata hi ha una altra nòmina <strong>mensual</strong> del període {period} amb altres imports (brut {gross}). Si una de les dues és d'<strong>endarreriments</strong> o una <strong>paga extra</strong>, tria aquí el seu tipus.",
+  "batch.pause.reopened": "L'app es va tancar abans d'acabar de llegir.",
+  "batch.pause.offline": "Sense connexió. La lectura continua sola quan torni internet.",
+  "batch.pause.network": "S'ha tallat la connexió amb Gemini.",
+  "batch.pause.key": "Gemini no accepta la clau: falta, està mal copiada o no serveix per a aquest web. Revisa-la a la barra de dalt (està desplegada) i prem «Reprèn».",
+  "batch.pause.limit": "Gemini ha deixat de llegir: la clau ha arribat al seu límit d'ús o de despesa. Prova-ho més tard o revisa el límit.",
+  "batch.pause.credit": "S'ha acabat el saldo de Gemini d'aquesta clau. Quan es recarregui (si la clau te la va donar una altra persona, avisa-la), prem «Reprèn». No s'ha perdut res.",
+  "batch.pause.errors": "Dues lectures seguides han fallat. Mira l'error i torna-ho a provar.",
+  "batch.paused": "Lectura en pausa.",
+  "batch.preparing": "Preparant…",
+  "batch.preparingN": "Preparant {i} de {n}…",
+  "batch.file": "fitxer",
+  "batch.docGone": "El document ja no és en aquest dispositiu.",
+  "batch.chip.waiting": "Sense llegir",
+  "batch.chip.queued": "En cua",
+  "batch.chip.reading": "Llegint",
+  "batch.chip.error": "Error",
+  "batch.chip.noDate": "Sense data",
+  "batch.chip.repeated": "Repetida",
+  "batch.chip.checkType": "Revisa el tipus",
+  "batch.chip.saved": "Ja desada",
+  "batch.chip.busy": "Mes ocupat",
+  "batch.chip.bad": "No quadra",
+  "batch.chip.warn": "Amb avisos",
+  "batch.chip.ok": "Quadra",
+  "batch.remove": "Treu de la safata",
+  "batch.photo": "Foto",
+  "batch.noMonth": "Mes sense llegir",
+  "batch.amounts": "Brut {gross} € · Net {net} €",
+  "batch.second": "Segona lectura (la primera no quadrava)…",
+  "batch.reading": "Llegint…",
+  "batch.readFail": "No s'ha pogut llegir.",
+  "batch.waitTurn": "Esperant el seu torn",
+  "batch.retry": "🔁 Torna-ho a provar",
+  "batch.repeated1": "Un fitxer ja era a la safata i no s'ha tornat a afegir: {list}.",
+  "batch.repeatedN": "{n} fitxers ja eren a la safata i no s'han tornat a afegir: {list}.",
+  "batch.failed1": "No s'ha pogut obrir: {list}. Prova-ho amb JPG, PNG o PDF.",
+  "batch.failedN": "No s'han pogut obrir: {list}. Prova-ho amb JPG, PNG o PDF.",
+  "batch.skipped1": "La safata admet {max} documents alhora: se n'ha quedat fora 1. Afegeix-lo quan acabis amb aquests.",
+  "batch.skippedN": "La safata admet {max} documents alhora: se n'han quedat fora {n}. Afegeix-los quan acabis amb aquests.",
+  "batch.closeNote": "Tanca l'avís",
+  "batch.saved1": "1 nòmina desada",
+  "batch.savedN": "{n} nòmines desades",
+  "batch.discarded1": "1 descartada",
+  "batch.discardedN": "{n} descartades",
+  "batch.onlyHereHtml": "Només són en aquest dispositiu. Quan acabis, baixa la <strong style=\"color:var(--text)\">còpia completa</strong> i desa-la a Drive.",
+  "batch.seeYear": "📊 Mostra l'any {y}",
+  "batch.toPanel": "Ves al Tauler",
+  "batch.uploadMore": "Puja'n més",
+  "batch.storing": "Es desen en aquest dispositiu abans de llegir-les.",
+  "batch.ready1": "1 document a punt per llegir",
+  "batch.readyN": "{n} documents a punt per llegir",
+  "batch.cost1Html": "Gemini farà una lectura (menys d'1 cèntim cadascuna amb una clau de pagament; alguna pot necessitar una segona lectura). Les llegeix de dues en dues i <strong style=\"color:var(--text)\">pots començar a revisar tan bon punt la primera estigui llegida</strong>. La safata es desa en aquest dispositiu: si tanques l'app, continua aquí.",
+  "batch.costNHtml": "Gemini farà unes {n} lectures (menys d'1 cèntim cadascuna amb una clau de pagament; alguna pot necessitar una segona lectura). Les llegeix de dues en dues i <strong style=\"color:var(--text)\">pots començar a revisar tan bon punt la primera estigui llegida</strong>. La safata es desa en aquest dispositiu: si tanques l'app, continua aquí.",
+  "batch.start1": "▶ Llegeix la nòmina",
+  "batch.startN": "▶ Llegeix les {n}",
+  "batch.progReading": "Llegint… {done} de {total}",
+  "batch.progRead": "Llegides {done} de {total}",
+  "batch.progAll": "✓ Llegides totes ({total})",
+  "batch.screenOn": "La pantalla es manté encesa mentre llegeix. ",
+  "batch.dontClose": "No tanquis l'app mentre llegeix. ",
+  "batch.reviewWhile": "Pots anar revisant les que ja hi són.",
+  "batch.left1": "En queda 1 per revisar",
+  "batch.leftN": "En queden {n} per revisar",
+  "batch.savedSmall1": " · 1 desada",
+  "batch.savedSmallN": " · {n} desades",
+  "batch.withErr": " · {n} amb error",
+  "batch.resume": "▶ Reprèn",
+  "batch.review1": "Revisa la nòmina llegida →",
+  "batch.reviewN": "Revisa les {n} llegides →",
+  "batch.firstSoon": "Tan bon punt estigui llegida la primera, la podràs revisar.",
+  "batch.title": "SAFATA · {n}",
+  "batch.empty": "Buida la safata",
+  "batch.remind1": "Tens 1 nòmina a la safata:",
+  "batch.remindN": "Tens {n} nòmines a la safata:",
+  "batch.toReview": "{n} per revisar",
+  "batch.and": " i ",
+  "batch.beingRead": "{n} llegint-se",
+  "batch.unread": "{n} sense llegir",
+  "batch.notSaved": "No estan desades fins que no les confirmis.",
+  "batch.continue": "Continua →",
+  "batch.thisOne": "aquesta nòmina",
+  "batch.removeAsk": "Vols treure {what} de la safata?\n\nNo es desarà i s'esborra el seu document d'aquest dispositiu.",
+  "batch.clearAsk1": "Vols buidar la safata?\n\nEs treu 1 nòmina sense desar i el seu document d'aquest dispositiu. Les que ja has desat no es toquen.",
+  "batch.clearAskN": "Vols buidar la safata?\n\nEs treuen {n} nòmines sense desar i els seus documents d'aquest dispositiu. Les que ja has desat no es toquen.",
+  "batch.prev": "Anterior",
+  "batch.next": "Següent",
+  "batch.navPos": "Safata: {pos} de {all}",
+  "batch.navUnread": " · {n} encara sense llegir",
+  "batch.back": "← Torna a la safata",
+  "batch.discardAsk": "Vols descartar aquesta nòmina?\n\nNo es desarà i s'esborra el seu document d'aquest dispositiu."
+});
+Object.assign(I18N.en, {
+  "gem.noJson": "Gemini did not return valid JSON. Try another, sharper photo.",
+  "gem.badJson": "Error reading Gemini's response (not valid JSON): {msg}\n\nResponse received (first 500 characters):\n{text}",
+  "gem.noKey": "The Gemini key is missing (top bar).\n\n→ If someone gave you the app, ask them for the key or the link with the key.\n→ If you want to use your own, this explains how to create it: {url}",
+  "gem.oddKey": "The Gemini key has spaces or odd characters. Paste it again in the top bar: just the key, or the whole link you were sent.",
+  "gem.trying": "Trying {model}...",
+  "gem.httpErr": "Error {status}",
+  "gem.modelFail": "{model} failed ({status}), trying the next one...",
+  "gem.notPayroll": "Gemini did not return the payslip data in the expected format.",
+  "gem.ok": "✓ Extracted with {model}",
+  "gem.modelErr": "{model} error, trying the next one...",
+  "gem.allFailed": "All models failed:\n{errors}\n\n🔧 If someone else gave you the key, send them this message: the problem is usually the key or its spending limit.\n🔧 If the key is yours and you see \"API key not valid\", \"limit: 0\" or \"quota\", here is what to do: {url}",
+  "gem.credit": "This key has run out of Gemini credit (error 402): no payslip can be read until it is topped up.\n\n🔧 If someone else gave you the key, let them know: they need to add credit to their Google AI Studio account.\n🔧 If the key is yours: in Google AI Studio (ai.studio/projects), under billing, add credit and try again.\n\nGoogle: {msg}",
+  "file.keyLinkAsk": "This link carries a different Gemini key from the one you already have.\n\nYour key: {mine}\nThe link's key: {link}\n\nIf you change it, the payslips you process from now on will be read with the Google account of whoever created that key. Only accept if someone you trust gave it to you (for example, whoever passed you the app).\n\nChange the key?",
+  "file.pdfReady": "Ready to process",
+  "file.cantRead": "The file could not be read",
+  "file.pdfDetected": "📄 PDF detected — it will be sent straight to Gemini",
+  "file.badFormatHtml": "<b>Format not recognised</b><br>Try JPG, PNG or PDF.",
+  "proc.offlineHtml": "<b>Offline</b><br> Reading the payslip needs the internet (Gemini does the reading). When you are back online, press \"Process\" again.",
+  "proc.extracting": "Extracting data...",
+  "proc.error": "Error",
+  "proc.retrySums": "The amounts do not add up: second reading…",
+  "proc.retryPdf": "Some figure is not in the PDF: second reading…",
+  "type.changed": "✋ Changed by you (it was saved as {type}).",
+  "type.savedAsHtml": "📌 Saved as <strong>{type}</strong>. If that is wrong, change it.",
+  "type.chosen": "✋ Chosen by you (automatic detection said: {type}; reason: {why})",
+  "type.detectedHtml": "🔎 Detected as <strong>{type}</strong>: {why}. If that is wrong, change it.",
+  "type.willSaveHtml": "It will be saved as: <strong style=\"color:var(--text)\">{name}</strong>",
+  "type.clashHtml": "⚠ The tray has another <strong>monthly</strong> payslip for {period} with different amounts (gross {gross}). If one of the two is <strong>back pay (atrasos)</strong> or an <strong>extra payment (paga extra)</strong>, choose its type here.",
+  "batch.pause.reopened": "The app closed before it finished reading.",
+  "batch.pause.offline": "Offline. Reading resumes by itself when the internet comes back.",
+  "batch.pause.network": "The connection with Gemini was cut.",
+  "batch.pause.key": "Gemini does not accept the key: it is missing, badly copied or not valid for this site. Check it in the top bar (it is open) and press \"Resume\".",
+  "batch.pause.limit": "Gemini has stopped reading: the key has reached its usage or spending limit. Try later or check the limit.",
+  "batch.pause.credit": "This key has run out of Gemini credit. When it is topped up (if someone else gave you the key, let them know), press \"Resume\". Nothing has been lost.",
+  "batch.pause.errors": "Two readings in a row have failed. Look at the error and try again.",
+  "batch.paused": "Reading paused.",
+  "batch.preparing": "Preparing…",
+  "batch.preparingN": "Preparing {i} of {n}…",
+  "batch.file": "file",
+  "batch.docGone": "The document is no longer on this device.",
+  "batch.chip.waiting": "Not read",
+  "batch.chip.queued": "Queued",
+  "batch.chip.reading": "Reading",
+  "batch.chip.error": "Error",
+  "batch.chip.noDate": "No date",
+  "batch.chip.repeated": "Duplicate",
+  "batch.chip.checkType": "Check the type",
+  "batch.chip.saved": "Already saved",
+  "batch.chip.busy": "Month taken",
+  "batch.chip.bad": "Does not add up",
+  "batch.chip.warn": "With warnings",
+  "batch.chip.ok": "Adds up",
+  "batch.remove": "Remove from the tray",
+  "batch.photo": "Photo",
+  "batch.noMonth": "Month not read",
+  "batch.amounts": "Gross {gross} € · Net {net} €",
+  "batch.second": "Second reading (the first did not add up)…",
+  "batch.reading": "Reading…",
+  "batch.readFail": "It could not be read.",
+  "batch.waitTurn": "Waiting its turn",
+  "batch.retry": "🔁 Retry",
+  "batch.repeated1": "One file was already in the tray and was not added again: {list}.",
+  "batch.repeatedN": "{n} files were already in the tray and were not added again: {list}.",
+  "batch.failed1": "Could not be opened: {list}. Try JPG, PNG or PDF.",
+  "batch.failedN": "Could not be opened: {list}. Try JPG, PNG or PDF.",
+  "batch.skipped1": "The tray holds {max} documents at a time: 1 was left out. Add it when you are done with these.",
+  "batch.skippedN": "The tray holds {max} documents at a time: {n} were left out. Add them when you are done with these.",
+  "batch.closeNote": "Close notice",
+  "batch.saved1": "1 payslip saved",
+  "batch.savedN": "{n} payslips saved",
+  "batch.discarded1": "1 discarded",
+  "batch.discardedN": "{n} discarded",
+  "batch.onlyHereHtml": "They are only on this device. When you finish, download the <strong style=\"color:var(--text)\">full backup</strong> and save it to Drive.",
+  "batch.seeYear": "📊 See {y}",
+  "batch.toPanel": "Go to the Panel",
+  "batch.uploadMore": "Upload more",
+  "batch.storing": "They are saved on this device before being read.",
+  "batch.ready1": "1 document ready to read",
+  "batch.readyN": "{n} documents ready to read",
+  "batch.cost1Html": "Gemini will make one reading (less than 1 cent each with a paid key; some may need a second reading). It reads them two at a time and <strong style=\"color:var(--text)\">you can start reviewing as soon as the first one is ready</strong>. The tray is saved on this device: if you close the app, it stays here.",
+  "batch.costNHtml": "Gemini will make about {n} readings (less than 1 cent each with a paid key; some may need a second reading). It reads them two at a time and <strong style=\"color:var(--text)\">you can start reviewing as soon as the first one is ready</strong>. The tray is saved on this device: if you close the app, it stays here.",
+  "batch.start1": "▶ Read the payslip",
+  "batch.startN": "▶ Read all {n}",
+  "batch.progReading": "Reading… {done} of {total}",
+  "batch.progRead": "Read {done} of {total}",
+  "batch.progAll": "✓ All read ({total})",
+  "batch.screenOn": "The screen stays on while it reads. ",
+  "batch.dontClose": "Do not close the app while it reads. ",
+  "batch.reviewWhile": "You can review the ones that are ready.",
+  "batch.left1": "1 left to review",
+  "batch.leftN": "{n} left to review",
+  "batch.savedSmall1": " · 1 saved",
+  "batch.savedSmallN": " · {n} saved",
+  "batch.withErr": " · {n} with errors",
+  "batch.resume": "▶ Resume",
+  "batch.review1": "Review the payslip read →",
+  "batch.reviewN": "Review the {n} read →",
+  "batch.firstSoon": "As soon as the first one is read you can review it.",
+  "batch.title": "TRAY · {n}",
+  "batch.empty": "Empty the tray",
+  "batch.remind1": "You have 1 payslip in the tray:",
+  "batch.remindN": "You have {n} payslips in the tray:",
+  "batch.toReview": "{n} to review",
+  "batch.and": " and ",
+  "batch.beingRead": "{n} being read",
+  "batch.unread": "{n} not read",
+  "batch.notSaved": "They are not saved until you confirm them.",
+  "batch.continue": "Continue →",
+  "batch.thisOne": "this payslip",
+  "batch.removeAsk": "Remove {what} from the tray?\n\nIt will not be saved and its document is deleted from this device.",
+  "batch.clearAsk1": "Empty the tray?\n\nThis removes 1 unsaved payslip and its documents from this device. The ones you have already saved are not touched.",
+  "batch.clearAskN": "Empty the tray?\n\nThis removes {n} unsaved payslips and their documents from this device. The ones you have already saved are not touched.",
+  "batch.prev": "Previous",
+  "batch.next": "Next",
+  "batch.navPos": "Tray: {pos} of {all}",
+  "batch.navUnread": " · {n} not read yet",
+  "batch.back": "← Back to the tray",
+  "batch.discardAsk": "Discard this payslip?\n\nIt will not be saved and its document is deleted from this device."
 });
 // Como tr(), para textos con marcado: las variables se escapan; {html: '…'} pasa un trozo ya escapado (otro trHtml).
 function trHtml(key, vars = {}, lang = appLang()) {
