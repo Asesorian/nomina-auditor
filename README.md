@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.29.0-blue)
+![Version](https://img.shields.io/badge/version-2.30.0-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.29.0)
+## 🆕 Novedades (v2.3 – v2.30.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -720,6 +720,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.30.0 (Noviembre 2026)
+- **Idioma de la app, cuarta tanda (primera mitad):** guardar (periodo no válido, la ventana de «las cuentas no cuadran», la de «ya hay una nómina en ese hueco», corregir una guardada), el informe de cada nómina (la pantalla y el texto de «Copiar para Abogado», que saldrá en el idioma de la app), su documento original y el visor de PDF y fotos ya tienen sus textos en español, català e inglés. La app **sigue saliendo en español** hasta la última tanda; en español no cambia nada. **Pruebas:** `test_idioma.py`, punto 10.
 
 ### v2.29.0 (Noviembre 2026)
 - **Idioma de la app, tercera tanda (segunda mitad):** los avisos de las cuentas (qué no cuadra y dónde corregirlo), los tipos de nómina con sus motivos y el nombre de cada nómina («Enero 2026 · Atrasos») ya tienen sus textos en español, català e inglés. **Lo que se le dice a Gemini en la segunda lectura sigue siempre en español**, sea cual sea el idioma de la app. La app sigue saliendo en español hasta la última tanda; en español no cambia nada. **Pruebas:** `test_idioma.py`, punto 9.

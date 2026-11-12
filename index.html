@@ -491,7 +491,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.29.0</span>
+    <span class="logo-badge">Forense v2.30.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -763,7 +763,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   </div>
 </main>
 
-<div id="mismatchModal" class="modal-overlay hidden" onclick="if(event.target===this)closeMismatchModal()"><div class="modal-box"><div class="modal-title">⚠ Las cuentas no cuadran</div><div class="modal-body" id="mismatchModalBody"></div><div class="modal-btns stack" id="mismatchModalBtns"></div></div></div>
+<div id="mismatchModal" class="modal-overlay hidden" onclick="if(event.target===this)closeMismatchModal()"><div class="modal-box"><div class="modal-title" data-tr="sv.mm.title">⚠ Las cuentas no cuadran</div><div class="modal-body" id="mismatchModalBody"></div><div class="modal-btns stack" id="mismatchModalBtns"></div></div></div>
 <div id="dupModal" class="modal-overlay hidden"><div class="modal-box"><div class="modal-title" id="dupModalTitle">⚠ Nómina ya existente</div><div class="modal-body" id="dupModalBody"></div><div class="modal-btns stack" id="dupModalBtns"></div></div></div>
 <script>
 // ═══════════ STATE ═══════════
@@ -1075,7 +1075,7 @@ let docDbPromise = null;
 function openDocDB() {
   if (!docDbPromise) {
     docDbPromise = new Promise((resolve, reject) => {
-      if (!('indexedDB' in window)) { reject(new Error('Este navegador no permite guardar documentos')); return; }
+      if (!('indexedDB' in window)) { reject(new Error(tr('doc.noIdb'))); return; }
       const req = indexedDB.open(DOC_DB, 1);
       req.onupgradeneeded = () => req.result.createObjectStore(DOC_STORE);
       req.onsuccess = () => resolve(req.result);
@@ -1095,7 +1095,7 @@ async function docTx(mode, fn) {
     if (req) req.onsuccess = () => { result = req.result; };
     tx.oncomplete = () => resolve(result);
     tx.onerror = () => reject(tx.error);
-    tx.onabort = () => reject(tx.error || new Error('Operación cancelada (¿sin espacio?)'));
+    tx.onabort = () => reject(tx.error || new Error(tr('doc.aborted')));
   });
 }
 const putDoc = (key, rec) => docTx('readwrite', s => s.put(rec, key));
@@ -1173,7 +1173,7 @@ async function discardOriginal(meta) {
 
 async function originalAsFile(p) {
   const rec = await getDoc(p.original.key);
-  if (!rec) throw new Error('El documento ya no está en este dispositivo');
+  if (!rec) throw new Error(tr('doc.gone'));
   return new File([rec.data], originalFileName(p, rec.type), { type: rec.type });
 }
 
@@ -2680,7 +2680,7 @@ function confirmAndSave(force) {
   const month = normalizeMonth(extractedData.period?.month);
   const year = String(extractedData.period?.year ?? '').trim();
   if (!month || !/^\d{4}$/.test(year)) {
-    alert(`No puedo guardarla: el periodo "${extractedData.period?.month ?? ''} ${extractedData.period?.year ?? ''}" no es válido.\n\nCorrige el Mes (ej: Julio) y el Año (ej: 2026) en la Zona 1 tocando sobre el valor.`);
+    alert(tr('sv.badPeriod', { m: extractedData.period?.month ?? '', y: extractedData.period?.year ?? '' }));
     return;
   }
   if (typeNeedsChoice()) {   // v2.15.0: primero, qué tipo de nómina es
@@ -2714,13 +2714,13 @@ function openMismatchModal(errs) {
   const sumErr = errs.some(e => ['sumE', 'sumD', 'net'].includes(e.key));
   document.getElementById('mismatchModalBody').innerHTML =
     `<ul>${errs.map(e => `<li>${esc(e.text)}</li>`).join('')}</ul>
-     <p>Mira esas líneas en el documento:</p>
-     <p>• Si Gemini ha leído mal alguna, <strong>vuelve a corregirla</strong> (está marcada en rojo) o pulsa «Releer con Gemini».</p>
-     ${sumErr ? `<p class="mm-totals">• Compara también los <strong>totales</strong> con el papel: <strong>total bruto (devengado)</strong>, <strong>total a deducir</strong> y <strong>líquido</strong>. A veces Gemini lee bien todas las líneas y mal un total. Si es así, corrige el total: la app no lo recalcula, porque tiene que ser el que imprime la nómina.</p>` : ''}
-     <p>• Si todo coincide con el papel${sumErr ? ', líneas y totales,' : ''} el descuadre es <strong>de la propia nómina</strong>: guárdala. Quedará marcada con ⚠ y podrás copiar el aviso para tu abogado o tu asesoría.</p>`;
+     <p>${tr('sv.mm.look')}</p>
+     <p>${tr('sv.mm.misread')}</p>
+     ${sumErr ? `<p class="mm-totals">${tr('sv.mm.totals')}</p>` : ''}
+     <p>${tr(sumErr ? 'sv.mm.ownSum' : 'sv.mm.own')}</p>`;
   document.getElementById('mismatchModalBtns').innerHTML =
-    `<button class="btn btn-primary" onclick="closeMismatchModal(true)">✏ Volver a corregir</button>
-     <button class="btn btn-warn" onclick="closeMismatchModal();confirmAndSave(true)">⚠ Guardar con aviso${next ? ' y seguir' : ''}</button>`;
+    `<button class="btn btn-primary" onclick="closeMismatchModal(true)">${esc(tr('sv.mm.fix'))}</button>
+     <button class="btn btn-warn" onclick="closeMismatchModal();confirmAndSave(true)">${esc(tr(next ? 'sv.mm.saveNext' : 'sv.mm.save'))}</button>`;
   document.getElementById('mismatchModal').classList.remove('hidden');
 }
 
@@ -2739,32 +2739,30 @@ function openDupModal(draft, existing) {
                Math.abs((existing.totals?.grossTotal || 0) - (draft.totals?.grossTotal || 0)) < 0.01;
   const savedAt = existing.savedAt ? new Date(existing.savedAt).toLocaleDateString('es-ES') : '—';
 
-  document.getElementById('dupModalTitle').textContent = `⚠ Ya hay una nómina en ese hueco`;
+  document.getElementById('dupModalTitle').textContent = tr('sv.dup.title');
   document.getElementById('dupModalBody').innerHTML = `
-    Ya tienes guardada <strong>${esc(payName(existing))}</strong>.
+    ${trHtml('sv.dup.have', { name: payName(existing) })}
     <table class="cmp">
-      <thead><tr><th></th><th class="r">Guardada</th><th class="r">Nueva</th></tr></thead>
+      <thead><tr><th></th><th class="r">${esc(tr('sv.dup.saved'))}</th><th class="r">${esc(tr('sv.dup.new'))}</th></tr></thead>
       <tbody>
-        <tr><td>Bruto</td><td class="r">${fmt(existing.totals?.grossTotal)} €</td><td class="r">${fmt(draft.totals?.grossTotal)} €</td></tr>
-        <tr><td>Neto</td><td class="r">${fmt(existing.totals?.netPay)} €</td><td class="r">${fmt(draft.totals?.netPay)} €</td></tr>
-        <tr><td>Fecha</td><td class="r">${savedAt}</td><td class="r">ahora</td></tr>
+        <tr><td>${esc(tr('sv.dup.gross'))}</td><td class="r">${fmt(existing.totals?.grossTotal)} €</td><td class="r">${fmt(draft.totals?.grossTotal)} €</td></tr>
+        <tr><td>${esc(tr('sv.dup.net'))}</td><td class="r">${fmt(existing.totals?.netPay)} €</td><td class="r">${fmt(draft.totals?.netPay)} €</td></tr>
+        <tr><td>${esc(tr('sv.dup.date'))}</td><td class="r">${savedAt}</td><td class="r">${esc(tr('sv.dup.now'))}</td></tr>
       </tbody>
     </table>
-    <div style="margin-top:12px">${same
-      ? '✓ Tienen los <strong>mismos importes</strong>: seguramente es la misma nómina subida dos veces.'
-      : 'Los importes son <strong>distintos</strong>. Si la nueva es una paga extra o unos atrasos, guárdala aparte: <strong>no se borra nada</strong>.'}</div>`;
+    <div style="margin-top:12px">${tr(same ? 'sv.dup.same' : 'sv.dup.diff')}</div>`;
 
   const btns = [];
   if (t === 'ordinaria') {
-    btns.push(`<button class="btn ${same ? 'btn-secondary' : 'btn-primary'}" onclick="saveAsType('extra')">💰 Es una paga extra → guardarla aparte</button>`);
-    btns.push(`<button class="btn btn-secondary" onclick="saveAsType('atrasos')">📎 Son atrasos → guardarlos aparte</button>`);
+    btns.push(`<button class="btn ${same ? 'btn-secondary' : 'btn-primary'}" onclick="saveAsType('extra')">${esc(tr('sv.dup.extra'))}</button>`);
+    btns.push(`<button class="btn btn-secondary" onclick="saveAsType('atrasos')">${esc(tr('sv.dup.atrasos'))}</button>`);
     btns.push(`<button class="btn btn-secondary" onclick="saveAsType('bonus')">${esc(tr('dupBonus'))}</button>`);   // v2.15.0
   } else {
-    btns.push(`<button class="btn ${same ? 'btn-secondary' : 'btn-primary'}" onclick="saveAsType('${t}')">➕ ${t === 'extra' ? 'Es otra paga extra distinta → guardarla aparte' : t === 'bonus' ? esc(tr('dupBonusOther')) : 'Son otros atrasos distintos → guardarlos aparte'}</button>`);
+    btns.push(`<button class="btn ${same ? 'btn-secondary' : 'btn-primary'}" onclick="saveAsType('${t}')">➕ ${t === 'extra' ? esc(tr('sv.dup.extraOther')) : t === 'bonus' ? esc(tr('dupBonusOther')) : esc(tr('sv.dup.atrasosOther'))}</button>`);
   }
-  btns.push(`<button class="btn btn-warn" onclick="confirmOverwrite()">♻ Sustituir la guardada (se pierde)</button>`);
-  if (batchReviewUid && same) btns.push(`<button class="btn btn-primary" onclick="closeDupModal();discardBatchItem(true)">Descartar esta — ya la tengo</button>`);
-  else btns.push(`<button class="btn ${same ? 'btn-primary' : 'btn-secondary'}" onclick="closeDupModal()">${same ? 'Cancelar — ya la tengo' : 'Cancelar'}</button>`);
+  btns.push(`<button class="btn btn-warn" onclick="confirmOverwrite()">${esc(tr('sv.dup.replace'))}</button>`);
+  if (batchReviewUid && same) btns.push(`<button class="btn btn-primary" onclick="closeDupModal();discardBatchItem(true)">${esc(tr('sv.dup.discard'))}</button>`);
+  else btns.push(`<button class="btn ${same ? 'btn-primary' : 'btn-secondary'}" onclick="closeDupModal()">${esc(tr(same ? 'sv.dup.cancelHave' : 'sv.dup.cancel'))}</button>`);
   document.getElementById('dupModalBtns').innerHTML = btns.join('');
   document.getElementById('dupModal').classList.remove('hidden');
 }
@@ -2805,7 +2803,7 @@ async function doSave(payroll) {
       if (keepOriginal) payroll.original = { key: bItem.docKey, type: bItem.type, size: bItem.size, name: bItem.name, savedAt: bItem.addedAt || new Date().toISOString() };
     } else if (keepOriginal && imageBase64) {
       try { payroll.original = await storeOriginal(imageBase64, imageMediaType, pendingFileName); }
-      catch (e) { docWarning = `No se pudo guardar el documento original en este dispositivo (${e.message || e}).\n\nLos datos de la nómina sí se han guardado.`; }
+      catch (e) { docWarning = tr('sv.docFail', { err: e.message || e }); }
     }
     if (replaced?.original) {
       // Al sustituir: si hay documento nuevo, el de la nómina sustituida sobra; si no, se conserva (nunca se pierde un original sin querer)
@@ -2870,11 +2868,11 @@ function cancelEdit() {
 
 function saveEdited(draft) {
   const old = payrolls.find(p => p.id === editingId);
-  if (!old) { alert('Esta nómina ya no existe (¿se ha borrado o importado otro backup?). No se ha guardado nada.'); clearUpload(); showView('dashboard'); return; }
+  if (!old) { alert(tr('sv.gone')); clearUpload(); showView('dashboard'); return; }
   const sameSlot = monthKey(draft) === monthKey(old) && payTypeOf(draft) === payTypeOf(old);
   const id = sameSlot ? old.id : freePayrollId(draft, old.id);
   if (!id) {
-    alert(`Ya tienes guardada la nómina mensual de ${draft.period?.month} ${draft.period?.year}: no puedo mover esta allí.\n\nSi esta es una paga extra o unos atrasos, elige ese tipo arriba. No se ha cambiado nada.`);
+    alert(tr('sv.slotTaken', { m: monthName(draft.period?.month), y: draft.period?.year }));
     return;
   }
   const updated = { ...draft, id, savedAt: old.savedAt, editedAt: new Date().toISOString() };
@@ -4127,7 +4125,7 @@ Object.assign(I18N.ca, {
   "rep.and": " i ",
   "rep.companyBlank": "[nom de l'empresa]",
   "rep.lawyer": "Copiar per a l'advocat",
-  "rep.lawyerText": "El text per a l'advocat es copia des de cada nòmina: obre-la i prem «📋 Copiar para Abogado». Aquestes són les del {year}:",
+  "rep.lawyerText": "El text per a l'advocat es copia des de cada nòmina: obre-la i prem «📋 Copia per a l'advocat». Aquestes són les del {year}:",
   "rep.copy": "Copia",
   "dash.dueMonth": "Puja la nòmina corresponent a {month}",
   "dash.dueHint": "És l'última que ja hauries d'haver cobrat. Si és d'un altre mes, «Pujar» també l'accepta.",
@@ -4156,7 +4154,7 @@ Object.assign(I18N.en, {
   "rep.and": " and ",
   "rep.companyBlank": "[employer's name]",
   "rep.lawyer": "Copy for the lawyer",
-  "rep.lawyerText": "The text for the lawyer is copied from each payslip: open it and tap «📋 Copiar para Abogado». These are the ones from {year}:",
+  "rep.lawyerText": "The text for the lawyer is copied from each payslip: open it and tap «📋 Copy for lawyer». These are the ones from {year}:",
   "rep.copy": "Copy",
   "dash.dueMonth": "Upload the payslip for {month}",
   "dash.dueHint": "It is the latest one you should already have been paid. If it is for another month, «Upload» accepts it too.",
@@ -4787,7 +4785,7 @@ Object.assign(I18N.ca, {
   "dash.tableTitle": "Nòmines processades",
   "dash.bad1": "1 nòmina no quadra",
   "dash.badN": "{n} nòmines no quadren",
-  "dash.badHtml": "Gemini va llegir malament alguna línia i els totals d'IRPF i S.S. de dalt poden estar malament. Obre-la amb <strong>Mostra</strong> i prem <strong>✏ Corregir datos</strong> o <strong>🔁 Torna a llegir amb Gemini</strong>.",
+  "dash.badHtml": "Gemini va llegir malament alguna línia i els totals d'IRPF i S.S. de dalt poden estar malament. Obre-la amb <strong>Mostra</strong> i prem <strong>✏ Corregeix les dades</strong> o <strong>🔁 Torna a llegir amb Gemini</strong>.",
   "dash.colPeriod": "Període",
   "dash.colGross": "Brut",
   "dash.colNet": "Net",
@@ -4795,12 +4793,12 @@ Object.assign(I18N.ca, {
   "dash.colActions": "Accions",
   "dash.clip": "Document original desat",
   "dash.view": "Mostra",
-  "dash.irpfNoteHtml": "* % d'IRPF calculat perquè no venia a la nòmina. N/L: no s'ha pogut treure. Pots corregir qualsevol dels dos a <strong>Mostra → Corregir %</strong>.",
+  "dash.irpfNoteHtml": "* % d'IRPF calculat perquè no venia a la nòmina. N/L: no s'ha pogut treure. Pots corregir qualsevol dels dos a <strong>Mostra → Corregeix el %</strong>.",
   "dash.clipLegend": "📎 = document original desat.",
   "dash.clipNone": "Encara no n'hi ha cap de desat aquest any",
   "dash.clipMiss1": "A 1 nòmina li falta",
   "dash.clipMissN": "A {n} nòmines els falta",
-  "dash.clipWhereHtml": ": el pots adjuntar a <strong>Mostra → Adjuntar original</strong>.",
+  "dash.clipWhereHtml": ": el pots adjuntar a <strong>Mostra → Adjunta l'original</strong>.",
   "dash.delQ": "Vols eliminar la nòmina {name}?",
   "dash.delDoc": "\n\nTambé s'esborrarà el seu document original d'aquest dispositiu.",
   "dash.badTitle": "Els comptes no quadren: {list}",
@@ -4874,7 +4872,7 @@ Object.assign(I18N.en, {
   "dash.tableTitle": "Processed payslips",
   "dash.bad1": "1 payslip does not add up",
   "dash.badN": "{n} payslips do not add up",
-  "dash.badHtml": "Gemini misread a line and the IRPF and S.S. totals above may be wrong. Open it with <strong>View</strong> and tap <strong>✏ Corregir datos</strong> (correct data) or <strong>🔁 Read again with Gemini</strong>.",
+  "dash.badHtml": "Gemini misread a line and the IRPF and S.S. totals above may be wrong. Open it with <strong>View</strong> and tap <strong>✏ Correct the data</strong> or <strong>🔁 Read again with Gemini</strong>.",
   "dash.colPeriod": "Period",
   "dash.colGross": "Gross",
   "dash.colNet": "Net",
@@ -4882,12 +4880,12 @@ Object.assign(I18N.en, {
   "dash.colActions": "Actions",
   "dash.clip": "Original document saved",
   "dash.view": "View",
-  "dash.irpfNoteHtml": "* IRPF % calculated because it was not on the payslip. N/L: it could not be worked out. You can correct either in <strong>View → Corregir %</strong>.",
+  "dash.irpfNoteHtml": "* IRPF % calculated because it was not on the payslip. N/L: it could not be worked out. You can correct either in <strong>View → Correct %</strong>.",
   "dash.clipLegend": "📎 = original document saved.",
   "dash.clipNone": "None saved for this year yet",
   "dash.clipMiss1": "1 payslip is missing it",
   "dash.clipMissN": "{n} payslips are missing it",
-  "dash.clipWhereHtml": ": you can attach it in <strong>View → Adjuntar original</strong> (attach original).",
+  "dash.clipWhereHtml": ": you can attach it in <strong>View → Attach original</strong>.",
   "dash.delQ": "Delete the payslip {name}?",
   "dash.delDoc": "\n\nIts original document will also be deleted from this device.",
   "dash.badTitle": "The figures do not add up: {list}",
@@ -5752,6 +5750,370 @@ Object.assign(I18N.en, {
   "why.ordWithExtra": "monthly payslip that includes the extra payment as one more line",
   "why.ord": "normal monthly payslip"
 });
+// v2.30.0: idioma de la app, tanda 4a (guardar, el informe de una nómina, su documento original y el visor)
+Object.assign(I18N.es, {
+  "sv.badPeriod": "No puedo guardarla: el periodo \"{m} {y}\" no es válido.\n\nCorrige el Mes (ej: Julio) y el Año (ej: 2026) en la Zona 1 tocando sobre el valor.",
+  "sv.mm.title": "⚠ Las cuentas no cuadran",
+  "sv.mm.look": "Mira esas líneas en el documento:",
+  "sv.mm.misread": "• Si Gemini ha leído mal alguna, <strong>vuelve a corregirla</strong> (está marcada en rojo) o pulsa «Releer con Gemini».",
+  "sv.mm.totals": "• Compara también los <strong>totales</strong> con el papel: <strong>total bruto (devengado)</strong>, <strong>total a deducir</strong> y <strong>líquido</strong>. A veces Gemini lee bien todas las líneas y mal un total. Si es así, corrige el total: la app no lo recalcula, porque tiene que ser el que imprime la nómina.",
+  "sv.mm.own": "• Si todo coincide con el papel el descuadre es <strong>de la propia nómina</strong>: guárdala. Quedará marcada con ⚠ y podrás copiar el aviso para tu abogado o tu asesoría.",
+  "sv.mm.ownSum": "• Si todo coincide con el papel, líneas y totales, el descuadre es <strong>de la propia nómina</strong>: guárdala. Quedará marcada con ⚠ y podrás copiar el aviso para tu abogado o tu asesoría.",
+  "sv.mm.fix": "✏ Volver a corregir",
+  "sv.mm.save": "⚠ Guardar con aviso",
+  "sv.mm.saveNext": "⚠ Guardar con aviso y seguir",
+  "sv.dup.title": "⚠ Ya hay una nómina en ese hueco",
+  "sv.dup.have": "Ya tienes guardada <strong>{name}</strong>.",
+  "sv.dup.saved": "Guardada",
+  "sv.dup.new": "Nueva",
+  "sv.dup.gross": "Bruto",
+  "sv.dup.net": "Neto",
+  "sv.dup.date": "Fecha",
+  "sv.dup.now": "ahora",
+  "sv.dup.same": "✓ Tienen los <strong>mismos importes</strong>: seguramente es la misma nómina subida dos veces.",
+  "sv.dup.diff": "Los importes son <strong>distintos</strong>. Si la nueva es una paga extra o unos atrasos, guárdala aparte: <strong>no se borra nada</strong>.",
+  "sv.dup.extra": "💰 Es una paga extra → guardarla aparte",
+  "sv.dup.atrasos": "📎 Son atrasos → guardarlos aparte",
+  "sv.dup.extraOther": "Es otra paga extra distinta → guardarla aparte",
+  "sv.dup.atrasosOther": "Son otros atrasos distintos → guardarlos aparte",
+  "sv.dup.replace": "♻ Sustituir la guardada (se pierde)",
+  "sv.dup.discard": "Descartar esta — ya la tengo",
+  "sv.dup.cancelHave": "Cancelar — ya la tengo",
+  "sv.dup.cancel": "Cancelar",
+  "sv.docFail": "No se pudo guardar el documento original en este dispositivo ({err}).\n\nLos datos de la nómina sí se han guardado.",
+  "sv.gone": "Esta nómina ya no existe (¿se ha borrado o importado otro backup?). No se ha guardado nada.",
+  "sv.slotTaken": "Ya tienes guardada la nómina mensual de {m} {y}: no puedo mover esta allí.\n\nSi esta es una paga extra o unos atrasos, elige ese tipo arriba. No se ha cambiado nada.",
+  "mr.x.warn1": "⚠ AVISO: LAS CUENTAS DE ESTA NÓMINA NO CUADRAN (detalle al final).",
+  "mr.x.warn2": "Revisar con el documento original antes de usar estos datos.",
+  "mr.x.s5checks": "AVISOS DE LA COMPROBACIÓN AUTOMÁTICA",
+  "mr.x.s5round": "REDONDEOS DE LA EMPRESA (LAS SUMAS CUADRAN)",
+  "mr.x.sPrices": "CAMBIOS DEL PRECIO POR UNIDAD (RESPECTO A LAS NÓMINAS ANTERIORES)",
+  "mr.x.head": "RESUMEN DE DATOS DE NÓMINA - PERIODO: {m} {y}",
+  "mr.x.s1": "DATOS IDENTIFICATIVOS",
+  "mr.x.company": "EMPRESA",
+  "mr.x.worker": "TRABAJADOR",
+  "mr.x.s2": "RELACIÓN LABORAL",
+  "mr.x.category": "Categoría",
+  "mr.x.seniority": "Antigüedad",
+  "mr.x.contract": "Contrato",
+  "mr.x.group": "Grupo Cot",
+  "mr.x.period": "Periodo: {a} - {b} ({n} días)",
+  "mr.x.s3": "DETALLE ECONÓMICO (DEVENGOS)",
+  "mr.x.gross": "TOTAL BRUTO",
+  "mr.x.s4": "DEDUCCIONES Y LÍQUIDO",
+  "mr.x.ded": "TOTAL DEDUCIR",
+  "mr.x.net": "LÍQUIDO A PERCIBIR (NETO)",
+  "mr.x.bases": "BASE IRPF: {irpf} € | BASE S.S.: {ss} €",
+  "mr.x.irpf": "% RETENCIÓN IRPF",
+  "mr.phase": "FASE 2",
+  "mr.title": "Informe Ejecutivo — {m} {y}",
+  "mr.checks": "Comprobación de las cuentas",
+  "mr.bad": "✗ Las cuentas no cuadran: Gemini leyó mal alguna línea",
+  "mr.meh": "⚠ Las sumas cuadran, pero hay algo que mirar",
+  "mr.good": "✓ Las cuentas cuadran",
+  "mr.fix": "✏ Corregir datos",
+  "mr.edited": "Datos corregidos después de guardarla, el {d}",
+  "mr.prices": "Precios por unidad",
+  "mr.type": "Tipo de nómina",
+  "mr.typeNote": "Si esta nómina es una paga extra o unos atrasos y se guardó como mensual (o al revés), cámbiala aquí sin volver a procesarla.",
+  "mr.irpf": "% Retención IRPF",
+  "mr.irpfNone": "no aparece en la nómina: introdúcelo a mano",
+  "mr.irpfFix": "✏ Corregir %",
+  "mr.irpfAsk": "% de retención de IRPF de {name}\n\nEscríbelo tal como aparece en la nómina (ej: 20,42).\nDéjalo vacío para que la app lo vuelva a calcular sola.",
+  "mr.irpfBad": "\"{v}\" no es un porcentaje válido. Usa un número entre 0 y 60, por ejemplo 20,42",
+  "mr.orig": "📎 Documento original",
+  "mr.copy": "📋 Copiar para Abogado",
+  "mr.reclassTaken": "Ya existe la nómina ordinaria de {m} {y}.\n\nSi esa también está mal clasificada, cámbiala primero y vuelve a intentarlo.",
+  "mr.reclassAsk": "¿Cambiar \"{a}\" a \"{b}\"?",
+  "irpf.src.nomina": "leído de la nómina",
+  "irpf.src.manual": "corregido a mano",
+  "irpf.src.concepto": "sacado de la línea de IRPF de la nómina",
+  "irpf.src.calculado": "calculado: importe retenido ÷ base IRPF",
+  "irpf.src.aprox": "aproximado: importe retenido ÷ bruto (no hay base IRPF)",
+  "doc.pdf": "PDF",
+  "doc.photo": "Foto",
+  "doc.savedOn": "guardado el {d}",
+  "doc.onlyHere": "solo en este dispositivo",
+  "doc.view": "👁 Ver",
+  "doc.share": "📤 Guardar en… (Drive, iCloud…)",
+  "doc.download": "⬇ Descargar",
+  "doc.change": "🔄 Cambiar",
+  "doc.remove": "🗑 Quitar",
+  "doc.elsewhere": "El original de esta nómina se guardó en otro dispositivo. Puedes traerlo con un <strong>backup completo</strong> o adjuntarlo aquí.",
+  "doc.none": "Esta nómina no tiene guardado el documento original. Adjunta la foto o el PDF y quedará guardado junto a ella, con nombre automático.",
+  "doc.noAi": "No se vuelve a procesar con la IA, así que no gasta lecturas.",
+  "doc.attach": "📎 Adjuntar original",
+  "doc.badFormat": "Formato no reconocido. Prueba con JPG, PNG o PDF.",
+  "doc.saveFail": "No se pudo guardar el documento: {err}",
+  "doc.noIdb": "Este navegador no permite guardar documentos",
+  "doc.aborted": "Operación cancelada (¿sin espacio?)",
+  "doc.gone": "El documento ya no está en este dispositivo",
+  "doc.shareFail": "No se pudo compartir: {err}\n\nPrueba con \"Descargar\".",
+  "doc.removeAsk": "¿Quitar el documento original de {name}?\n\nLos datos de la nómina no se borran.",
+  "pv.dlFail": "No se pudo descargar el visor de PDF",
+  "pv.na": "Visor de PDF no disponible",
+  "pv.close": "✕ Cerrar",
+  "pv.opening": "Abriendo el PDF…",
+  "pv.preparing": "Preparando el visor de PDF… (solo tarda un poco la primera vez)",
+  "pv.locked": "Este PDF está protegido con contraseña…",
+  "pv.pwWrong": "Contraseña incorrecta. Vuelve a escribirla:",
+  "pv.pwAsk": "Este PDF está protegido con contraseña (muchas empresas usan tu DNI). Escríbela para verlo:",
+  "pv.showingPage": "Mostrando página {i} de {n}…",
+  "pv.showing": "Mostrando la nómina…",
+  "pv.page": "Página {i} de {n}",
+  "pv.page1": "{n} página",
+  "pv.pages": "{n} páginas",
+  "pv.otherApp": "¿Prefieres otra app?",
+  "pv.external": "Abrir con el visor del móvil",
+  "pv.download": "Descargar",
+  "pv.libFail": "No se ha podido cargar el visor de PDF de la app.",
+  "pv.offline": "Sin conexión: el visor de PDF se descarga la primera vez que se usa. Ábrelo una vez con conexión y después funcionará también sin ella.",
+  "pv.pwCancelled": "Este PDF está protegido con contraseña y no se ha abierto.",
+  "pv.broken": "No se ha podido mostrar este PDF (puede estar dañado).",
+  "pv.fallback": "Tu nómina está guardada igualmente. Puedes verla de otra forma:"
+});
+Object.assign(I18N.ca, {
+  "sv.badPeriod": "No la puc desar: el període «{m} {y}» no és vàlid.\n\nCorregeix el Mes (p. ex.: 7 o Julio) i l'Any (p. ex.: 2026) a la Zona 1 tocant el valor.",
+  "sv.mm.title": "⚠ Els comptes no quadren",
+  "sv.mm.look": "Mira aquestes línies al document:",
+  "sv.mm.misread": "• Si Gemini n'ha llegit malament alguna, <strong>torna a corregir-la</strong> (està marcada en vermell) o prem «Torna a llegir amb Gemini».",
+  "sv.mm.totals": "• Compara també els <strong>totals</strong> amb el paper: <strong>total brut (meritat)</strong>, <strong>total a deduir</strong> i <strong>líquid</strong>. De vegades Gemini llegeix bé totes les línies i malament un total. Si és així, corregeix el total: l'app no el recalcula, perquè ha de ser el que imprimeix la nòmina.",
+  "sv.mm.own": "• Si tot coincideix amb el paper, el desquadrament és <strong>de la mateixa nòmina</strong>: desa-la. Quedarà marcada amb ⚠ i podràs copiar l'avís per al teu advocat o la teva assessoria.",
+  "sv.mm.ownSum": "• Si tot coincideix amb el paper, línies i totals, el desquadrament és <strong>de la mateixa nòmina</strong>: desa-la. Quedarà marcada amb ⚠ i podràs copiar l'avís per al teu advocat o la teva assessoria.",
+  "sv.mm.fix": "✏ Torna a corregir",
+  "sv.mm.save": "⚠ Desa amb avís",
+  "sv.mm.saveNext": "⚠ Desa amb avís i continua",
+  "sv.dup.title": "⚠ Ja hi ha una nòmina en aquest lloc",
+  "sv.dup.have": "Ja tens desada <strong>{name}</strong>.",
+  "sv.dup.saved": "Desada",
+  "sv.dup.new": "Nova",
+  "sv.dup.gross": "Brut",
+  "sv.dup.net": "Net",
+  "sv.dup.date": "Data",
+  "sv.dup.now": "ara",
+  "sv.dup.same": "✓ Tenen els <strong>mateixos imports</strong>: segurament és la mateixa nòmina pujada dues vegades.",
+  "sv.dup.diff": "Els imports són <strong>diferents</strong>. Si la nova és una paga extra o uns endarreriments, desa-la a part: <strong>no s'esborra res</strong>.",
+  "sv.dup.extra": "💰 És una paga extra → desa-la a part",
+  "sv.dup.atrasos": "📎 Són endarreriments → desa'ls a part",
+  "sv.dup.extraOther": "És una altra paga extra diferent → desa-la a part",
+  "sv.dup.atrasosOther": "Són uns altres endarreriments diferents → desa'ls a part",
+  "sv.dup.replace": "♻ Substitueix la desada (es perd)",
+  "sv.dup.discard": "Descarta aquesta — ja la tinc",
+  "sv.dup.cancelHave": "Cancel·la — ja la tinc",
+  "sv.dup.cancel": "Cancel·la",
+  "sv.docFail": "No s'ha pogut desar el document original en aquest dispositiu ({err}).\n\nLes dades de la nòmina sí que s'han desat.",
+  "sv.gone": "Aquesta nòmina ja no existeix (s'ha esborrat o s'ha importat una altra còpia?). No s'ha desat res.",
+  "sv.slotTaken": "Ja tens desada una nòmina mensual per a {m} {y}: no hi puc moure aquesta.\n\nSi aquesta és una paga extra o uns endarreriments, tria aquest tipus a dalt. No s'ha canviat res.",
+  "mr.x.warn1": "⚠ AVÍS: ELS COMPTES D'AQUESTA NÒMINA NO QUADREN (detall al final).",
+  "mr.x.warn2": "Cal revisar-ho amb el document original abans de fer servir aquestes dades.",
+  "mr.x.s5checks": "AVISOS DE LA COMPROVACIÓ AUTOMÀTICA",
+  "mr.x.s5round": "ARRODONIMENTS DE L'EMPRESA (LES SUMES QUADREN)",
+  "mr.x.sPrices": "CANVIS DEL PREU PER UNITAT (RESPECTE A LES NÒMINES ANTERIORS)",
+  "mr.x.head": "RESUM DE DADES DE LA NÒMINA - PERÍODE: {m} {y}",
+  "mr.x.s1": "DADES IDENTIFICATIVES",
+  "mr.x.company": "EMPRESA",
+  "mr.x.worker": "TREBALLADOR",
+  "mr.x.s2": "RELACIÓ LABORAL",
+  "mr.x.category": "Categoria",
+  "mr.x.seniority": "Antiguitat",
+  "mr.x.contract": "Contracte",
+  "mr.x.group": "Grup Cot",
+  "mr.x.period": "Període: {a} - {b} ({n} dies)",
+  "mr.x.s3": "DETALL ECONÒMIC (MERITACIONS)",
+  "mr.x.gross": "TOTAL BRUT",
+  "mr.x.s4": "DEDUCCIONS I LÍQUID",
+  "mr.x.ded": "TOTAL A DEDUIR",
+  "mr.x.net": "LÍQUID A PERCEBRE (NET)",
+  "mr.x.bases": "BASE IRPF: {irpf} € | BASE S.S.: {ss} €",
+  "mr.x.irpf": "% RETENCIÓ IRPF",
+  "mr.phase": "FASE 2",
+  "mr.title": "Informe executiu — {m} {y}",
+  "mr.checks": "Comprovació dels comptes",
+  "mr.bad": "✗ Els comptes no quadren: Gemini va llegir malament alguna línia",
+  "mr.meh": "⚠ Les sumes quadren, però hi ha alguna cosa per mirar",
+  "mr.good": "✓ Els comptes quadren",
+  "mr.fix": "✏ Corregeix les dades",
+  "mr.edited": "Dades corregides després de desar-la, en data {d}",
+  "mr.prices": "Preus per unitat",
+  "mr.type": "Tipus de nòmina",
+  "mr.typeNote": "Si aquesta nòmina és una paga extra o uns endarreriments i es va desar com a mensual (o al revés), canvia-la aquí sense tornar-la a processar.",
+  "mr.irpf": "% Retenció IRPF",
+  "mr.irpfNone": "no apareix a la nòmina: introdueix-lo a mà",
+  "mr.irpfFix": "✏ Corregeix el %",
+  "mr.irpfAsk": "% de retenció d'IRPF: {name}\n\nEscriu-lo tal com apareix a la nòmina (p. ex.: 20,42).\nDeixa'l buit perquè l'app el torni a calcular sola.",
+  "mr.irpfBad": "\"{v}\" no és un percentatge vàlid. Fes servir un nombre entre 0 i 60, per exemple 20,42",
+  "mr.orig": "📎 Document original",
+  "mr.copy": "📋 Copia per a l'advocat",
+  "mr.reclassTaken": "Ja existeix la nòmina ordinària per a {m} {y}.\n\nSi aquella també està mal classificada, canvia-la primer i torna-ho a provar.",
+  "mr.reclassAsk": "Vols canviar \"{a}\" a \"{b}\"?",
+  "irpf.src.nomina": "llegit de la nòmina",
+  "irpf.src.manual": "corregit a mà",
+  "irpf.src.concepto": "tret de la línia d'IRPF de la nòmina",
+  "irpf.src.calculado": "calculat: import retingut ÷ base IRPF",
+  "irpf.src.aprox": "aproximat: import retingut ÷ brut (no hi ha base IRPF)",
+  "doc.pdf": "PDF",
+  "doc.photo": "Foto",
+  "doc.savedOn": "desat en data {d}",
+  "doc.onlyHere": "només en aquest dispositiu",
+  "doc.view": "👁 Mostra",
+  "doc.share": "📤 Desa a… (Drive, iCloud…)",
+  "doc.download": "⬇ Baixa",
+  "doc.change": "🔄 Canvia",
+  "doc.remove": "🗑 Treu",
+  "doc.elsewhere": "L'original d'aquesta nòmina es va desar en un altre dispositiu. El pots portar amb una <strong>còpia completa</strong> o adjuntar-lo aquí.",
+  "doc.none": "Aquesta nòmina no té desat el document original. Adjunta-hi la foto o el PDF i es desarà amb la nòmina, amb un nom automàtic.",
+  "doc.noAi": "No es torna a processar amb la IA, així que no gasta lectures.",
+  "doc.attach": "📎 Adjunta l'original",
+  "doc.badFormat": "Format no reconegut. Prova-ho amb JPG, PNG o PDF.",
+  "doc.saveFail": "No s'ha pogut desar el document: {err}",
+  "doc.noIdb": "Aquest navegador no permet desar documents",
+  "doc.aborted": "Operació cancel·lada (sense espai?)",
+  "doc.gone": "El document ja no és en aquest dispositiu",
+  "doc.shareFail": "No s'ha pogut compartir: {err}\n\nProva-ho amb \"Baixa\".",
+  "doc.removeAsk": "Vols treure el document original de la nòmina {name}?\n\nLes dades de la nòmina no s'esborren.",
+  "pv.dlFail": "No s'ha pogut baixar el visor de PDF",
+  "pv.na": "Visor de PDF no disponible",
+  "pv.close": "✕ Tanca",
+  "pv.opening": "Obrint el PDF…",
+  "pv.preparing": "Preparant el visor de PDF… (només triga una mica la primera vegada)",
+  "pv.locked": "Aquest PDF està protegit amb contrasenya…",
+  "pv.pwWrong": "Contrasenya incorrecta. Torna-la a escriure:",
+  "pv.pwAsk": "Aquest PDF està protegit amb contrasenya (moltes empreses fan servir el teu DNI). Escriu-la per veure'l:",
+  "pv.showingPage": "Mostrant la pàgina {i} de {n}…",
+  "pv.showing": "Mostrant la nòmina…",
+  "pv.page": "Pàgina {i} de {n}",
+  "pv.page1": "{n} pàgina",
+  "pv.pages": "{n} pàgines",
+  "pv.otherApp": "Prefereixes una altra app?",
+  "pv.external": "Obre amb el visor del mòbil",
+  "pv.download": "Baixa",
+  "pv.libFail": "No s'ha pogut carregar el visor de PDF de l'app.",
+  "pv.offline": "Sense connexió: el visor de PDF es baixa la primera vegada que es fa servir. Obre'l una vegada amb connexió i després també funcionarà sense.",
+  "pv.pwCancelled": "Aquest PDF està protegit amb contrasenya i no s'ha obert.",
+  "pv.broken": "No s'ha pogut mostrar aquest PDF (pot estar malmès).",
+  "pv.fallback": "La teva nòmina està desada igualment. La pots veure d'una altra manera:"
+});
+Object.assign(I18N.en, {
+  "sv.badPeriod": "I can't save it: the period \"{m} {y}\" is not valid.\n\nCorrect the Month (e.g. 7 or Julio) and the Year (e.g. 2026) in Zone 1 by tapping the value.",
+  "sv.mm.title": "⚠ The figures don't add up",
+  "sv.mm.look": "Check those lines on the document:",
+  "sv.mm.misread": "• If Gemini misread any of them, <strong>correct it again</strong> (it is marked in red) or press «Read again with Gemini».",
+  "sv.mm.totals": "• Also compare the <strong>totals</strong> with the paper: <strong>gross pay (total devengado)</strong>, <strong>total deductions (total a deducir)</strong> and <strong>net pay (líquido)</strong>. Sometimes Gemini reads every line correctly and one total wrong. If so, correct the total: the app does not recalculate it, because it must be the one printed on the payslip.",
+  "sv.mm.own": "• If everything matches the paper, the mismatch is <strong>in the payslip itself</strong>: save it. It will be marked with ⚠ and you will be able to copy the warning for your lawyer or adviser.",
+  "sv.mm.ownSum": "• If everything matches the paper, lines and totals, the mismatch is <strong>in the payslip itself</strong>: save it. It will be marked with ⚠ and you will be able to copy the warning for your lawyer or adviser.",
+  "sv.mm.fix": "✏ Correct again",
+  "sv.mm.save": "⚠ Save with warning",
+  "sv.mm.saveNext": "⚠ Save with warning and continue",
+  "sv.dup.title": "⚠ There is already a payslip in that slot",
+  "sv.dup.have": "You already have <strong>{name}</strong> saved.",
+  "sv.dup.saved": "Saved",
+  "sv.dup.new": "New",
+  "sv.dup.gross": "Gross",
+  "sv.dup.net": "Net",
+  "sv.dup.date": "Date",
+  "sv.dup.now": "now",
+  "sv.dup.same": "✓ They have the <strong>same amounts</strong>: it is probably the same payslip uploaded twice.",
+  "sv.dup.diff": "The amounts are <strong>different</strong>. If the new one is an extra payment or back pay, save it separately: <strong>nothing is deleted</strong>.",
+  "sv.dup.extra": "💰 It's an extra payment → save it separately",
+  "sv.dup.atrasos": "📎 It's back pay → save it separately",
+  "sv.dup.extraOther": "It's a different extra payment → save it separately",
+  "sv.dup.atrasosOther": "It's different back pay → save it separately",
+  "sv.dup.replace": "♻ Replace the saved one (it will be lost)",
+  "sv.dup.discard": "Discard this one — I already have it",
+  "sv.dup.cancelHave": "Cancel — I already have it",
+  "sv.dup.cancel": "Cancel",
+  "sv.docFail": "The original document could not be saved on this device ({err}).\n\nThe payslip data has been saved.",
+  "sv.gone": "This payslip no longer exists (was it deleted, or was another backup imported?). Nothing has been saved.",
+  "sv.slotTaken": "You already have a monthly payslip saved for {m} {y}: I can't move this one there.\n\nIf this is an extra payment or back pay, choose that type above. Nothing has been changed.",
+  "mr.x.warn1": "⚠ WARNING: THE FIGURES ON THIS PAYSLIP DON'T ADD UP (details at the end).",
+  "mr.x.warn2": "Check against the original document before using this data.",
+  "mr.x.s5checks": "AUTOMATIC CHECK WARNINGS",
+  "mr.x.s5round": "COMPANY ROUNDING (THE SUMS ADD UP)",
+  "mr.x.sPrices": "CHANGES IN THE UNIT PRICE (COMPARED WITH PREVIOUS PAYSLIPS)",
+  "mr.x.head": "PAYSLIP DATA SUMMARY - PERIOD: {m} {y}",
+  "mr.x.s1": "IDENTIFICATION DATA",
+  "mr.x.company": "COMPANY",
+  "mr.x.worker": "EMPLOYEE",
+  "mr.x.s2": "EMPLOYMENT",
+  "mr.x.category": "Category",
+  "mr.x.seniority": "Seniority",
+  "mr.x.contract": "Contract",
+  "mr.x.group": "Contribution group",
+  "mr.x.period": "Period: {a} - {b} ({n} days)",
+  "mr.x.s3": "PAY DETAILS (DEVENGOS)",
+  "mr.x.gross": "GROSS PAY",
+  "mr.x.s4": "DEDUCTIONS AND NET PAY",
+  "mr.x.ded": "TOTAL DEDUCTIONS",
+  "mr.x.net": "NET PAY (LÍQUIDO)",
+  "mr.x.bases": "IRPF BASE: {irpf} € | SOCIAL SECURITY BASE: {ss} €",
+  "mr.x.irpf": "% IRPF WITHHOLDING",
+  "mr.phase": "PHASE 2",
+  "mr.title": "Executive report — {m} {y}",
+  "mr.checks": "Checking the figures",
+  "mr.bad": "✗ The figures don't add up: Gemini misread a line",
+  "mr.meh": "⚠ The sums add up, but there is something to check",
+  "mr.good": "✓ The figures add up",
+  "mr.fix": "✏ Correct the data",
+  "mr.edited": "Data corrected after saving, on {d}",
+  "mr.prices": "Unit prices",
+  "mr.type": "Payslip type",
+  "mr.typeNote": "If this payslip is an extra payment or back pay and was saved as monthly (or the other way round), change it here without processing it again.",
+  "mr.irpf": "% IRPF withholding",
+  "mr.irpfNone": "not shown on the payslip: enter it by hand",
+  "mr.irpfFix": "✏ Correct %",
+  "mr.irpfAsk": "% IRPF withholding for {name}\n\nType it exactly as it appears on the payslip (e.g. 20,42).\nLeave it empty for the app to calculate it again on its own.",
+  "mr.irpfBad": "\"{v}\" is not a valid percentage. Use a number between 0 and 60, for example 20,42",
+  "mr.orig": "📎 Original document",
+  "mr.copy": "📋 Copy for lawyer",
+  "mr.reclassTaken": "The ordinary payslip for {m} {y} already exists.\n\nIf that one is also wrongly classified, change it first and try again.",
+  "mr.reclassAsk": "Change \"{a}\" to \"{b}\"?",
+  "irpf.src.nomina": "read from the payslip",
+  "irpf.src.manual": "corrected by hand",
+  "irpf.src.concepto": "taken from the payslip's IRPF line",
+  "irpf.src.calculado": "calculated: amount withheld ÷ IRPF base",
+  "irpf.src.aprox": "approximate: amount withheld ÷ gross pay (no IRPF base)",
+  "doc.pdf": "PDF",
+  "doc.photo": "Photo",
+  "doc.savedOn": "saved on {d}",
+  "doc.onlyHere": "only on this device",
+  "doc.view": "👁 View",
+  "doc.share": "📤 Save to… (Drive, iCloud…)",
+  "doc.download": "⬇ Download",
+  "doc.change": "🔄 Replace",
+  "doc.remove": "🗑 Remove",
+  "doc.elsewhere": "The original of this payslip was saved on another device. You can bring it over with a <strong>full backup</strong> or attach it here.",
+  "doc.none": "This payslip has no original document saved. Attach the photo or the PDF and it will be saved with it, with an automatic name.",
+  "doc.noAi": "It is not processed again by the AI, so it doesn't use up any readings.",
+  "doc.attach": "📎 Attach original",
+  "doc.badFormat": "Format not recognised. Try JPG, PNG or PDF.",
+  "doc.saveFail": "The document could not be saved: {err}",
+  "doc.noIdb": "This browser does not allow documents to be saved",
+  "doc.aborted": "Operation cancelled (out of space?)",
+  "doc.gone": "The document is no longer on this device",
+  "doc.shareFail": "Could not share: {err}\n\nTry \"Download\".",
+  "doc.removeAsk": "Remove the original document of {name}?\n\nThe payslip data is not deleted.",
+  "pv.dlFail": "The PDF viewer could not be downloaded",
+  "pv.na": "PDF viewer not available",
+  "pv.close": "✕ Close",
+  "pv.opening": "Opening the PDF…",
+  "pv.preparing": "Preparing the PDF viewer… (it only takes a moment the first time)",
+  "pv.locked": "This PDF is password-protected…",
+  "pv.pwWrong": "Wrong password. Type it again:",
+  "pv.pwAsk": "This PDF is password-protected (many companies use your DNI, the Spanish ID number). Type it to view it:",
+  "pv.showingPage": "Showing page {i} of {n}…",
+  "pv.showing": "Showing the payslip…",
+  "pv.page": "Page {i} of {n}",
+  "pv.page1": "{n} page",
+  "pv.pages": "{n} pages",
+  "pv.otherApp": "Prefer another app?",
+  "pv.external": "Open with the phone's viewer",
+  "pv.download": "Download",
+  "pv.libFail": "The app's PDF viewer could not be loaded.",
+  "pv.offline": "Offline: the PDF viewer is downloaded the first time it is used. Open it once while online and after that it will also work offline.",
+  "pv.pwCancelled": "This PDF is password-protected and has not been opened.",
+  "pv.broken": "This PDF could not be shown (it may be damaged).",
+  "pv.fallback": "Your payslip is saved anyway. You can view it another way:"
+});
 // Como tr(), para textos con marcado: las variables se escapan; {html: '…'} pasa un trozo ya escapado (otro trHtml).
 function trHtml(key, vars = {}, lang = appLang()) {
   const t = (I18N[lang] && I18N[lang][key]) ?? I18N.es[key] ?? key;
@@ -5960,13 +6322,13 @@ function showReport(p) {
   const real = realChecks(checks);                   // v2.8.13: sin los redondeos de la empresa
   const errs = checks.filter(c => c.level === 'err');
   // Si las cuentas no cuadran, el texto para el abogado lo dice arriba y al final (nunca sale "limpio" con datos dudosos)
-  const warnHead = errs.length ? `⚠ AVISO: LAS CUENTAS DE ESTA NÓMINA NO CUADRAN (detalle al final).
-Revisar con el documento original antes de usar estos datos.
+  const warnHead = errs.length ? `${tr('mr.x.warn1')}
+${tr('mr.x.warn2')}
 ============================================================
 ` : '';
   const warnTail = checks.length ? `
 
-5. ${real.length ? 'AVISOS DE LA COMPROBACIÓN AUTOMÁTICA' : 'REDONDEOS DE LA EMPRESA (LAS SUMAS CUADRAN)'}
+5. ${tr(real.length ? 'mr.x.s5checks' : 'mr.x.s5round')}
 ------------------------------------------------------------
 ${[...real, ...checks.filter(softCheck)].map(c => chkIcon(c.level) + ' ' + c.text).join('\n')}
 ------------------------------------------------------------` : '';
@@ -5974,83 +6336,84 @@ ${[...real, ...checks.filter(softCheck)].map(c => chkIcon(c.level) + ' ' + c.tex
   const pr = priceReport(p);
   const priceTail = pr?.text ? `
 
-${checks.length ? 6 : 5}. CAMBIOS DEL PRECIO POR UNIDAD (RESPECTO A LAS NÓMINAS ANTERIORES)
+${checks.length ? 6 : 5}. ${tr('mr.x.sPrices')}
 ------------------------------------------------------------
 ${pr.text}
 ------------------------------------------------------------` : '';
-  const reportText = `${warnHead}RESUMEN DE DATOS DE NÓMINA - PERIODO: ${p.period?.month || '?'} ${p.period?.year || '?'}${lbl ? ' — ' + lbl.toUpperCase() : ''}
+  const pm = p.period?.month ? monthName(p.period.month) : '?';   // v2.30.0: el texto, en el idioma de la app
+  const reportText = `${warnHead}${tr('mr.x.head', { m: pm, y: p.period?.year || '?' })}${lbl ? ' — ' + lbl.toUpperCase() : ''}
 ------------------------------------------------------------
-1. DATOS IDENTIFICATIVOS
+1. ${tr('mr.x.s1')}
 ------------------------------------------------------------
-EMPRESA: ${p.company?.name || 'N/L'} | CIF: ${p.company?.cif || 'N/L'} | CCC: ${p.company?.ccc || 'N/L'}
-TRABAJADOR: ${p.worker?.name || 'N/L'} | NAF: ${p.worker?.naf || 'N/L'} | DNI: ${p.worker?.dni || 'N/L'}
+${tr('mr.x.company')}: ${p.company?.name || 'N/L'} | CIF: ${p.company?.cif || 'N/L'} | CCC: ${p.company?.ccc || 'N/L'}
+${tr('mr.x.worker')}: ${p.worker?.name || 'N/L'} | NAF: ${p.worker?.naf || 'N/L'} | DNI: ${p.worker?.dni || 'N/L'}
 
-2. RELACIÓN LABORAL
+2. ${tr('mr.x.s2')}
 ------------------------------------------------------------
-• Categoría: ${p.employment?.category || 'N/L'} | Antigüedad: ${p.employment?.seniority || 'N/L'}
-• Contrato: ${p.employment?.contractCode || 'N/L'} | Grupo Cot: ${p.employment?.cotizationGroup || 'N/L'}
-• Periodo: ${p.period?.startDate || '?'} - ${p.period?.endDate || '?'} (${p.period?.days || '?'} días)
+• ${tr('mr.x.category')}: ${p.employment?.category || 'N/L'} | ${tr('mr.x.seniority')}: ${p.employment?.seniority || 'N/L'}
+• ${tr('mr.x.contract')}: ${p.employment?.contractCode || 'N/L'} | ${tr('mr.x.group')}: ${p.employment?.cotizationGroup || 'N/L'}
+• ${tr('mr.x.period', { a: p.period?.startDate || '?', b: p.period?.endDate || '?', n: p.period?.days || '?' })}
 
-3. DETALLE ECONÓMICO (DEVENGOS)
+3. ${tr('mr.x.s3')}
 ------------------------------------------------------------
 ${earningsLines}
 ------------------------------------------------------------
-TOTAL BRUTO: ${fmt(p.totals?.grossTotal)} €
+${tr('mr.x.gross')}: ${fmt(p.totals?.grossTotal)} €
 ------------------------------------------------------------
 
-4. DEDUCCIONES Y LÍQUIDO
+4. ${tr('mr.x.s4')}
 ------------------------------------------------------------
 ${deductionLines}
-TOTAL DEDUCIR: ${fmt(p.totals?.totalDeductions)} €
+${tr('mr.x.ded')}: ${fmt(p.totals?.totalDeductions)} €
 ------------------------------------------------------------
-LÍQUIDO A PERCIBIR (NETO): ${fmt(p.totals?.netPay)} €
-BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} €
-% RETENCIÓN IRPF: ${irpf.rate === null ? 'N/L' : fmtPct(irpf.rate)}${irpf.source && irpf.source !== 'nomina' ? ' (' + IRPF_SOURCE_TEXT[irpf.source] + ')' : ''}
+${tr('mr.x.net')}: ${fmt(p.totals?.netPay)} €
+${tr('mr.x.bases', { irpf: fmt(p.bases?.baseIRPF), ss: fmt(p.bases?.baseCC) })}
+${tr('mr.x.irpf')}: ${irpf.rate === null ? 'N/L' : fmtPct(irpf.rate)}${irpf.source && irpf.source !== 'nomina' ? ' (' + IRPF_SOURCE_TEXT[irpf.source] + ')' : ''}
 ------------------------------------------------------------${warnTail}${priceTail}`;
 
   const state = errs.length ? 'bad' : real.length ? 'meh' : 'good';
   document.getElementById('reportContent').innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px">
-      <span class="phase-badge phase-2">FASE 2</span>
-      <span style="font-size:18px;font-weight:800;color:var(--accent)">Informe Ejecutivo — ${esc(p.period?.month)} ${esc(p.period?.year)}${typeBadge(p)}</span>
+      <span class="phase-badge phase-2">${esc(tr('mr.phase'))}</span>
+      <span style="font-size:18px;font-weight:800;color:var(--accent)">${trHtml('mr.title', { m: monthName(p.period?.month), y: p.period?.year ?? '' })}${typeBadge(p)}</span>
     </div>
     <div class="card checks-card ${state}" style="padding:14px 16px">
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Comprobación de las cuentas</div>
-      <div class="chk-title ${state}">${errs.length ? '✗ Las cuentas no cuadran: Gemini leyó mal alguna línea' : real.length ? '⚠ Las sumas cuadran, pero hay algo que mirar' : '✓ Las cuentas cuadran'}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">${esc(tr('mr.checks'))}</div>
+      <div class="chk-title ${state}">${esc(tr(errs.length ? 'mr.bad' : real.length ? 'mr.meh' : 'mr.good'))}</div>
       ${docSealHtml(p)}
       ${[...real, ...checks.filter(softCheck)].map(c => `<div class="chk ${c.level}">${chkIcon(c.level)} <span>${esc(c.text)}</span></div>`).join('')}
       <div class="doc-actions">
-        <button class="btn ${errs.length ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="editPayroll(${jsArg(p.id)})">✏ Corregir datos</button>
-        ${real.length && hasOriginal(p) ? `<button class="btn btn-secondary btn-sm" onclick="editAndReread(${jsArg(p.id)})">🔁 Releer con Gemini</button>` : ''}
+        <button class="btn ${errs.length ? 'btn-primary' : 'btn-secondary'} btn-sm" onclick="editPayroll(${jsArg(p.id)})">${esc(tr('mr.fix'))}</button>
+        ${real.length && hasOriginal(p) ? `<button class="btn btn-secondary btn-sm" onclick="editAndReread(${jsArg(p.id)})">${esc(tr('rv.reread'))}</button>` : ''}
       </div>
-      ${p.editedAt ? `<div style="font-size:11px;color:var(--text-muted);margin-top:8px">Datos corregidos después de guardarla, el ${esc(new Date(p.editedAt).toLocaleDateString('es-ES'))}</div>` : ''}
+      ${p.editedAt ? `<div style="font-size:11px;color:var(--text-muted);margin-top:8px">${esc(tr('mr.edited', { d: new Date(p.editedAt).toLocaleDateString('es-ES') }))}</div>` : ''}
     </div>
     ${pr ? `<div class="card" id="priceReport" style="padding:14px 16px">
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Precios por unidad</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">${esc(tr('mr.prices'))}</div>
       ${pr.html}
     </div>` : ''}
     ${glossaryCardHtml(p)}
     <div class="card" style="padding:14px 16px">
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">Tipo de nómina</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">${esc(tr('mr.type'))}</div>
       <div class="type-picker">
         ${Object.entries(PAY_TYPES).map(([k, v]) =>
           `<button class="type-opt ${k === pt ? 'active' : ''}" onclick="reclassifyPayroll(${jsArg(p.id)},'${k}')">${v.icon} ${v.long || v.label}</button>`).join('')}
       </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5">Si esta nómina es una paga extra o unos atrasos y se guardó como mensual (o al revés), cámbiala aquí sin volver a procesarla.</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.5">${esc(tr('mr.typeNote'))}</div>
     </div>
     <div class="card" style="padding:14px 16px">
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">% Retención IRPF</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">${esc(tr('mr.irpf'))}</div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
         <div>
           <span style="font-size:20px;font-weight:800;font-family:'JetBrains Mono',monospace;color:${irpf.rate === null ? 'var(--danger)' : 'var(--text)'}">${irpf.rate === null ? 'N/L' : fmtPct(irpf.rate)}</span>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${esc(IRPF_SOURCE_TEXT[irpf.source] || 'no aparece en la nómina: introdúcelo a mano')}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px">${esc(IRPF_SOURCE_TEXT[irpf.source] || tr('mr.irpfNone'))}</div>
         </div>
-        <button class="btn btn-secondary btn-sm" onclick="editIrpf(${jsArg(p.id)})">✏ Corregir %</button>
+        <button class="btn btn-secondary btn-sm" onclick="editIrpf(${jsArg(p.id)})">${esc(tr('mr.irpfFix'))}</button>
       </div>
     </div>
     ${bankCardHtml(p)}
     <div class="card" style="padding:14px 16px">
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">📎 Documento original</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;font-weight:600">${esc(tr('mr.orig'))}</div>
       <div id="originalBody" class="doc-meta"></div>
       <input type="file" id="attachInput" accept="image/*,.avif,.heic,.heif,.pdf,application/pdf" style="display:none" onchange="attachOriginal(${jsArg(p.id)}, this.files[0])">
     </div>
@@ -6058,8 +6421,8 @@ BASE IRPF: ${fmt(p.bases?.baseIRPF)} € | BASE S.S.: ${fmt(p.bases?.baseCC)} �
       <pre class="report-pre">${esc(reportText)}</pre>
     </div>
     <div class="btn-group">
-      <button class="btn btn-primary" onclick="copyText(this)">📋 Copiar para Abogado</button>
-      <button class="btn btn-secondary" onclick="showView('dashboard')">Volver al Panel</button>
+      <button class="btn btn-primary" onclick="copyText(this)">${esc(tr('mr.copy'))}</button>
+      <button class="btn btn-secondary" onclick="showView('dashboard')">${esc(tr('backPanel'))}</button>
     </div>`;
 
   // El texto a copiar se guarda aquí, NUNCA dentro del onclick: con comillas o ${…} en los datos
@@ -6080,25 +6443,25 @@ function renderOriginalBody(p) {
     const saved = o.savedAt ? new Date(o.savedAt).toLocaleDateString('es-ES') : '';
     el.innerHTML = `
       <div><strong>${esc(originalFileName(p))}</strong></div>
-      <div style="color:var(--text-muted);font-size:11px">${o.type === 'application/pdf' ? 'PDF' : 'Foto'} · ${fmtBytes(o.size)}${saved ? ' · guardado el ' + saved : ''} · solo en este dispositivo</div>
+      <div style="color:var(--text-muted);font-size:11px">${esc(tr(o.type === 'application/pdf' ? 'doc.pdf' : 'doc.photo'))} · ${fmtBytes(o.size)}${saved ? ' · ' + esc(tr('doc.savedOn', { d: saved })) : ''} · ${esc(tr('doc.onlyHere'))}</div>
       <div class="doc-actions">
-        <button class="btn btn-secondary btn-sm" onclick="viewOriginal(${jsArg(id)})">👁 Ver</button>
-        ${canShareFiles() ? `<button class="btn btn-secondary btn-sm" onclick="shareOriginal(${jsArg(id)})">📤 Guardar en… (Drive, iCloud…)</button>` : ''}
-        <button class="btn btn-secondary btn-sm" onclick="downloadOriginal(${jsArg(id)})">⬇ Descargar</button>
-        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('attachInput').click()">🔄 Cambiar</button>
-        <button class="btn btn-danger" onclick="removeOriginal(${jsArg(id)})">🗑 Quitar</button>
+        <button class="btn btn-secondary btn-sm" onclick="viewOriginal(${jsArg(id)})">${esc(tr('doc.view'))}</button>
+        ${canShareFiles() ? `<button class="btn btn-secondary btn-sm" onclick="shareOriginal(${jsArg(id)})">${esc(tr('doc.share'))}</button>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="downloadOriginal(${jsArg(id)})">${esc(tr('doc.download'))}</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('attachInput').click()">${esc(tr('doc.change'))}</button>
+        <button class="btn btn-danger" onclick="removeOriginal(${jsArg(id)})">${esc(tr('doc.remove'))}</button>
       </div>`;
     originalCache = null;
     originalAsFile(p).then(file => { originalCache = { key: o.key, file }; }).catch(() => {});
   } else {
     const elsewhere = p.original?.key
-      ? `<div style="color:var(--warning);margin-bottom:6px">El original de esta nómina se guardó en otro dispositivo. Puedes traerlo con un <strong>backup completo</strong> o adjuntarlo aquí.</div>`
+      ? `<div style="color:var(--warning);margin-bottom:6px">${tr('doc.elsewhere')}</div>`
       : '';
     el.innerHTML = `${elsewhere}
-      <div>Esta nómina no tiene guardado el documento original. Adjunta la foto o el PDF y quedará guardado junto a ella, con nombre automático.</div>
-      <div style="color:var(--text-muted);font-size:11px;margin-top:4px">No se vuelve a procesar con la IA, así que no gasta lecturas.</div>
+      <div>${esc(tr('doc.none'))}</div>
+      <div style="color:var(--text-muted);font-size:11px;margin-top:4px">${esc(tr('doc.noAi'))}</div>
       <div class="doc-actions">
-        <button class="btn btn-primary btn-sm" onclick="document.getElementById('attachInput').click()">📎 Adjuntar original</button>
+        <button class="btn btn-primary btn-sm" onclick="document.getElementById('attachInput').click()">${esc(tr('doc.attach'))}</button>
       </div>`;
   }
 }
@@ -6117,7 +6480,7 @@ async function attachOriginal(id, file) {
     renderOriginalBody(p);
     warmPdfViewer();
   } catch (e) {
-    alert(e.message === 'FORMATO' ? 'Formato no reconocido. Prueba con JPG, PNG o PDF.' : `No se pudo guardar el documento: ${e.message || e}`);
+    alert(e.message === 'FORMATO' ? tr('doc.badFormat') : tr('doc.saveFail', { err: e.message || e }));
   } finally {
     if (input) input.value = '';
   }
@@ -6161,7 +6524,7 @@ function loadScriptOnce(src, integrity, module = false) {
     s.integrity = integrity;
     s.crossOrigin = 'anonymous';
     s.onload = () => resolve();
-    s.onerror = () => { s.remove(); reject(new Error('No se pudo descargar el visor de PDF')); };
+    s.onerror = () => { s.remove(); reject(new Error(tr('pv.dlFail'))); };
     document.head.appendChild(s);
   });
 }
@@ -6184,7 +6547,7 @@ function loadPdfJs() {
       polyfillPdfJs();
       if (!window.pdfjsLib) await loadScriptOnce(PDFJS_BASE + PDFJS_FILES[0][0], PDFJS_FILES[0][1], true);
       if (!window.pdfjsWorker) await loadScriptOnce(PDFJS_BASE + PDFJS_FILES[1][0], PDFJS_FILES[1][1], true);
-      if (!window.pdfjsLib || !window.pdfjsWorker) throw new Error('Visor de PDF no disponible');
+      if (!window.pdfjsLib || !window.pdfjsWorker) throw new Error(tr('pv.na'));
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_BASE + PDFJS_FILES[1][0];
       return window.pdfjsLib;
     })();
@@ -6563,8 +6926,8 @@ function showPdfViewer(file) {
   m.id = 'docViewer';
   m._file = file;
   m.innerHTML = `<div class="doc-viewer">
-    <div class="doc-viewer-bar"><span>${esc(file.name)}</span><button class="btn btn-secondary btn-sm" onclick="closeDocViewer()">✕ Cerrar</button></div>
-    <div class="pdf-status" id="pdfStatus" role="status" aria-live="polite"><span class="spinner light"></span><span id="pdfStatusText">Abriendo el PDF…</span></div>
+    <div class="doc-viewer-bar"><span>${esc(file.name)}</span><button class="btn btn-secondary btn-sm" onclick="closeDocViewer()">${esc(tr('pv.close'))}</button></div>
+    <div class="pdf-status" id="pdfStatus" role="status" aria-live="polite"><span class="spinner light"></span><span id="pdfStatusText">${esc(tr('pv.opening'))}</span></div>
     <div class="pdf-pages" id="pdfPages"></div>
   </div>`;
   m.onclick = e => { if (e.target === m) closeDocViewer(); };
@@ -6576,24 +6939,22 @@ async function renderPdfInto(m, file) {
   const alive = () => document.getElementById('docViewer') === m;
   const setStatus = t => { const el = m.querySelector('#pdfStatusText'); if (el) el.textContent = t; };
   const libReady = !!(window.pdfjsLib && window.pdfjsWorker);
-  if (!libReady) setStatus('Preparando el visor de PDF… (solo tarda un poco la primera vez)');
+  if (!libReady) setStatus(tr('pv.preparing'));
   let stage = 'lib', cancelledPassword = false;
   try {
     const pdfjsLib = await loadPdfJs();
     if (!alive()) return;
     stage = 'doc';
-    setStatus('Abriendo el PDF…');
+    setStatus(tr('pv.opening'));
     const data = new Uint8Array(await file.arrayBuffer());
     const task = openPdf(pdfjsLib, data);
     m._task = task;
     task.onPassword = (updatePassword, reason) => {
       const wrong = reason === pdfjsLib.PasswordResponses.INCORRECT_PASSWORD;
-      setStatus('Este PDF está protegido con contraseña…');
-      const pw = prompt(wrong
-        ? 'Contraseña incorrecta. Vuelve a escribirla:'
-        : 'Este PDF está protegido con contraseña (muchas empresas usan tu DNI). Escríbela para verlo:');
+      setStatus(tr('pv.locked'));
+      const pw = prompt(tr(wrong ? 'pv.pwWrong' : 'pv.pwAsk'));
       if (pw === null) { cancelledPassword = true; updatePassword(new Error('Contraseña no introducida')); }
-      else { setStatus('Abriendo el PDF…'); updatePassword(pw); }
+      else { setStatus(tr('pv.opening')); updatePassword(pw); }
     };
     const pdf = await task.promise;
     const pagesEl = m.querySelector('#pdfPages');
@@ -6601,7 +6962,7 @@ async function renderPdfInto(m, file) {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     for (let i = 1; i <= pdf.numPages; i++) {
       if (!alive()) return;
-      setStatus(pdf.numPages > 1 ? `Mostrando página ${i} de ${pdf.numPages}…` : 'Mostrando la nómina…');
+      setStatus(pdf.numPages > 1 ? tr('pv.showingPage', { i, n: pdf.numPages }) : tr('pv.showing'));
       const page = await pdf.getPage(i);
       const base = page.getViewport({ scale: 1 });
       // Nítido aunque se amplíe con los dedos, sin pasarse de memoria (máx. ~12 Mpx por página)
@@ -6613,22 +6974,20 @@ async function renderPdfInto(m, file) {
       canvas.className = 'pdf-page';
       canvas.width = Math.floor(vp.width);
       canvas.height = Math.floor(vp.height);
-      canvas.setAttribute('aria-label', `Página ${i} de ${pdf.numPages}`);
+      canvas.setAttribute('aria-label', tr('pv.page', { i, n: pdf.numPages }));
       pagesEl.appendChild(canvas);
       await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
     }
     if (!alive()) return;
     m.querySelector('#pdfStatus')?.remove();
     m.querySelector('.doc-viewer').insertAdjacentHTML('beforeend',
-      `<div class="pdf-more">${pdf.numPages} página${pdf.numPages > 1 ? 's' : ''} · ¿Prefieres otra app? <button onclick="openPdfExternally()">Abrir con el visor del móvil</button> · <button onclick="downloadViewerFile()">Descargar</button></div>`);
+      `<div class="pdf-more">${esc(tr(pdf.numPages > 1 ? 'pv.pages' : 'pv.page1', { n: pdf.numPages }))} · ${esc(tr('pv.otherApp'))} <button onclick="openPdfExternally()">${esc(tr('pv.external'))}</button> · <button onclick="downloadViewerFile()">${esc(tr('pv.download'))}</button></div>`);
   } catch (e) {
     if (!alive()) return;
     let msg;
-    if (stage === 'lib') msg = navigator.onLine
-      ? 'No se ha podido cargar el visor de PDF de la app.'
-      : 'Sin conexión: el visor de PDF se descarga la primera vez que se usa. Ábrelo una vez con conexión y después funcionará también sin ella.';
-    else if (cancelledPassword || e?.name === 'PasswordException') msg = 'Este PDF está protegido con contraseña y no se ha abierto.';
-    else msg = 'No se ha podido mostrar este PDF (puede estar dañado).';
+    if (stage === 'lib') msg = tr(navigator.onLine ? 'pv.libFail' : 'pv.offline');
+    else if (cancelledPassword || e?.name === 'PasswordException') msg = tr('pv.pwCancelled');
+    else msg = tr('pv.broken');
     showPdfFallback(m, msg);
   }
 }
@@ -6639,10 +6998,10 @@ function showPdfFallback(m, msg) {
   m.querySelector('.pdf-more')?.remove();
   m.querySelector('.doc-viewer').insertAdjacentHTML('beforeend', `<div class="pdf-fallback">
     <div>⚠ ${esc(msg)}</div>
-    <div style="margin-top:6px;font-size:12px;color:var(--text-muted)">Tu nómina está guardada igualmente. Puedes verla de otra forma:</div>
+    <div style="margin-top:6px;font-size:12px;color:var(--text-muted)">${esc(tr('pv.fallback'))}</div>
     <div class="doc-actions">
-      <button class="btn btn-secondary btn-sm" onclick="openPdfExternally()">📄 Abrir con el visor del móvil</button>
-      <button class="btn btn-secondary btn-sm" onclick="downloadViewerFile()">⬇ Descargar</button>
+      <button class="btn btn-secondary btn-sm" onclick="openPdfExternally()">📄 ${esc(tr('pv.external'))}</button>
+      <button class="btn btn-secondary btn-sm" onclick="downloadViewerFile()">${esc(tr('doc.download'))}</button>
     </div>
   </div>`);
 }
@@ -6667,7 +7026,7 @@ function showDocViewer(url, title) {
   m.className = 'modal-overlay';
   m.id = 'docViewer';
   m.innerHTML = `<div class="doc-viewer">
-    <div class="doc-viewer-bar"><span>${esc(title)}</span><button class="btn btn-secondary btn-sm" onclick="closeDocViewer()">✕ Cerrar</button></div>
+    <div class="doc-viewer-bar"><span>${esc(title)}</span><button class="btn btn-secondary btn-sm" onclick="closeDocViewer()">${esc(tr('pv.close'))}</button></div>
     <img src="${url}" alt="${escAttr(title)}">
   </div>`;
   m.onclick = e => { if (e.target === m) closeDocViewer(); };
@@ -6692,7 +7051,7 @@ async function shareOriginal(id) {
     if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: file.name });
     else downloadBlob(file, file.name);
   } catch (e) {
-    if (e.name !== 'AbortError') alert(`No se pudo compartir: ${e.message || e}\n\nPrueba con "Descargar".`);
+    if (e.name !== 'AbortError') alert(tr('doc.shareFail', { err: e.message || e }));
   }
 }
 
@@ -6706,7 +7065,7 @@ async function downloadOriginal(id) {
 async function removeOriginal(id) {
   const p = payrolls.find(x => x.id === id);
   if (!p?.original) return;
-  if (!confirm(`¿Quitar el documento original de ${payName(p)}?\n\nLos datos de la nómina no se borran.`)) return;
+  if (!confirm(tr('doc.removeAsk', { name: payName(p) }))) return;
   await discardOriginal(p.original);
   delete p.original;
   saveData();
@@ -6720,10 +7079,10 @@ function reclassifyPayroll(id, newType) {
   const moved = { ...p, payType: newType };
   const newId = freePayrollId(moved, id);
   if (!newId) {
-    alert(`Ya existe la nómina ordinaria de ${p.period?.month} ${p.period?.year}.\n\nSi esa también está mal clasificada, cámbiala primero y vuelve a intentarlo.`);
+    alert(tr('mr.reclassTaken', { m: monthName(p.period?.month), y: p.period?.year }));
     return;
   }
-  if (!confirm(`¿Cambiar "${payName(p)}" a "${payName(moved)}"?`)) return;
+  if (!confirm(tr('mr.reclassAsk', { a: payName(p), b: payName(moved) }))) return;
   moved.id = newId;
   payrolls = payrolls.filter(x => x.id !== id);
   payrolls.push(moved);
@@ -8568,12 +8927,13 @@ function findIRPFDeduction(p) {
 //   2. el % impreso en la propia línea de IRPF ("TRIBUTACIÓN IRPF 20,42")
 //   3. calculado: importe retenido ÷ base IRPF
 //   4. aproximado: importe retenido ÷ bruto (si no hay base IRPF)
+// v2.30.0: en el idioma de la app (la clave guardada, p.bases.irpfSource, no cambia)
 const IRPF_SOURCE_TEXT = {
-  nomina:    'leído de la nómina',
-  manual:    'corregido a mano',
-  concepto:  'sacado de la línea de IRPF de la nómina',
-  calculado: 'calculado: importe retenido ÷ base IRPF',
-  aprox:     'aproximado: importe retenido ÷ bruto (no hay base IRPF)'
+  get nomina()    { return tr('irpf.src.nomina'); },
+  get manual()    { return tr('irpf.src.manual'); },
+  get concepto()  { return tr('irpf.src.concepto'); },
+  get calculado() { return tr('irpf.src.calculado'); },
+  get aprox()     { return tr('irpf.src.aprox'); }
 };
 
 function parsePct(v) {
@@ -8621,7 +8981,7 @@ function editIrpf(id) {
   if (!p) return;
   const cur = irpfRateOf(p);
   const v = prompt(
-    `% de retención de IRPF de ${payName(p)}\n\nEscríbelo tal como aparece en la nómina (ej: 20,42).\nDéjalo vacío para que la app lo vuelva a calcular sola.`,
+    tr('mr.irpfAsk', { name: payName(p) }),
     cur.rate !== null ? String(cur.rate).replace('.', ',') : '');
   if (v === null) return;
   p.bases = { ...(p.bases || {}) };
@@ -8630,7 +8990,7 @@ function editIrpf(id) {
     delete p.bases.irpfSource;
   } else {
     const n = parsePct(v);
-    if (n === null) { alert(`"${v}" no es un porcentaje válido. Usa un número entre 0 y 60, por ejemplo 20,42`); return; }
+    if (n === null) { alert(tr('mr.irpfBad', { v })); return; }
     p.bases.irpfPercentage = n;
     p.bases.irpfSource = 'manual';
   }
