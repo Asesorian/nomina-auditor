@@ -491,7 +491,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.28.0</span>
+    <span class="logo-badge">Forense v2.29.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -788,9 +788,9 @@ const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto
 //   atrasos   → "2026-07-atrasos"
 // Ordenadas por id quedan juntas y en orden: 2026-07, 2026-07-atrasos, 2026-07-extra, 2026-08...
 const PAY_TYPES = {
-  ordinaria: { label: 'Mensual',    icon: '📄' },
-  extra:     { label: 'Paga extra', icon: '💰' },
-  atrasos:   { label: 'Atrasos',    icon: '📎' },
+  ordinaria: { get label() { return tr('type.ord'); },     icon: '📄' },   // v2.29.0: en el idioma de la app
+  extra:     { get label() { return tr('type.extra'); },   icon: '💰' },
+  atrasos:   { get label() { return tr('type.atrasos'); }, icon: '📎' },
   // v2.15.0: bonus, objetivos, participación en beneficios… Una paga aparte que no es de convenio: no cuenta como paga
   // extra (si contara, un bonus de noviembre taparía que falta la extra de Navidad) ni como atrasos.
   bonus:     { get label() { return tr('typeBonus'); }, get long() { return tr('typeBonusLong'); }, icon: '🎯' }   // v2.16.0: «Beneficios» (insignias, Anual, nombres); «Paga de beneficios o bonus» (botones)
@@ -817,7 +817,7 @@ function payLabelOf(p) {
 }
 
 function payName(p) {
-  const base = `${p.period?.month || '?'} ${p.period?.year || '?'}`;
+  const base = `${p.period?.month ? monthName(p.period.month) : '?'} ${p.period?.year || '?'}`;   // v2.29.0
   const lbl = payLabelOf(p);
   return lbl ? `${base} · ${lbl}` : base;
 }
@@ -897,20 +897,20 @@ function classifyPayroll(d, fileName = '') {
   const bonusShare = share(BONUS_RE);   // v2.15.0
   const hint = String(d.payType || '').toLowerCase().trim();
 
-  if (extraShare >= 0.6) return { type: 'extra', reason: `los conceptos de paga extra son el ${Math.round(extraShare * 100)}% del bruto` };
-  if (atrasosShare >= 0.6) return { type: 'atrasos', reason: `los conceptos de atrasos son el ${Math.round(atrasosShare * 100)}% del bruto` };
+  if (extraShare >= 0.6) return { type: 'extra', reason: tr('why.extraPct', { pct: Math.round(extraShare * 100) }) };
+  if (atrasosShare >= 0.6) return { type: 'atrasos', reason: tr('why.atrasosPct', { pct: Math.round(atrasosShare * 100) }) };
   if (bonusShare >= 0.6) return { type: 'bonus', reason: tr('whyBonusConcepts', { pct: Math.round(bonusShare * 100) }) };   // v2.15.0
   // v2.8.2: el campo PERIODO de la cabecera («ATRASOS», «PAGA EXTRA…») y los días del periodo (una mensual no pasa de 31)
   const periodText = String(d.period?.text || '');
-  if (ATRASOS_RE.test(periodText)) return { type: 'atrasos', reason: `en el periodo pone «${periodText.trim().slice(0, 40)}»` };
+  if (ATRASOS_RE.test(periodText)) return { type: 'atrasos', reason: tr('why.period', { text: periodText.trim().slice(0, 40) }) };
   if ((EXTRA_RE.test(periodText) || /\bextra\b|\bgratif/i.test(periodText)) && !PRORRATA_RE.test(periodText))
-    return { type: 'extra', reason: `en el periodo pone «${periodText.trim().slice(0, 40)}»` };
-  if (BONUS_RE.test(periodText)) return { type: 'bonus', reason: `en el periodo pone «${periodText.trim().slice(0, 40)}»` };   // v2.15.0
+    return { type: 'extra', reason: tr('why.period', { text: periodText.trim().slice(0, 40) }) };
+  if (BONUS_RE.test(periodText)) return { type: 'bonus', reason: tr('why.period', { text: periodText.trim().slice(0, 40) }) };   // v2.15.0
   // v2.15.0: lo que elegiste para otras nóminas de esta empresa con el mismo texto en el periodo
   const remembered = rememberedType(d);
   if (remembered) return { type: remembered, reason: tr('whyRemembered', { text: periodText.trim().slice(0, 40), type: PAY_TYPES[remembered].label.toLowerCase() }) };
   const fromName = fileNameHint(fileName);
-  if (fromName) return { type: fromName, reason: `el nombre del archivo dice «${fromName === 'extra' ? 'paga extra' : 'atrasos'}»` };
+  if (fromName) return { type: fromName, reason: tr('why.file', { what: fromName === 'extra' ? 'paga extra' : 'atrasos' }) };
   // Los días solo cuentan si el periodo no tiene pinta de mes normal («MENS…», «01 JUN 24 a 30 JUN 24»): así una
   // mala lectura de los días (p. ej. las horas) no convierte una mensual en atrasos
   const looksMonthly = /\bmens|\b\d{1,2}[\s/.-]*[a-z]{3,}[\s/.-]*\d{2,4}\s+(a|al|-)\s+\d{1,2}/i.test(periodText);
@@ -921,12 +921,12 @@ function classifyPayroll(d, fileName = '') {
     // extra de julio que solo reconocía Gemini habrían pasado a preguntar).
     const t = hint === 'extra' || extraShare > 0 ? 'extra' : bonusShare > 0 ? 'bonus' : 'atrasos';
     const clue = ['extra', 'atrasos', 'bonus'].includes(hint) || extraShare > 0 || bonusShare > 0 || atrasosShare > 0;
-    return { type: t, ...(clue ? {} : { unsure: true }), reason: `el periodo es de ${Math.round(days)} días (una nómina mensual no pasa de 31)` };
+    return { type: t, ...(clue ? {} : { unsure: true }), reason: tr('why.days', { n: Math.round(days) }) };
   }
-  if (hint === 'extra') return { type: 'extra', reason: 'el documento se identifica como paga extraordinaria' };
-  if (hint === 'atrasos') return { type: 'atrasos', reason: 'el documento se identifica como nómina de atrasos' };
-  if (extraShare > 0) return { type: 'ordinaria', reason: 'nómina mensual que incluye la paga extra como una línea más' };
-  return { type: 'ordinaria', reason: 'nómina mensual normal' };
+  if (hint === 'extra') return { type: 'extra', reason: tr('why.docExtra') };
+  if (hint === 'atrasos') return { type: 'atrasos', reason: tr('why.docAtrasos') };
+  if (extraShare > 0) return { type: 'ordinaria', reason: tr('why.ordWithExtra') };
+  return { type: 'ordinaria', reason: tr('why.ord') };
 }
 
 // ═══════════ STORAGE ═══════════
@@ -1929,7 +1929,7 @@ function feedbackFor(d) {
   // v2.8.8: la sugerencia de pasar una línea al otro lado no se le dice: la pasaría para que cuadre, sin mirar el papel
   // v2.8.13: los redondeos de la empresa tampoco (la cifra está bien leída)
   // v2.9.1: ni el CIF no válido (podría inventarse uno que lo parezca)
-  const issues = realChecks(checkPayroll(d)).filter(c => c.key !== 'side' && c.key !== 'cif' && !String(c.key).startsWith('lado-')).slice(0, 10).map(c => '- ' + (c.gtext || c.text));   // v2.14.2: sin las pistas
+  const issues = inLang('es', () => realChecks(checkPayroll(d))).filter(c => c.key !== 'side' && c.key !== 'cif' && !String(c.key).startsWith('lado-')).slice(0, 10).map(c => '- ' + (c.gtext || c.text));   // v2.14.2: sin las pistas
   const tpl = codeTemplate(d);
   const ref = ['earnings', 'deductions'].map(side => Object.entries(tpl[side]).map(([c, t]) => `${c} ${t}`).join(' · ')).filter(Boolean);
   return `ATENCIÓN: es la SEGUNDA lectura de esta misma nómina. El programa ha comprobado la primera lectura y estas cuentas NO cuadran:
@@ -1970,7 +1970,7 @@ function renderTypeCard(d) {
   }
   return `
     <div class="card" id="typeCard" style="${t !== 'ordinaria' || typeNeedsChoice() ? 'border-color:var(--warning)' : ''}">
-      <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">TIPO DE NÓMINA</h3>
+      <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">${esc(tr('type.title'))}</h3>
       <div class="type-picker">
         ${Object.entries(PAY_TYPES).map(([k, v]) =>
           `<button class="type-opt ${k === t && !typeNeedsChoice() ? 'active' : ''}" onclick="setPayType('${k}')">${v.icon} ${v.long || v.label}</button>`).join('')}
@@ -3542,7 +3542,11 @@ const LANGS = { es: 'Español', ca: 'Català', en: 'English' };
 // llamarse antes de llegar a esta línea, y así vale undefined (español) en vez de dar error.
 var APP_LANG_ON = false;
 const APP_LANG_KEY = 'nomina-auditor-lang';
+// v2.29.0: inLang('es', fn) fuerza un idioma mientras corre fn (lo que se le dice a Gemini va siempre en español)
+var LANG_FORCE = null;
+function inLang(l, fn) { const prev = LANG_FORCE; LANG_FORCE = l; try { return fn(); } finally { LANG_FORCE = prev; } }
 function appLang() {
+  if (LANG_FORCE) return LANG_FORCE;
   if (!APP_LANG_ON) return 'es';
   try { const l = localStorage.getItem(APP_LANG_KEY); if (LANGS[l]) return l; } catch {}
   const n = String((typeof navigator !== 'undefined' && navigator.language) || '').toLowerCase();
@@ -3717,8 +3721,8 @@ Object.assign(I18N.ca, {
   "qrText": "Escaneja aquest codi amb la càmera del mòbil i la clau passarà a l'app sense haver-la d'escriure. Només per al teu mòbil: cada persona ha de tenir la seva pròpia clau.",
   "qrBtn": "📱 Mostra el codi QR",
   "qrNoKey": "Primer desa la teva clau de Gemini a la barra de dalt.",
-  "typeBonus": "Beneficios",
-  "typeBonusLong": "Paga de beneficios o bonus",
+  "typeBonus": "Beneficis",
+  "typeBonusLong": "Paga de beneficis o bonus",
   "payQ": "{company} abona una paga de beneficis o un bonus a part de les mensuals i les extres?",
   "payYesBtn": "Sí",
   "payNoBtn": "No",
@@ -3729,8 +3733,8 @@ Object.assign(I18N.ca, {
   "payHelp": "El més habitual són 14 pagues l'any: les 12 mensuals més 2 d'extres, o les 12 amb les extres prorratejades dins de cada mes. Algunes empreses n'afegeixen una altra: la de beneficis o un bonus.",
   "whyBonusConcepts": "els conceptes de bonus o objectius són el {pct} % del brut",
   "whyRemembered": "a les teves altres nòmines d'aquesta empresa amb «{text}» al període vas triar {type}",
-  "typeAsk": "No està clar quin tipus de nòmina és ({why}). Tria'n un: Paga extra (juliol, Nadal…), Paga de beneficios o bonus (objectius, beneficis de l'empresa…) o Atrasos. La propera vegada que surti el mateix al període, l'app ho recordarà.",
-  "typeAskSave": "Abans de desar-la, tria a «Tipo de nómina» què és: Mensual, Paga extra, Atrasos o Beneficios.",
+  "typeAsk": "No està clar quin tipus de nòmina és ({why}). Tria'n un: Paga extra (juliol, Nadal…), Paga de beneficis o bonus (objectius, beneficis de l'empresa…) o Endarreriments. La propera vegada que surti el mateix al període, l'app ho recordarà.",
+  "typeAskSave": "Abans de desar-la, tria a «Tipus de nòmina» què és: Mensual, Paga extra, Endarreriments o Beneficis.",
   "noPeriod": "Falta el mes o l'any (en vermell, a la Zona 1). Toca'ls i escriu els del paper: en una nòmina sense període, fes servir el mes de la data de pagament.",
   "dupBonus": "🎯 És una paga de beneficis o bonus → desa-la a part",
   "dupBonusOther": "És una altra paga de beneficis o bonus → desa-la a part",
@@ -3784,8 +3788,8 @@ Object.assign(I18N.en, {
   "qrText": "Scan this code with your phone's camera and the key goes into the app without typing it. Only for your own phone: each person should have their own key.",
   "qrBtn": "📱 Show the QR code",
   "qrNoKey": "First save your Gemini key in the bar at the top.",
-  "typeBonus": "Beneficios",
-  "typeBonusLong": "Paga de beneficios o bonus",
+  "typeBonus": "Profit-sharing",
+  "typeBonusLong": "Profit-sharing or bonus",
   "payQ": "Does {company} pay a profit-sharing payment (paga de beneficios) or a bonus on top of the monthly and extra payments?",
   "payYesBtn": "Yes",
   "payNoBtn": "No",
@@ -3796,8 +3800,8 @@ Object.assign(I18N.en, {
   "payHelp": "Normally there are 14 payments a year: the 12 monthly ones plus 2 extras (pagas extra), or the 12 with the extras spread across each month (prorrata). Some companies add one more: the profit-sharing payment (paga de beneficios) or a bonus.",
   "whyBonusConcepts": "bonus or target items are {pct}% of the gross pay",
   "whyRemembered": "on your other payslips from this company with «{text}» in the period you chose {type}",
-  "typeAsk": "It is not clear what kind of payslip this is ({why}). Choose one: Paga extra (July, Christmas…), Paga de beneficios or bonus (targets, company profit-sharing…) or Atrasos (back pay). Next time the same appears in the period, the app will remember.",
-  "typeAskSave": "Before saving it, choose in «Tipo de nómina» what it is: Mensual, Paga extra, Atrasos or Beneficios.",
+  "typeAsk": "It is not clear what kind of payslip this is ({why}). Choose one: Extra payment (July, Christmas…), Profit-sharing or bonus (targets, company profit-sharing…) or Back pay. Next time the same appears in the period, the app will remember.",
+  "typeAskSave": "Before saving it, choose in «Payslip type» what it is: Monthly, Extra payment, Back pay or Profit-sharing.",
   "noPeriod": "The month or year is missing (in red, in Zona 1). Tap them and type the ones on the paper: on a payslip with no period, use the month of the payment date.",
   "dupBonus": "🎯 It's a paga de beneficios or bonus → save it separately",
   "dupBonusOther": "It's a different paga de beneficios or bonus → save it separately",
@@ -4012,7 +4016,7 @@ Object.assign(I18N.ca, {
   "stored.none": "cap",
   "stored.upload": "Puja-les a «Pujar».",
   "stored.noYear": "Sense any:",
-  "stored.legend": "Verd: complet · Ambre: falten nòmines · Blau: nòmines a part (Paga extra, Atrasos, Beneficios) · 📎: amb document original"
+  "stored.legend": "Verd: complet · Ambre: falten nòmines · Blau: nòmines a part (Paga extra, Endarreriments, Beneficis) · 📎: amb document original"
 });
 Object.assign(I18N.en, {
   "stored.title": "Stored payslips",
@@ -4028,7 +4032,7 @@ Object.assign(I18N.en, {
   "stored.none": "none",
   "stored.upload": "Upload them in «Upload».",
   "stored.noYear": "No year:",
-  "stored.legend": "Green: complete · Amber: payslips missing · Blue: separate payslips (Paga extra, Atrasos, Beneficios) · 📎: with original document"
+  "stored.legend": "Green: complete · Amber: payslips missing · Blue: separate payslips (Extra payment, Back pay, Profit-sharing) · 📎: with original document"
 });
 // v2.19.1: backup completo sin confirmar (punto 35). El català, revisado con Gemini (05-11).
 Object.assign(I18N.es, {
@@ -5614,6 +5618,139 @@ Object.assign(I18N.en, {
   "rv.badNum": "\"{v}\" is not a valid line number.",
   "rv.askRemove": "Which line do you want to remove?",
   "rv.askMove": "Which line do you want to move from {from} to {to}?"
+});
+// v2.29.0: idioma de la app, tanda 3b (avisos de las cuentas, tipos de nómina y payName)
+Object.assign(I18N.es, {
+  "ck.sumE": "Los devengos suman {sum} € pero el total bruto es {total} € (diferencia: {diff} €). Falta una línea, hay un importe mal leído o el total bruto está mal leído: compáralo también con el papel.",
+  "ck.sumD": "Las deducciones suman {sum} € pero el total a deducir es {total} € (diferencia: {diff} €). Falta una línea, hay un importe mal leído o el total a deducir está mal leído: compáralo también con el papel.",
+  "ck.net": "Bruto − deducciones = {calc} € pero el líquido leído es {net} €.",
+  "ck.irpfMissing": "No encuentro la línea de IRPF: con base {base} € al {pct} debería haber una retención de {exp} €.",
+  "ck.irpfR": "IRPF: {amt} € en la nómina y base IRPF {base} € × {pct} = {exp} €",
+  "ck.irpf": "IRPF leído: {amt} €, pero base IRPF {base} € × {pct} = {exp} €.",
+  "ck.ssR": "{line}: {amt} € en la nómina y {base} € × {pct} = {exp} €",
+  "ck.ss": "{line}: leído {amt} €, pero {base} € × {pct} = {exp} €.",
+  "ck.up": "{line}: {units} × {price} = {exp} €, pero el importe leído es {amt} €.",
+  "ck.upShift": " Ese resultado es el importe de otra línea: parece que los precios están corridos de fila.",
+  "ck.upLook": " Mira en el documento el importe, el precio y las unidades.",
+  "ck.bccR": "Remuneración ({rem}) + prorrata ({pro}) = {sum} € y base C.C. {bcc} €",
+  "ck.bcc": "Remuneración ({rem}) + prorrata ({pro}) = {sum} €, distinto de la base C.C. ({bcc} €).",
+  "ck.tpl": "El código {code} en tus otras nóminas es «{before}» y aquí pone «{concept}»: puede que las filas estén corridas.",
+  "ck.side1": "Si pasas {line} a {to}, cuadran las dos sumas. Mira en el papel en qué columna está.",
+  "ck.sideN": "Si pasas a {to} una de estas líneas, cuadran las dos sumas: {list}. Mira en el papel cuál de ellas está en {to}.",
+  "ck.lado": "«{concept}» ({code}) está en {side}, pero en tus otras nóminas ({n}) va en {other}. Si dos líneas del mismo importe están cambiadas de lado, las sumas cuadran igual: mira en el papel en qué columna está y, si hace falta, pásala con «⇄ Pasar una línea…».",
+  "ck.cif": "El CIF de la empresa («{cif}») no es válido (formato o dígito de control): seguramente está mal leído. Corrígelo con el del papel; es el mismo en todas las nóminas de esa empresa.",
+  "ck.pdf": "{label}: {shown} no está en el texto del PDF. Míralo en el documento: puede estar mal leído.",
+  "ck.round": "Redondeo de la empresa: las sumas cuadran, así que la cifra está bien leída.",
+  "ck.roundNet0": "En total, los céntimos de diferencia de las {n} deducciones se compensan: te han descontado lo mismo que sale de las cuentas.",
+  "ck.roundNet": "En total, sumando las {n} deducciones con céntimos de diferencia, {what}.",
+  "ck.cts1": "1 céntimo",
+  "ck.ctsN": "{n} céntimos",
+  "ck.dedMore": "te han descontado {cts} más de lo que sale de la cuenta",
+  "ck.dedLess": "te han descontado {cts} menos de lo que sale de la cuenta",
+  "ck.baseMore": "la base C.C. es {cts} mayor que la suma",
+  "ck.baseLess": "la base C.C. es {cts} menor que la suma",
+  "ck.or": " o ",
+  "type.ord": "Mensual",
+  "type.extra": "Paga extra",
+  "type.atrasos": "Atrasos",
+  "type.title": "TIPO DE NÓMINA",
+  "why.extraPct": "los conceptos de paga extra son el {pct}% del bruto",
+  "why.atrasosPct": "los conceptos de atrasos son el {pct}% del bruto",
+  "why.period": "en el periodo pone «{text}»",
+  "why.file": "el nombre del archivo dice «{what}»",
+  "why.days": "el periodo es de {n} días (una nómina mensual no pasa de 31)",
+  "why.docExtra": "el documento se identifica como paga extraordinaria",
+  "why.docAtrasos": "el documento se identifica como nómina de atrasos",
+  "why.ordWithExtra": "nómina mensual que incluye la paga extra como una línea más",
+  "why.ord": "nómina mensual normal"
+});
+Object.assign(I18N.ca, {
+  "ck.sumE": "Les meritacions sumen {sum} € però el total brut és {total} € (diferència: {diff} €). Falta una línia, hi ha un import mal llegit o el total brut està mal llegit: compara-ho també amb el paper.",
+  "ck.sumD": "Les deduccions sumen {sum} € però el total a deduir és {total} € (diferència: {diff} €). Falta una línia, hi ha un import mal llegit o el total a deduir està mal llegit: compara-ho també amb el paper.",
+  "ck.net": "Brut − deduccions = {calc} € però el líquid llegit és {net} €.",
+  "ck.irpfMissing": "No trobo la línia d'IRPF: amb una base de {base} € i un {pct} hi hauria d'haver una retenció de {exp} €.",
+  "ck.irpfR": "IRPF: {amt} € a la nòmina i base IRPF {base} € × {pct} = {exp} €",
+  "ck.irpf": "IRPF llegit: {amt} €, però base IRPF {base} € × {pct} = {exp} €.",
+  "ck.ssR": "{line}: {amt} € a la nòmina i {base} € × {pct} = {exp} €",
+  "ck.ss": "{line}: llegit {amt} €, però {base} € × {pct} = {exp} €.",
+  "ck.up": "{line}: {units} × {price} = {exp} €, però l'import llegit és {amt} €.",
+  "ck.upShift": " Aquest resultat és l'import d'una altra línia: sembla que els preus estan desplaçats de fila.",
+  "ck.upLook": " Mira al document l'import, el preu i les unitats.",
+  "ck.bccR": "Remuneració ({rem}) + prorrata ({pro}) = {sum} € i base C.C. {bcc} €",
+  "ck.bcc": "Remuneració ({rem}) + prorrata ({pro}) = {sum} €, diferent de la base C.C. ({bcc} €).",
+  "ck.tpl": "El codi {code} a les teves altres nòmines és «{before}» i aquí posa «{concept}»: pot ser que les files estiguin desplaçades.",
+  "ck.side1": "Si passes {line} a {to}, quadren les dues sumes. Mira al paper a quina columna és.",
+  "ck.sideN": "Si passes a {to} una d'aquestes línies, quadren les dues sumes: {list}. Mira al paper quina és a {to}.",
+  "ck.lado": "«{concept}» ({code}) és a {side}, però a les teves altres nòmines ({n}) va a {other}. Si dues línies del mateix import estan canviades de costat, les sumes quadren igual: mira al paper a quina columna és i, si cal, passa-la amb «⇄ Passa una línia…».",
+  "ck.cif": "El CIF de l'empresa («{cif}») no és vàlid (format o dígit de control): segurament està mal llegit. Corregeix-lo amb el del paper; és el mateix a totes les nòmines d'aquesta empresa.",
+  "ck.pdf": "{label}: {shown} no és al text del PDF. Mira-ho al document: pot estar mal llegit.",
+  "ck.round": "Arrodoniment de l'empresa: les sumes quadren, així que la xifra està ben llegida.",
+  "ck.roundNet0": "En total, els cèntims de diferència de les {n} deduccions es compensen: t'han descomptat el mateix que surt dels comptes.",
+  "ck.roundNet": "En total, sumant les {n} deduccions amb cèntims de diferència, {what}.",
+  "ck.cts1": "1 cèntim",
+  "ck.ctsN": "{n} cèntims",
+  "ck.dedMore": "t'han descomptat {cts} més del que surt del compte",
+  "ck.dedLess": "t'han descomptat {cts} menys del que surt del compte",
+  "ck.baseMore": "la base C.C. és {cts} més alta que la suma",
+  "ck.baseLess": "la base C.C. és {cts} més baixa que la suma",
+  "ck.or": " o ",
+  "type.ord": "Mensual",
+  "type.extra": "Paga extra",
+  "type.atrasos": "Endarreriments",
+  "type.title": "TIPUS DE NÒMINA",
+  "why.extraPct": "els conceptes de paga extra són el {pct} % del brut",
+  "why.atrasosPct": "els conceptes d'endarreriments són el {pct} % del brut",
+  "why.period": "al període posa «{text}»",
+  "why.file": "el nom del fitxer diu «{what}»",
+  "why.days": "el període és de {n} dies (una nòmina mensual no passa de 31)",
+  "why.docExtra": "el document s'identifica com a paga extraordinària",
+  "why.docAtrasos": "el document s'identifica com a nòmina d'endarreriments",
+  "why.ordWithExtra": "nòmina mensual que inclou la paga extra com una línia més",
+  "why.ord": "nòmina mensual normal"
+});
+Object.assign(I18N.en, {
+  "ck.sumE": "The earnings (devengos) add up to {sum} € but the gross total is {total} € (difference: {diff} €). A line is missing, an amount was misread or the gross total was misread: compare it with the paper too.",
+  "ck.sumD": "The deductions add up to {sum} € but total deductions is {total} € (difference: {diff} €). A line is missing, an amount was misread or the total deductions figure was misread: compare it with the paper too.",
+  "ck.net": "Gross − deductions = {calc} € but the net pay read is {net} €.",
+  "ck.irpfMissing": "I cannot find the IRPF (income tax) line: with a base of {base} € at {pct} there should be a withholding of {exp} €.",
+  "ck.irpfR": "IRPF: {amt} € on the payslip and base IRPF {base} € × {pct} = {exp} €",
+  "ck.irpf": "IRPF read: {amt} €, but base IRPF {base} € × {pct} = {exp} €.",
+  "ck.ssR": "{line}: {amt} € on the payslip and {base} € × {pct} = {exp} €",
+  "ck.ss": "{line}: read {amt} €, but {base} € × {pct} = {exp} €.",
+  "ck.up": "{line}: {units} × {price} = {exp} €, but the amount read is {amt} €.",
+  "ck.upShift": " That result is the amount of another line: the prices seem to be shifted by one row.",
+  "ck.upLook": " Check the amount, the price and the units in the document.",
+  "ck.bccR": "Remuneración ({rem}) + prorrata ({pro}) = {sum} € and base C.C. {bcc} €",
+  "ck.bcc": "Remuneración ({rem}) + prorrata ({pro}) = {sum} €, different from base C.C. ({bcc} €).",
+  "ck.tpl": "Code {code} on your other payslips is «{before}» and here it says «{concept}»: the rows may be shifted.",
+  "ck.side1": "If you move {line} to {to}, both sums add up. Check on the paper which column it is in.",
+  "ck.sideN": "If you move one of these lines to {to}, both sums add up: {list}. Check on the paper which of them is in {to}.",
+  "ck.lado": "«{concept}» ({code}) is in {side}, but on your other payslips ({n}) it goes in {other}. If two lines with the same amount are swapped between sides, the sums still add up: check on the paper which column it is in and, if needed, move it with «⇄ Move a line…».",
+  "ck.cif": "The company's tax ID (CIF) («{cif}») is not valid (format or check digit): it was probably misread. Correct it with the one on the paper; it is the same on every payslip from that company.",
+  "ck.pdf": "{label}: {shown} is not in the PDF text. Check it in the document: it may have been misread.",
+  "ck.round": "Company rounding: the sums add up, so the figure was read correctly.",
+  "ck.roundNet0": "In total, the cents of difference across the {n} deductions cancel out: you were deducted the same as the calculation gives.",
+  "ck.roundNet": "In total, adding up the {n} deductions with cents of difference, {what}.",
+  "ck.cts1": "1 cent",
+  "ck.ctsN": "{n} cents",
+  "ck.dedMore": "you were deducted {cts} more than the calculation gives",
+  "ck.dedLess": "you were deducted {cts} less than the calculation gives",
+  "ck.baseMore": "base C.C. is {cts} higher than the sum",
+  "ck.baseLess": "base C.C. is {cts} lower than the sum",
+  "ck.or": " or ",
+  "type.ord": "Monthly",
+  "type.extra": "Extra payment",
+  "type.atrasos": "Back pay",
+  "type.title": "PAYSLIP TYPE",
+  "why.extraPct": "extra-payment items are {pct}% of the gross pay",
+  "why.atrasosPct": "back-pay items are {pct}% of the gross pay",
+  "why.period": "the period says «{text}»",
+  "why.file": "the file name says «{what}»",
+  "why.days": "the period is {n} days long (a monthly payslip never exceeds 31)",
+  "why.docExtra": "the document identifies itself as an extra payment",
+  "why.docAtrasos": "the document identifies itself as a back-pay payslip",
+  "why.ordWithExtra": "monthly payslip that includes the extra payment as one more line",
+  "why.ord": "normal monthly payslip"
 });
 // Como tr(), para textos con marcado: las variables se escapan; {html: '…'} pasa un trozo ya escapado (otro trHtml).
 function trHtml(key, vars = {}, lang = appLang()) {
@@ -8712,15 +8849,15 @@ function checkSums(p) {
   const sumD = round2(ded.reduce((s, d) => s + amt(d.amount), 0));
   if (Number.isFinite(gross) && earn.length && Math.abs(sumE - gross) > CHECK_TOL)
     out.push(withSumHint({ level: 'err', key: 'sumE', paths: ['totals.grossTotal', ...earn.map((_, i) => `earnings.${i}.amount`)],
-      text: `Los devengos suman ${fmt(sumE)} € pero el total bruto es ${fmt(gross)} € (diferencia: ${fmt(Math.abs(sumE - gross))} €). Falta una línea, hay un importe mal leído o el total bruto está mal leído: compáralo también con el papel.` },
+      text: tr('ck.sumE', { sum: fmt(sumE), total: fmt(gross), diff: fmt(Math.abs(sumE - gross)) }) },
       earn, round2(sumE - gross), 'earnings', p));
   if (Number.isFinite(totDed) && ded.length && Math.abs(sumD - totDed) > CHECK_TOL)
     out.push(withSumHint({ level: 'err', key: 'sumD', paths: ['totals.totalDeductions', ...ded.map((_, i) => `deductions.${i}.amount`)],
-      text: `Las deducciones suman ${fmt(sumD)} € pero el total a deducir es ${fmt(totDed)} € (diferencia: ${fmt(Math.abs(sumD - totDed))} €). Falta una línea, hay un importe mal leído o el total a deducir está mal leído: compáralo también con el papel.` },
+      text: tr('ck.sumD', { sum: fmt(sumD), total: fmt(totDed), diff: fmt(Math.abs(sumD - totDed)) }) },
       ded, round2(sumD - totDed), 'deductions', p));
   if (Number.isFinite(gross) && Number.isFinite(totDed) && Number.isFinite(net) && Math.abs(round2(gross - totDed) - net) > CHECK_TOL)
     out.push({ level: 'err', key: 'net', paths: ['totals.grossTotal', 'totals.totalDeductions', 'totals.netPay'],
-      text: `Bruto − deducciones = ${fmt(round2(gross - totDed))} € pero el líquido leído es ${fmt(net)} €.` });
+      text: tr('ck.net', { calc: fmt(round2(gross - totDed)), net: fmt(net) }) });
   return out;
 }
 
@@ -8798,7 +8935,7 @@ function checkPayroll(p, opts = {}) {
     if (!irpfLine) {
       if (expected >= 1) {
         const c = { level: 'err', key: 'irpfMissing', paths: ['bases.irpfPercentage', 'bases.baseIRPF'],
-          text: `No encuentro la línea de IRPF: con base ${fmt(baseIRPF)} € al ${fmtPct(r.rate)} debería haber una retención de ${fmt(expected)} €.` };
+          text: tr('ck.irpfMissing', { base: fmt(baseIRPF), pct: fmtPct(r.rate), exp: fmt(expected) }) };
         // v2.16.1: qué hacer y, si una deducción sin clasificar vale justo lo esperado, cuál puede ser (solo texto y celdas: nivel y clave no cambian)
         c.gtext = c.text; c.hint = true; c.text += ' ' + tr('irpfMissingHint');
         const cand = ded.find(d => deductionKind(d) === 'otra' && Math.abs(amt(d.amount) - expected) <= CHECK_TOL);
@@ -8808,8 +8945,8 @@ function checkPayroll(p, opts = {}) {
     } else if (Math.abs(amt(irpfLine.amount) - expected) > CHECK_TOL) {
       const c = { level: 'warn', key: 'irpf', paths: [`deductions.${ded.indexOf(irpfLine)}.amount`, 'bases.baseIRPF', 'bases.irpfPercentage'],
         diff: round2(Math.abs(amt(irpfLine.amount) - expected)), sdiff: round2(amt(irpfLine.amount) - expected), ded: true,
-        rtext: `IRPF: ${fmt(irpfLine.amount)} € en la nómina y base IRPF ${fmt(baseIRPF)} € × ${fmtPct(r.rate)} = ${fmt(expected)} €`,
-        text: `IRPF leído: ${fmt(irpfLine.amount)} €, pero base IRPF ${fmt(baseIRPF)} € × ${fmtPct(r.rate)} = ${fmt(expected)} €.` };
+        rtext: tr('ck.irpfR', { amt: fmt(irpfLine.amount), base: fmt(baseIRPF), pct: fmtPct(r.rate), exp: fmt(expected) }),
+        text: tr('ck.irpf', { amt: fmt(irpfLine.amount), base: fmt(baseIRPF), pct: fmtPct(r.rate), exp: fmt(expected) }) };
       // v2.16.1: el % y la base que saldrían con ese importe, y tres hipótesis con su comprobación propia. Solo se afirma
       //     «lo más probable» si encaja UNA de las dos con comprobación independiente (la base coincide con otra base de la
       //     nómina; el importe esperado es el de otra línea). Si solo queda el %, no hay comprobación: se enseña la cifra y
@@ -8817,7 +8954,7 @@ function checkPayroll(p, opts = {}) {
       const iAmt = amt(irpfLine.amount), li = ded.indexOf(irpfLine);
       const impRate = round2(iAmt / baseIRPF * 100), impBase = r.rate > 0 ? round2(iAmt / (r.rate / 100)) : 0;
       const same = (a, b) => a > 0 && b > 0 && Math.abs(a - b) <= a * 0.005;
-      const hBase = [['Base C.C.', bases.baseCC], ['Base A.T.', bases.baseAT], ['Remuneración total', bases.totalRemuneration], ['Total bruto', p.totals?.grossTotal]]
+      const hBase = [[tr('rv.d.bases.baseCC'), bases.baseCC], [tr('rv.d.bases.baseAT'), bases.baseAT], [tr('rv.d.bases.totalRemuneration'), bases.totalRemuneration], [tr('rv.d.totals.grossTotal'), p.totals?.grossTotal]]
         .map(([n, v]) => [n, amt(v)]).find(([, v]) => v > 0 && Math.abs(v - baseIRPF) > CHECK_TOL && same(impBase, v));
       const hLine = ded.find(d => d !== irpfLine && amt(d.amount) > 0 && Math.abs(amt(d.amount) - expected) <= CHECK_TOL);
       // v2.16.5: la propia línea de IRPF lleva impresa otra base (en precio o unidades) y esa base × % da el importe (± redondeo):
@@ -8862,8 +8999,8 @@ function checkPayroll(p, opts = {}) {
     const base = candidates[0], expected = round2(base * pct / 100);
     const c = { level: 'warn', key: 'ss' + i, paths: [`deductions.${i}.amount`],
       diff: round2(Math.abs(amt(d.amount) - near.e)), sdiff: round2(amt(d.amount) - near.e), ded: true,
-      rtext: `«${d.concept}»: ${fmt(d.amount)} € en la nómina y ${fmt(near.b)} € × ${fmtPct(pct)} = ${fmt(near.e)} €`,
-      text: `«${d.concept}»: leído ${fmt(d.amount)} €, pero ${fmt(base)} € × ${fmtPct(pct)} = ${fmt(expected)} €.` };
+      rtext: tr('ck.ssR', { line: `«${d.concept}»`, amt: fmt(d.amount), base: fmt(near.b), pct: fmtPct(pct), exp: fmt(near.e) }),
+      text: tr('ck.ss', { line: `«${d.concept}»`, amt: fmt(d.amount), base: fmt(base), pct: fmtPct(pct), exp: fmt(expected) }) };
     // v2.16.0: con remuneración + prorrata sí cuadra → lo que falla es «Base C.C.» (suele ser la de desempleo/AT, con las horas
     //     extra). La pista señala ese campo; a Gemini no se le pasa (feedbackFor usa gtext).
     if (!(k === 'fp' || k === 'desempleo') && remBase > 0 && baseCC > 0 && Math.abs(remBase - baseCC) > CHECK_TOL && Math.abs(amt(d.amount) - round2(remBase * pct / 100)) <= CHECK_TOL) {
@@ -8908,8 +9045,8 @@ function checkPayroll(p, opts = {}) {
       const info = a === 0 && (!shifted || byName) ? { concept: l.concept, units: String(l.units), price: fmtPrice(pr), exp: fmt(expected), byName } : null;
       out.push({ level: shifted ? 'warn' : 'err', key: `up-${side}${i}`, paths: [shifted ? `${side}.${i}.price` : `${side}.${i}.amount`], info,
         // v2.8.7: el precio con todos sus decimales (con fmt() salía «× 7,13» y la cuenta parecía mal hecha)
-        text: `«${l.concept}»: ${String(l.units)} × ${fmtPrice(pr)} = ${fmt(expected)} €, pero el importe leído es ${fmt(a)} €.` +
-          (shifted ? ' Ese resultado es el importe de otra línea: parece que los precios están corridos de fila.' : ' Mira en el documento el importe, el precio y las unidades.') });
+        text: tr('ck.up', { line: `«${l.concept}»`, units: String(l.units), price: fmtPrice(pr), exp: fmt(expected), amt: fmt(a) }) +
+          tr(shifted ? 'ck.upShift' : 'ck.upLook') });
     });
   }
 
@@ -8919,8 +9056,8 @@ function checkPayroll(p, opts = {}) {
     if (rem > 0 && Math.abs(rem + pro - baseCC) > CHECK_TOL) {
       const c = { level: 'warn', key: 'bcc', paths: ['bases.totalRemuneration', 'bases.extraPayProrata', 'bases.baseCC'],
         diff: round2(Math.abs(rem + pro - baseCC)), sdiff: round2(baseCC - (rem + pro)),
-        rtext: `Remuneración (${fmt(rem)}) + prorrata (${fmt(pro)}) = ${fmt(round2(rem + pro))} € y base C.C. ${fmt(baseCC)} €`,
-        text: `Remuneración (${fmt(rem)}) + prorrata (${fmt(pro)}) = ${fmt(round2(rem + pro))} €, distinto de la base C.C. (${fmt(baseCC)} €).` };
+        rtext: tr('ck.bccR', { rem: fmt(rem), pro: fmt(pro), sum: fmt(round2(rem + pro)), bcc: fmt(baseCC) }),
+        text: tr('ck.bcc', { rem: fmt(rem), pro: fmt(pro), sum: fmt(round2(rem + pro)), bcc: fmt(baseCC) }) };
       // v2.16.0: la diferencia es justo la de las horas extra → «Base C.C.» tiene la base de desempleo/AT. Señala solo ese campo.
       if (overtime > 0 && Math.abs((baseCC - (rem + pro)) - overtime) <= CHECK_TOL) {
         c.gtext = c.text; c.text += ' ' + tr('bccOvertime', { ot: fmt(overtime), base: fmt(round2(rem + pro)) }); c.paths = ['bases.baseCC']; c.hint = true;
@@ -8972,7 +9109,7 @@ function checkPayroll(p, opts = {}) {
         const before = tpl[side][code];
         if (code && before !== undefined && conceptSimilarity(before, l.concept) < 0.6) {
           const c = { level: 'warn', key: `tpl-${side}${i}`, paths: [`${side}.${i}.code`, `${side}.${i}.concept`],
-            text: `El código ${code} en tus otras nóminas es «${before}» y aquí pone «${l.concept}»: puede que las filas estén corridas.` };
+            text: tr('ck.tpl', { code, before, concept: l.concept }) };
           // v2.16.1: el importe de la línea y cuál de los dos campos falla: si el concepto se parece al de OTRO código de la plantilla,
           //     falla el código; si no se parece a ninguno, falla el concepto (o es nuevo). Solo texto y celdas: nivel y clave no cambian.
           const other = Object.keys(tpl[side]).find(k => k !== code && String(tpl[side][k] || '').trim() && conceptSimilarity(tpl[side][k], l.concept) >= 0.6);
@@ -8994,8 +9131,8 @@ function checkPayroll(p, opts = {}) {
     const name = l => `«${l.concept || l.code || '?'}» (${fmt(l.amount)} €)`;
     out.push({ level: 'warn', key: 'side', move: mv, paths: mv.lines.map(i => `${mv.from}.${i}.concept`),
       text: lines.length === 1
-        ? `Si pasas ${name(lines[0])} a ${SIDE_NAME[mv.to]}, cuadran las dos sumas. Mira en el papel en qué columna está.`
-        : `Si pasas a ${SIDE_NAME[mv.to]} una de estas líneas, cuadran las dos sumas: ${joinOr(lines.map(name))}. Mira en el papel cuál de ellas está en ${SIDE_NAME[mv.to]}.` });
+        ? tr('ck.side1', { line: name(lines[0]), to: sideName(mv.to) })
+        : tr('ck.sideN', { to: sideName(mv.to), list: joinOr(lines.map(name)) }) });
   }
 
   // 12. (v2.10.2) Un código en el lado contrario al de tus otras nóminas (de la misma empresa): si dos líneas del
@@ -9012,8 +9149,7 @@ function checkPayroll(p, opts = {}) {
         const here = tpl.n[side][code] || 0, there = tpl.n[other][code] || 0;
         if (here || there < 2) return;
         out.push({ level: 'warn', key: `lado-${side}${i}`, paths: [`${side}.${i}.concept`],
-          text: `«${l.concept || code}» (${code}) está en ${SIDE_NAME[side]}, pero en tus otras nóminas (${there}) va en ${SIDE_NAME[other]}. ` +
-            `Si dos líneas del mismo importe están cambiadas de lado, las sumas cuadran igual: mira en el papel en qué columna está y, si hace falta, pásala con «⇄ Pasar una línea…».` });
+          text: tr('ck.lado', { concept: l.concept || code, code, side: sideName(side), n: there, other: sideName(other) }) });
       });
     }
   }
@@ -9022,7 +9158,7 @@ function checkPayroll(p, opts = {}) {
   //     del Panel ni se le dice a Gemini en la segunda lectura: podría inventarse uno válido).
   if (taxIdValid(p.company?.cif) === false)
     out.push({ level: 'warn', key: 'cif', paths: ['company.cif'],
-      text: `El CIF de la empresa («${p.company.cif}») no es válido (formato o dígito de control): seguramente está mal leído. Corrígelo con el del papel; es el mismo en todas las nóminas de esa empresa.` });
+      text: tr('ck.cif', { cif: p.company.cif }) });
 
   // 13. (v2.12.0) PDF digital: cada cifra leída tiene que estar en el texto del PDF (docNumberCheck). Es un aviso:
   //     no pone ⚠ en el Panel, porque una nómina bien leída no debe quedarse marcada para siempre si alguna cifra
@@ -9030,7 +9166,7 @@ function checkPayroll(p, opts = {}) {
   const dc = docNumberCheck(p);
   if (dc?.usable) for (const m of dc.missing)
     out.push({ level: 'warn', key: `pdf:${m.path}`, paths: [m.path],
-      text: `${m.label}: ${m.shown} no está en el texto del PDF. Míralo en el documento: puede estar mal leído.` });
+      text: tr('ck.pdf', { label: m.label, shown: m.shown }) });
 
   // 10. (v2.8.13) Redondeos de la empresa: el IRPF, una cotización o la base C.C. a 10 céntimos o menos de base × %
   //     (o de remuneración + prorrata) no son un aviso sino un redondeo, PERO solo si se han podido comprobar las tres
@@ -9047,7 +9183,7 @@ function checkPayroll(p, opts = {}) {
     if (c.rtext && sumsOk && c.diff <= ROUND_TOL + 1e-9) {
       c.level = 'round';
       c.text = `${c.rtext}: ${c.ded ? descontado(c.sdiff) : baseLado(c.sdiff)}. ` +   // v2.19.4: en la base C.C., sin dar por buena la cifra
-        (c.key === 'bcc' ? tr('bccRound') : 'Redondeo de la empresa: las sumas cuadran, así que la cifra está bien leída.');
+        (c.key === 'bcc' ? tr('bccRound') : tr('ck.round'));
     }
     delete c.rtext; delete c.ded;
   }
@@ -9056,8 +9192,8 @@ function checkPayroll(p, opts = {}) {
     const neto = conCts.reduce((a, b) => a + b, 0);
     out.push({ level: 'round', key: 'roundNet', paths: [],
       text: neto === 0
-        ? `En total, los céntimos de diferencia de las ${conCts.length} deducciones se compensan: te han descontado lo mismo que sale de las cuentas.`
-        : `En total, sumando las ${conCts.length} deducciones con céntimos de diferencia, ${descontado(neto / 100)}.` });
+        ? tr('ck.roundNet0', { n: conCts.length })
+        : tr('ck.roundNet', { n: conCts.length, what: descontado(neto / 100) }) });
   }
   return out.map((c, i) => [c, i]).sort((a, b) => checkRank(a[0]) - checkRank(b[0]) || a[1] - b[1]).map(x => x[0]);   // v2.14.2
 }
@@ -9087,9 +9223,9 @@ function taxIdValid(raw) {
 
 // Icono de cada nivel: ✗ error, ⚠ aviso, ≈ redondeo de la empresa (v2.8.13)
 // v2.12.3: el lado de un redondeo, en palabras (s = cifra de la nómina − cuenta, en euros)
-function cts(s) { const n = Math.abs(Math.round(s * 100)); return `${n} céntimo${n === 1 ? '' : 's'}`; }
-function descontado(s) { return `te han descontado ${cts(s)} ${s > 0 ? 'más' : 'menos'} de lo que sale de la cuenta`; }
-function baseLado(s) { return `la base C.C. es ${cts(s)} ${s > 0 ? 'mayor' : 'menor'} que la suma`; }
+function cts(s) { const n = Math.abs(Math.round(s * 100)); return tr(n === 1 ? 'ck.cts1' : 'ck.ctsN', { n }); }
+function descontado(s) { return tr(s > 0 ? 'ck.dedMore' : 'ck.dedLess', { cts: cts(s) }); }
+function baseLado(s) { return tr(s > 0 ? 'ck.baseMore' : 'ck.baseLess', { cts: cts(s) }); }
 function chkIcon(level) { return level === 'err' ? '✗' : level === 'round' ? '≈' : level === 'info' ? 'ℹ' : '⚠'; }   // v2.14.1: ℹ línea informativa
 // Lo que hay que mirar: todo menos los redondeos (v2.8.13)
 function realChecks(checks) { return checks.filter(c => !softCheck(c)); }
@@ -9142,7 +9278,7 @@ function wrongSideMoves(p, tpl) {
 }
 
 function joinOr(list) {
-  return list.length > 1 ? `${list.slice(0, -1).join(', ')} o ${list[list.length - 1]}` : (list[0] || '');
+  return list.length > 1 ? `${list.slice(0, -1).join(', ')}${tr('ck.or')}${list[list.length - 1]}` : (list[0] || '');
 }
 
 function checkErrors(p) { return checkPayroll(p).filter(c => c.level === 'err'); }
