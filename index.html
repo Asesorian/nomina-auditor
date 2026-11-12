@@ -491,7 +491,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.30.0</span>
+    <span class="logo-badge">Forense v2.30.1</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -802,8 +802,16 @@ function normalizeMonth(m) {
   if (/^\d{1,2}$/.test(k) && +k >= 1 && +k <= 12) return MONTHS[+k - 1];
   if (k === 'setiembre') return 'Septiembre';
   const idx = MONTHS.findIndex(x => x.toLowerCase() === k);
-  return idx >= 0 ? MONTHS[idx] : null;
+  if (idx >= 0) return MONTHS[idx];
+  // v2.30.1: también en català e inglés (el campo del mes con la app en otro idioma, o una nómina en català que
+  // Gemini devuelve con «Gener»). Se guarda siempre en español. Sin acentos, como k; test_idioma.py (punto 11) comprueba que
+  // coinciden con MONTH_NAMES.
+  const other = MONTH_OTHER.findIndex(l => l.includes(k));
+  return other >= 0 ? MONTHS[other] : null;
 }
+const MONTH_OTHER = [['gener', 'january'], ['febrer', 'february'], ['marc', 'march'], ['abril', 'april'], ['maig', 'may'],
+  ['juny', 'june'], ['juliol', 'july'], ['agost', 'august'], ['setembre', 'september'], ['octubre', 'october'],
+  ['novembre', 'november'], ['desembre', 'december']];
 
 function payTypeOf(p) { return PAY_TYPES[p?.payType] ? p.payType : 'ordinaria'; }
 
@@ -5873,7 +5881,7 @@ Object.assign(I18N.es, {
   "pv.fallback": "Tu nómina está guardada igualmente. Puedes verla de otra forma:"
 });
 Object.assign(I18N.ca, {
-  "sv.badPeriod": "No la puc desar: el període «{m} {y}» no és vàlid.\n\nCorregeix el Mes (p. ex.: 7 o Julio) i l'Any (p. ex.: 2026) a la Zona 1 tocant el valor.",
+  "sv.badPeriod": "No la puc desar: el període «{m} {y}» no és vàlid.\n\nCorregeix el Mes (p. ex.: 7 o Juliol) i l'Any (p. ex.: 2026) a la Zona 1 tocant el valor.",
   "sv.mm.title": "⚠ Els comptes no quadren",
   "sv.mm.look": "Mira aquestes línies al document:",
   "sv.mm.misread": "• Si Gemini n'ha llegit malament alguna, <strong>torna a corregir-la</strong> (està marcada en vermell) o prem «Torna a llegir amb Gemini».",
@@ -5994,7 +6002,7 @@ Object.assign(I18N.ca, {
   "pv.fallback": "La teva nòmina està desada igualment. La pots veure d'una altra manera:"
 });
 Object.assign(I18N.en, {
-  "sv.badPeriod": "I can't save it: the period \"{m} {y}\" is not valid.\n\nCorrect the Month (e.g. 7 or Julio) and the Year (e.g. 2026) in Zone 1 by tapping the value.",
+  "sv.badPeriod": "I can't save it: the period \"{m} {y}\" is not valid.\n\nCorrect the Month (e.g. 7 or July) and the Year (e.g. 2026) in Zone 1 by tapping the value.",
   "sv.mm.title": "⚠ The figures don't add up",
   "sv.mm.look": "Check those lines on the document:",
   "sv.mm.misread": "• If Gemini misread any of them, <strong>correct it again</strong> (it is marked in red) or press «Read again with Gemini».",
