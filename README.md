@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.25.0-blue)
+![Version](https://img.shields.io/badge/version-2.25.1-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.25.0)
+## 🆕 Novedades (v2.3 – v2.25.1)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -720,6 +720,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.25.1 (Noviembre 2026)
+- **Primeros pasos, lo primero que se ve:** mientras sale la tarjeta de bienvenida, el Panel enseña solo el título y la tarjeta; el glosario, el año, los totales a 0 y la tarjeta vacía con su botón «Subir primera nómina» (repetido) vuelven en cuanto se guarda la primera nómina o se pulsa «Ahora no». **Pruebas:** `test_bienvenida.py`, puntos 1 y 5.
 
 ### v2.25.0 (Noviembre 2026)
 - **Mi trabajo:** al guardar la primera nómina, una tarjeta (encima de la nómina y en el Panel) para **confirmar** la categoría leída, la comunidad autónoma del centro de trabajo (propuesta por las dos primeras cifras del CCC, que son la provincia de la cuenta de cotización; se avisa de que puede no coincidir con el centro) y, en Cataluña, el municipio. A cambio, los festivos del año de esa comunidad y las fiestas locales del municipio. Comunidad y municipio son los mismos datos que los de la tarjeta de festivos (un solo sitio); la categoría va con ellos en el backup. «Ahora no» la quita; en **Datos** está siempre. Quien ya tenía nóminas no la ve en el Panel. Textos en los tres idiomas. **Pruebas:** `test_mi_trabajo.py` (nueva).

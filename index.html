@@ -467,6 +467,9 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 .wel-body .doc-actions { margin-top:8px; }
 .wel-body .wel-bad { color:var(--warning); }
 .wel-later { display:flex; justify-content:flex-end; margin-top:10px; }
+/* v2.25.1: con la bienvenida, el Panel vacío enseña solo el título y la tarjeta (lo demás, a 0 o repetido, la enterraba) */
+#view-dashboard.wel-mode > .gl-link, #view-dashboard.wel-mode #dashSubtitle, #view-dashboard.wel-mode #yearPills,
+#view-dashboard.wel-mode .stats-grid, #view-dashboard.wel-mode #dashTable { display:none; }
 /* v2.25.0: «Mi trabajo» (docs/TECNICO.md §58) */
 .mt-card h3 { margin:0 0 8px; font-size:14px; color:var(--accent); }
 .mt-card p { color:var(--text-dim); font-size:12px; line-height:1.6; margin:0 0 10px; overflow-wrap:anywhere; }
@@ -488,7 +491,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.25.0</span>
+    <span class="logo-badge">Forense v2.25.1</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -5654,7 +5657,9 @@ function showsWelcome() { return !payrolls.length && !(batch && batch.items && b
 function renderWelcome() {
   const el = document.getElementById('welcomeCard');
   if (!el) return;
-  if (!showsWelcome()) { el.innerHTML = ''; el._welHtml = ''; return; }
+  const on = showsWelcome();
+  document.getElementById('view-dashboard')?.classList.toggle('wel-mode', on);   // v2.25.1
+  if (!on) { el.innerHTML = ''; el._welHtml = ''; return; }
   const k = getApiKey(), keyOk = hasApiKey() && !keyLooksOdd(k), keyOdd = !!k && keyLooksOdd(k);
   const step = (n, done, body) => `<li class="wel-step${done ? ' done' : ''}"><span class="wel-num" aria-hidden="true">${done ? '✓' : n}</span><div class="wel-body">${body}</div></li>`;
   const keyBody = keyOk ? esc(tr('wel.keyDone'))
