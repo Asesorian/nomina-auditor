@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.25.1-blue)
+![Version](https://img.shields.io/badge/version-2.26.0-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.25.1)
+## 🆕 Novedades (v2.3 – v2.26.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -720,6 +720,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.26.0 (Noviembre 2026)
+- **Idioma de la app, primera tanda:** la cabecera, la barra de la clave, el Panel y los textos fijos de **Subir** y **Datos** ya tienen sus textos en español, català e inglés; los meses se pueden mostrar en cada idioma (la nómina guardada no cambia). La app **sigue saliendo en español** hasta que esté todo traducido: entonces se podrá elegir el idioma. En español no cambia nada. **Pruebas:** `test_idioma.py` (nueva).
 
 ### v2.25.1 (Noviembre 2026)
 - **Primeros pasos, lo primero que se ve:** mientras sale la tarjeta de bienvenida, el Panel enseña solo el título y la tarjeta; el glosario, el año, los totales a 0 y la tarjeta vacía con su botón «Subir primera nómina» (repetido) vuelven en cuanto se guarda la primera nómina o se pulsa «Ahora no». **Pruebas:** `test_bienvenida.py`, puntos 1 y 5.

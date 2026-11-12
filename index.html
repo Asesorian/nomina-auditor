@@ -491,21 +491,21 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.25.1</span>
+    <span class="logo-badge">Forense v2.26.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      <span class="nav-label">Panel</span>
+      <span class="nav-label" data-tr="nav.panel">Panel</span>
     </button>
     <button class="nav-btn" data-view="upload" onclick="showView('upload')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      <span class="nav-label">Subir</span>
-      <span class="nav-count" id="batchCount" title="Nóminas en la bandeja"></span>
+      <span class="nav-label" data-tr="nav.upload">Subir</span>
+      <span class="nav-count" id="batchCount" title="Nóminas en la bandeja" data-tr-title="nav.trayTitle"></span>
     </button>
     <button class="nav-btn" data-view="annual" onclick="showView('annual')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      <span class="nav-label">Anual</span>
+      <span class="nav-label" data-tr="nav.annual">Anual</span>
     </button>
     <button class="nav-btn" data-view="informes" onclick="showView('informes')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg>
@@ -513,11 +513,11 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
     </button>
     <button class="nav-btn" data-view="backup" onclick="showView('backup')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-      <span class="nav-label">Datos</span>
+      <span class="nav-label" data-tr="nav.data">Datos</span>
     </button>
-    <button class="nav-btn" id="installBtn" onclick="installApp()" style="display:none;color:var(--success)" title="Instalar en dispositivo">
+    <button class="nav-btn" id="installBtn" onclick="installApp()" style="display:none;color:var(--success)" title="Instalar en dispositivo" data-tr-title="nav.installTitle">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      <span class="nav-label">Instalar</span>
+      <span class="nav-label" data-tr="nav.install">Instalar</span>
     </button>
   </nav>
 </header>
@@ -525,26 +525,26 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 <!-- API Key Bar -->
 <div class="api-bar no-key" id="apiBar">
   <div class="api-head">
-    <label for="apiKeyInput">🔑 Gemini API Key</label>
+    <label for="apiKeyInput" data-tr="key.label">🔑 Gemini API Key</label>
     <span class="api-state">
-      <span id="apiStatus" class="status no">Sin Key</span>
+      <span id="apiStatus" class="status no" data-tr="key.none">Sin Key</span>
       <button class="link-btn api-toggle" id="apiToggle" type="button" onclick="toggleApiBar()" aria-controls="apiBody" aria-expanded="true">Ocultar</button>
     </span>
   </div>
   <div class="api-body" id="apiBody">
-    <div class="api-row"><input type="password" id="apiKeyInput" placeholder="Pega aquí tu clave (o el enlace que te pasaron)" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" oninput="saveApiKey(this.value)" onpaste="onApiKeyPaste(event)" onkeydown="onApiKeyKeydown(event)" onchange="finalizeApiKey(true)"><button onclick="toggleKeyVis()" id="eyeBtn" type="button" aria-label="Mostrar u ocultar la clave" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">👁</button></div>
-    <span id="apiHelp" style="font-size:11px;color:var(--text-dim);line-height:1.4;max-width:300px">¿No tienes clave? Pídesela a quien te pasó la app, o <a href="https://github.com/Asesorian/nomina-auditor#-api-key-de-gemini-gratis-o-de-pago" target="_blank" rel="noopener">créala tú (guía) →</a></span>
+    <div class="api-row"><input type="password" id="apiKeyInput" placeholder="Pega aquí tu clave (o el enlace que te pasaron)" data-tr-placeholder="key.placeholder" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" oninput="saveApiKey(this.value)" onpaste="onApiKeyPaste(event)" onkeydown="onApiKeyKeydown(event)" onchange="finalizeApiKey(true)"><button onclick="toggleKeyVis()" id="eyeBtn" type="button" aria-label="Mostrar u ocultar la clave" data-tr-aria-label="key.eye" style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:14px">👁</button></div>
+    <span id="apiHelp" data-tr-html="key.helpHtml" style="font-size:11px;color:var(--text-dim);line-height:1.4;max-width:300px">¿No tienes clave? Pídesela a quien te pasó la app, o <a href="https://github.com/Asesorian/nomina-auditor#-api-key-de-gemini-gratis-o-de-pago" target="_blank" rel="noopener">créala tú (guía) →</a></span>
     <span id="apiMsg" class="api-msg" role="status" aria-live="polite"></span>
   </div>
 </div>
 
-<div id="offlineBanner" class="offline-banner hidden">📴 <span><strong>Sin conexión.</strong> Puedes consultar, corregir y exportar tus nóminas. Para procesar una nómina nueva hace falta internet.</span></div>
+<div id="offlineBanner" class="offline-banner hidden">📴 <span data-tr-html="off.bannerHtml"><strong>Sin conexión.</strong> Puedes consultar, corregir y exportar tus nóminas. Para procesar una nómina nueva hace falta internet.</span></div>
 
 <!-- ═══════════ DASHBOARD VIEW ═══════════ -->
 <main id="view-dashboard">
-  <h2>Panel de Control</h2>
+  <h2 data-tr="dash.title">Panel de Control</h2>
   <p class="subtitle" id="dashSubtitle"></p>
-  <button class="gl-link" onclick="openGlossary()">📖 ¿Qué es cada concepto de la nómina? Glosario</button>
+  <button class="gl-link" onclick="openGlossary()" data-tr="dash.glossBtn">📖 ¿Qué es cada concepto de la nómina? Glosario</button>
 
   <div class="year-pills" id="yearPills"></div>
 
@@ -556,10 +556,10 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div id="festDash"></div>
 
   <div class="stats-grid">
-    <div class="card stat-card"><div class="stat-label">Total Bruto</div><div class="stat-value mono" id="statBruto">0,00 €</div></div>
-    <div class="card stat-card"><div class="stat-label">Total Neto</div><div class="stat-value mono green" id="statNeto">0,00 €</div></div>
-    <div class="card stat-card"><div class="stat-label">Ret. IRPF</div><div class="stat-value mono yellow" id="statIRPF">0,00 €</div></div>
-    <div class="card stat-card"><div class="stat-label">S.S. Obrero</div><div class="stat-value mono blue" id="statSS">0,00 €</div></div>
+    <div class="card stat-card"><div class="stat-label" data-tr="dash.gross">Total Bruto</div><div class="stat-value mono" id="statBruto">0,00 €</div></div>
+    <div class="card stat-card"><div class="stat-label" data-tr="dash.net">Total Neto</div><div class="stat-value mono green" id="statNeto">0,00 €</div></div>
+    <div class="card stat-card"><div class="stat-label" data-tr="dash.irpf">Ret. IRPF</div><div class="stat-value mono yellow" id="statIRPF">0,00 €</div></div>
+    <div class="card stat-card"><div class="stat-label" data-tr="dash.ss">S.S. Obrero</div><div class="stat-value mono blue" id="statSS">0,00 €</div></div>
   </div>
 
   <div class="card" id="dashTable"></div>
@@ -567,8 +567,8 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 
 <!-- ═══════════ UPLOAD VIEW ═══════════ -->
 <main id="view-upload" class="hidden">
-  <h2 id="uploadTitle">Subir Nómina</h2>
-  <p class="subtitle" id="uploadSubtitle">Haz una foto de tu nómina o elige los archivos (puedes elegir un año entero): la IA extrae los datos y tú los revisas</p>
+  <h2 id="uploadTitle" data-tr="up.title">Subir Nómina</h2>
+  <p class="subtitle" id="uploadSubtitle" data-tr="up.sub">Haz una foto de tu nómina o elige los archivos (puedes elegir un año entero): la IA extrae los datos y tú los revisas</p>
 
   <!-- Upload phase -->
   <div id="uploadPhase">
@@ -578,20 +578,20 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
       <input type="file" id="fileInput" accept="image/*,.avif,.heic,.heif,.pdf,application/pdf" multiple style="display:none" onchange="handleFiles(this.files)">
       <div id="dropContent">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        <p class="dropzone-text" style="margin-top:12px">Haz una foto de tu nómina o elige los archivos</p>
+        <p class="dropzone-text" style="margin-top:12px" data-tr="up.drop">Haz una foto de tu nómina o elige los archivos</p>
         <div class="upload-actions">
           <button class="btn btn-primary" type="button" id="uploadBtn" data-tr="uploadBtn" onclick="event.stopPropagation();document.getElementById('fileInput').click()">📎 Subir nómina (foto o PDF)</button>
         </div>
         <p class="dropzone-hint" id="uploadMenuHint" data-tr="uploadMenuHint">En el móvil se abre un menú: Cámara para hacer la foto, o Fotos y vídeos → Archivos para elegir un PDF.</p>
-        <p class="dropzone-hint">Foto (JPG, PNG, HEIC…) o PDF · Puedes elegir varias a la vez: se leen solas y luego las revisas una a una · En el ordenador también puedes arrastrarlas aquí · El documento se guarda junto a la nómina, solo en este dispositivo</p>
+        <p class="dropzone-hint" data-tr="up.hint">Foto (JPG, PNG, HEIC…) o PDF · Puedes elegir varias a la vez: se leen solas y luego las revisas una a una · En el ordenador también puedes arrastrarlas aquí · El documento se guarda junto a la nómina, solo en este dispositivo</p>
       </div>
-      <img id="previewImg" class="hidden" alt="Nómina">
+      <img id="previewImg" class="hidden" alt="Nómina" data-tr-alt="up.alt">
     </div>
     <div class="btn-group hidden" id="uploadBtns">
-      <button class="btn btn-primary" id="processBtn" onclick="processImage()">
+      <button class="btn btn-primary" id="processBtn" onclick="processImage()" data-tr="up.process">
         ✓ Procesar con Gemini IA
       </button>
-      <button class="btn btn-secondary" onclick="clearUpload()">Cancelar</button>
+      <button class="btn btn-secondary" onclick="clearUpload()" data-tr="up.cancel">Cancelar</button>
     </div>
     <div id="uploadError"></div>
   </div>
@@ -628,8 +628,8 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 
 <!-- ═══════════ BACKUP VIEW ═══════════ -->
 <main id="view-backup" class="hidden">
-  <h2>Gestión de Datos</h2>
-  <p class="subtitle">Copias de seguridad, exportación y restauración de tus nóminas</p>
+  <h2 data-tr="data.title">Gestión de Datos</h2>
+  <p class="subtitle" data-tr="data.sub">Copias de seguridad, exportación y restauración de tus nóminas</p>
 
   <input type="file" id="importFileInput" accept=".json,.zip" style="display:none" onchange="importBackup(this.files[0])">
 
@@ -637,15 +637,15 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="card" style="margin-bottom:14px">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      <h3 style="margin:0;font-size:14px;color:var(--accent)">Backup Automático</h3>
-      <span id="autoBackupStatus" class="status no" style="margin-left:auto">Desactivado</span>
+      <h3 style="margin:0;font-size:14px;color:var(--accent)" data-tr="data.autoTitle">Backup Automático</h3>
+      <span id="autoBackupStatus" class="status no" style="margin-left:auto" data-tr="bank.off">Desactivado</span>
     </div>
-    <p style="color:var(--text-dim);font-size:12px;line-height:1.6">
+    <p style="color:var(--text-dim);font-size:12px;line-height:1.6" data-tr-html="data.autoP1Html">
       Si lo activas, cada vez que guardes o corrijas una nómina se descarga un archivo con los datos (sin las fotos ni los PDF)
       <code style="background:var(--bg2);padding:2px 6px;border-radius:4px;font-size:11px">nominas-backup-FECHA.json</code>
       en tu carpeta de <strong>Descargas</strong>.
     </p>
-    <p style="color:var(--text-dim);font-size:12px;line-height:1.6;margin-top:6px">
+    <p style="color:var(--text-dim);font-size:12px;line-height:1.6;margin-top:6px" data-tr-html="data.autoP2Html">
       Viene <strong>desactivado</strong> para no llenarte Descargas de copias. En su lugar, cuando tengas cambios sin copia de seguridad,
       el <strong>Panel te avisa</strong> para que descargues el <strong>backup completo</strong> (datos y nóminas) y lo guardes en Drive.
     </p>
@@ -653,7 +653,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
       <label style="font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:6px;cursor:pointer">
         <input type="checkbox" id="autoBackupToggle" onchange="toggleAutoBackup(this.checked)"
           style="accent-color:var(--accent);width:16px;height:16px">
-        Backup automático al guardar cada nómina
+        <span data-tr="data.autoToggle">Backup automático al guardar cada nómina</span>
       </label>
     </div>
   </div>
@@ -662,7 +662,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="card" id="bankSettingCard" style="margin-bottom:14px">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
       <h3 style="margin:0;font-size:14px;color:var(--accent)">🏦 <span data-tr="bank.title">Cobrado en el banco</span></h3>
-      <span id="bankSettingStatus" class="status no" style="margin-left:auto">Desactivado</span>
+      <span id="bankSettingStatus" class="status no" style="margin-left:auto" data-tr="bank.off">Desactivado</span>
     </div>
     <p style="color:var(--text-dim);font-size:12px;line-height:1.6" data-tr="bank.what"></p>
     <p style="color:var(--text-dim);font-size:12px;line-height:1.6;margin-top:6px" data-tr="bank.offKeeps"></p>
@@ -678,14 +678,14 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <!-- Modo sin conexión (solo en la web publicada) -->
   <div class="card" id="offlineCard" style="margin-bottom:14px">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
-      <h3 style="margin:0;font-size:14px;color:var(--accent)">📲 Modo sin conexión</h3>
+      <h3 style="margin:0;font-size:14px;color:var(--accent)" data-tr="data.offTitle">📲 Modo sin conexión</h3>
       <span id="offlineStatus" class="status" style="margin-left:auto"></span>
     </div>
-    <p style="color:var(--text-dim);font-size:12px;line-height:1.6;margin-bottom:12px">
+    <p style="color:var(--text-dim);font-size:12px;line-height:1.6;margin-bottom:12px" data-tr-html="data.offTextHtml">
       La app guarda una copia de sí misma para abrirse sin internet. Con conexión descarga siempre la última versión.
       Si alguna vez ves una versión antigua, fuerza la actualización: <strong>tus nóminas y tu API key no se borran</strong>.
     </p>
-    <button class="btn btn-secondary btn-sm" onclick="forceAppUpdate()">🔄 Forzar actualización de la app</button>
+    <button class="btn btn-secondary btn-sm" onclick="forceAppUpdate()" data-tr="data.offBtn">🔄 Forzar actualización de la app</button>
   </div>
 
   <!-- v2.14.1: cuántas páginas ocupa cada nómina en un PDF (para todo este dispositivo) -->
@@ -707,16 +707,16 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="data-grid">
     <div class="card" style="text-align:center;padding:30px 20px">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" style="margin-bottom:12px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      <h3 style="font-size:14px;color:var(--accent);margin-bottom:6px">Exportar datos</h3>
-      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">Solo los datos de tus nóminas, en un archivo JSON ligero. Es el mismo que el backup automático.</p>
+      <h3 style="font-size:14px;color:var(--accent);margin-bottom:6px" data-tr="data.expTitle">Exportar datos</h3>
+      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px" data-tr="data.expText">Solo los datos de tus nóminas, en un archivo JSON ligero. Es el mismo que el backup automático.</p>
       <button class="btn btn-primary" onclick="exportBackup()" id="exportBtn">
-        <span>💾 Exportar datos (<span id="exportCount">0</span> nóminas)</span>
+        <span data-tr-html="data.expBtnHtml">💾 Exportar datos (<span id="exportCount">0</span> nóminas)</span>
       </button>
     </div>
     <div class="card" style="text-align:center;padding:30px 20px">
       <div style="font-size:28px;margin-bottom:8px">🗂️</div>
-      <h3 style="font-size:14px;color:var(--accent);margin-bottom:6px">Backup completo</h3>
-      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">Datos <strong>y documentos originales</strong> en un ZIP ordenado por año. Guárdalo en Drive o donde quieras: sirve para restaurarlo todo en otro dispositivo. En Chrome (Android y ordenador) eliges dónde guardarlo, Drive incluido; en iPhone y iPad, con «Guardar en…» (iCloud Drive o Drive); en los demás navegadores se descarga.</p>
+      <h3 style="font-size:14px;color:var(--accent);margin-bottom:6px" data-tr="data.fullTitle">Backup completo</h3>
+      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px" data-tr-html="data.fullTextHtml">Datos <strong>y documentos originales</strong> en un ZIP ordenado por año. Guárdalo en Drive o donde quieras: sirve para restaurarlo todo en otro dispositivo. En Chrome (Android y ordenador) eliges dónde guardarlo, Drive incluido; en iPhone y iPad, con «Guardar en…» (iCloud Drive o Drive); en los demás navegadores se descarga.</p>
       <button class="btn btn-primary" onclick="exportFullBackup()" id="fullBackupBtn">
         🗂️ Descargar backup completo
       </button>
@@ -724,9 +724,9 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
     </div>
     <div class="card" style="text-align:center;padding:30px 20px">
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--info)" stroke-width="2" style="margin-bottom:12px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      <h3 style="font-size:14px;color:var(--info);margin-bottom:6px">Restaurar datos</h3>
-      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px">Importa un backup de datos (.json) o un backup completo (.zip, con documentos)</p>
-      <button class="btn btn-secondary" style="color:var(--info);border-color:var(--info)" onclick="document.getElementById('importFileInput').click()">
+      <h3 style="font-size:14px;color:var(--info);margin-bottom:6px" data-tr="data.restTitle">Restaurar datos</h3>
+      <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px" data-tr="data.restText">Importa un backup de datos (.json) o un backup completo (.zip, con documentos)</p>
+      <button class="btn btn-secondary" style="color:var(--info);border-color:var(--info)" onclick="document.getElementById('importFileInput').click()" data-tr="data.importBtn">
         📂 Importar backup
       </button>
     </div>
@@ -737,7 +737,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
     ondragover="event.preventDefault();this.classList.add('over')" 
     ondragleave="this.classList.remove('over')"
     ondrop="event.preventDefault();this.classList.remove('over');importBackup(event.dataTransfer.files[0])">
-    <p class="dropzone-text" style="font-size:13px">O arrastra aquí un archivo <code style="background:var(--bg2);padding:2px 6px;border-radius:4px">nominas-backup-*.json</code> o <code style="background:var(--bg2);padding:2px 6px;border-radius:4px">.zip</code> para restaurar</p>
+    <p class="dropzone-text" style="font-size:13px" data-tr-html="data.dropHtml">O arrastra aquí un archivo <code style="background:var(--bg2);padding:2px 6px;border-radius:4px">nominas-backup-*.json</code> o <code style="background:var(--bg2);padding:2px 6px;border-radius:4px">.zip</code> para restaurar</p>
   </div>
 
   <!-- Import result -->
@@ -751,15 +751,15 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 
   <!-- Data info -->
   <div class="card" style="margin-bottom:14px">
-    <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">📊 Estado de los Datos</h3>
+    <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)" data-tr="data.statsTitle">📊 Estado de los Datos</h3>
     <div id="dataStats" style="font-size:12px;color:var(--text-dim);line-height:1.8"></div>
   </div>
 
   <!-- Danger zone -->
   <div class="card" style="border-color:var(--danger)">
-    <h3 style="margin:0 0 8px;font-size:13px;color:var(--danger)">⚠ Zona Peligrosa</h3>
-    <p style="color:var(--text-dim);font-size:12px;margin-bottom:12px">Eliminar todas las nóminas y sus documentos originales de este dispositivo. Esta acción no se puede deshacer.</p>
-    <button class="btn btn-danger" onclick="clearAllData()">🗑 Borrar todos los datos</button>
+    <h3 style="margin:0 0 8px;font-size:13px;color:var(--danger)" data-tr="data.dangerTitle">⚠ Zona Peligrosa</h3>
+    <p style="color:var(--text-dim);font-size:12px;margin-bottom:12px" data-tr="data.dangerText">Eliminar todas las nóminas y sus documentos originales de este dispositivo. Esta acción no se puede deshacer.</p>
+    <button class="btn btn-danger" onclick="clearAllData()" data-tr="data.dangerBtn">🗑 Borrar todos los datos</button>
   </div>
 </main>
 
@@ -957,7 +957,7 @@ function renderApiBar() {
   bar.classList.toggle('collapsed', !open);
   bar.classList.toggle('no-key', !key);
   const t = document.getElementById('apiToggle');
-  if (t) { t.textContent = open ? 'Ocultar' : 'Cambiar'; t.setAttribute('aria-expanded', String(open)); }
+  if (t) { t.textContent = tr(open ? 'key.hide' : 'key.change'); t.setAttribute('aria-expanded', String(open)); }
 }
 
 function toggleApiBar() {
@@ -1057,8 +1057,8 @@ function getApiKey() {
 function updateApiStatus(key) {
   const el = document.getElementById('apiStatus');
   if (key && key.length > 10 && keyLooksOdd(key)) { el.textContent = tr('keyOddShort'); el.className = 'status no'; el.title = tr('keyOdd'); }
-  else if (key && key.length > 10) { el.textContent = '✓ Configurada'; el.className = 'status ok'; el.title = ''; }
-  else { el.textContent = 'Sin Key'; el.className = 'status no'; el.title = ''; }
+  else if (key && key.length > 10) { el.textContent = tr('key.ok'); el.className = 'status ok'; el.title = ''; }
+  else { el.textContent = tr('key.none'); el.className = 'status no'; el.title = ''; }
   renderApiBar();
   renderWelcome();   // v2.24.0: el paso de la clave de la bienvenida se marca solo
 }
@@ -1654,11 +1654,11 @@ function showApiQR() {
   
   var title = document.createElement('div');
   title.style.cssText = 'font-size:16px;font-weight:800;color:var(--warning);margin-bottom:8px';
-  title.textContent = '📱 Escanea desde el móvil';
+  title.textContent = tr('qr.title');
   
   var desc = document.createElement('p');
   desc.style.cssText = 'font-size:12px;color:var(--text-dim);margin-bottom:16px;line-height:1.5';
-  desc.textContent = 'Abre la cámara y apunta al QR. La app se abrirá con la key ya configurada.';
+  desc.textContent = tr('qr.desc');
   
   var qrDiv = document.createElement('div');
   qrDiv.id = 'qrRenderDiv';
@@ -1670,7 +1670,7 @@ function showApiQR() {
   
   var closeBtn = document.createElement('button');
   closeBtn.className = 'btn btn-secondary';
-  closeBtn.textContent = 'Cerrar';
+  closeBtn.textContent = tr('qr.close');
   closeBtn.onclick = function() { modal.remove(); };
   
   box.appendChild(title);
@@ -1794,16 +1794,13 @@ function clearUpload() {
   renderUploadArea();
 }
 
-// Pantalla de «Subir»: la de siempre o, si hay nóminas en la bandeja, la bandeja
-const UPLOAD_HEAD = {
-  single: ['Subir Nómina', 'Haz una foto de tu nómina o elige los archivos (puedes elegir un año entero): la IA extrae los datos y tú los revisas'],
-  batch: ['Bandeja de nóminas', 'Se leen solas; tú las revisas y confirmas una a una con el papel delante']
-};
+// Pantalla de «Subir»: la de siempre o, si hay nóminas en la bandeja, la bandeja (v2.26.0: claves de tr())
+const UPLOAD_HEAD = { single: ['up.title', 'up.sub'], batch: ['up.batchTitle', 'up.batchSub'] };
 function renderUploadArea() {
   const showBatch = batchVisible();
   const [t, sub] = UPLOAD_HEAD[showBatch ? 'batch' : 'single'];
-  document.getElementById('uploadTitle').textContent = t;
-  document.getElementById('uploadSubtitle').textContent = sub;
+  document.getElementById('uploadTitle').textContent = tr(t);
+  document.getElementById('uploadSubtitle').textContent = tr(sub);
   document.getElementById('uploadPhase').classList.toggle('hidden', showBatch);
   document.getElementById('batchPhase').classList.toggle('hidden', !showBatch);
   document.getElementById('verifyPhase').classList.add('hidden');
@@ -2325,8 +2322,8 @@ function renderVerification() {
   document.getElementById('uploadPhase').classList.add('hidden');
   document.getElementById('batchPhase').classList.add('hidden');
   const [ut, usub] = UPLOAD_HEAD[batchReviewUid ? 'batch' : 'single'];
-  document.getElementById('uploadTitle').textContent = ut;
-  document.getElementById('uploadSubtitle').textContent = usub;
+  document.getElementById('uploadTitle').textContent = tr(ut);
+  document.getElementById('uploadSubtitle').textContent = tr(usub);
   const vp = document.getElementById('verifyPhase');
   vp.classList.remove('hidden');
 
@@ -3540,7 +3537,30 @@ const SS_WORKER_RATES = {
 // español. REGLA desde la v2.13.0: todo texto NUEVO se escribe con tr() y sus tres idiomas, para no acumular deuda.
 // Los conceptos de la nómina nunca se traducen: se muestran como vienen en el papel. Las cifras, en formato español.
 const LANGS = { es: 'Español', ca: 'Català', en: 'English' };
-const I18N = {"es": {"cardTitle": "¿Qué es cada concepto?", "cardNote": "Toca un concepto para ver qué es. Son explicaciones generales: lo que manda es tu convenio y tu contrato.", "unknown": "Sin explicación: {list}. Son conceptos propios de tu empresa: su regla está en tu convenio, tu contrato o un acuerdo de empresa.", "full": "📖 Glosario completo", "lang": "Idioma de las explicaciones", "title": "Glosario", "subtitle": "Qué es cada concepto de una nómina. Son explicaciones generales: lo que manda es tu convenio y tu contrato. La app documenta; no asesora.", "secE": "Lo que cobras (devengos)", "secD": "Lo que te descuentan (deducciones)", "ratesH": "Tipos a cargo del trabajador (Régimen General)", "ratesNote": "Desempleo: contrato indefinido / temporal. Fuente, la orden de cotización de cada año en el BOE: {links}.", "secB": "Bases y totales", "backReport": "Volver a la nómina", "backPanel": "Volver al Panel", "r.cc": "Contingencias comunes", "r.mei": "MEI", "r.des": "Desempleo", "r.fp": "Formación profesional", "rBoth": "{a} con contrato indefinido y {b} con contrato temporal", "rCcMei": "✓ El {p} de tu nómina es contingencias comunes ({cc}) más el MEI ({mei}) de {y}, juntos en la misma línea ({src}).", "rNoPrint": "Tipo oficial de {y}: {off} ({src}). En esta nómina no se leyó el %.", "rOk": "✓ El {p} de tu nómina es el tipo oficial de {y} ({kind}{src}).", "rKindTemp": "contrato temporal; ", "rKindPerm": "contrato indefinido; ", "rDiff": "Tipo oficial de {y}: {off} ({src}). En tu nómina pone {p}: míralo en el papel, puede ser un error de lectura."}, "ca": {"cardTitle": "Què és cada concepte?", "cardNote": "Toca un concepte per veure què és. Són explicacions generals: el que preval és el teu conveni i el teu contracte.", "unknown": "Sense explicació: {list}. Són conceptes propis de la teva empresa: es regeixen pel teu conveni, el teu contracte o un acord d'empresa.", "full": "📖 Glossari complet", "lang": "Idioma de les explicacions", "title": "Glossari", "subtitle": "Què és cada concepte d'una nòmina. Són explicacions generals: el que preval és el teu conveni i el teu contracte. L'app documenta; no assessora.", "secE": "El que cobres (meritacions)", "secD": "El que et descompten (deduccions)", "ratesH": "Tipus a càrrec del treballador (Règim General)", "ratesNote": "Atur: contracte indefinit / temporal. Font: l'ordre de cotització de cada any al BOE: {links}.", "secB": "Bases i totals", "backReport": "Tornar a la nòmina", "backPanel": "Tornar al Panel", "r.cc": "Contingències comunes", "r.mei": "MEI", "r.des": "Atur", "r.fp": "Formació professional", "rBoth": "{a} amb contracte indefinit i {b} amb contracte temporal", "rCcMei": "✓ El {p} de la teva nòmina és contingències comunes ({cc}) més el MEI ({mei}) del {y}, junts a la mateixa línia ({src}).", "rNoPrint": "Tipus oficial del {y}: {off} ({src}). En aquesta nòmina no es va llegir el %.", "rOk": "✓ El {p} de la teva nòmina és el tipus oficial del {y} ({kind}{src}).", "rKindTemp": "contracte temporal; ", "rKindPerm": "contracte indefinit; ", "rDiff": "Tipus oficial del {y}: {off} ({src}). A la teva nòmina posa {p}: mira-ho al paper, pot ser un error de lectura."}, "en": {"cardTitle": "What does each item mean?", "cardNote": "Tap an item to see what it is. These are general explanations: what applies is your collective agreement and your contract.", "unknown": "No explanation: {list}. These are items specific to your company: the rule is in your collective agreement, your contract or a company agreement.", "full": "📖 Full glossary", "lang": "Language of the explanations", "title": "Glossary", "subtitle": "What each item on a Spanish payslip (nómina) means. These are general explanations: what applies is your collective agreement and your contract. The app documents; it does not give advice.", "secE": "What you are paid (devengos)", "secD": "What is deducted (deducciones)", "ratesH": "Employee's contribution rates (General Social Security Scheme)", "ratesNote": "Unemployment: permanent / temporary contract. Source: each year's contribution order in the BOE (Spain's official gazette): {links}.", "secB": "Bases and totals", "backReport": "Back to the payslip", "backPanel": "Back to the Panel", "r.cc": "Common contingencies", "r.mei": "MEI", "r.des": "Unemployment", "r.fp": "Vocational training", "rBoth": "{a} with a permanent contract and {b} with a temporary contract", "rCcMei": "✓ The {p} on your payslip is common contingencies ({cc}) plus the MEI ({mei}) for {y}, together on the same line ({src}).", "rNoPrint": "Official rate for {y}: {off} ({src}). The % was not read on this payslip.", "rOk": "✓ The {p} on your payslip is the official rate for {y} ({kind}{src}).", "rKindTemp": "temporary contract; ", "rKindPerm": "permanent contract; ", "rDiff": "Official rate for {y}: {off} ({src}). Your payslip shows {p}: check it on the paper, it may be a reading error."}};
+// v2.26.0: idioma de la app (pieza 3 del punto 39, docs/TECNICO.md §59). Se traduce por tandas; mientras quede texto
+// fuera de tr(), APP_LANG_ON sigue en false y la app sale siempre en español (nadie ve una pantalla a medias). En la
+// última tanda: true, el selector en Datos y el paso del idioma en «Primeros pasos». `var` y no `let`: tr() puede
+// llamarse antes de llegar a esta línea, y así vale undefined (español) en vez de dar error.
+var APP_LANG_ON = false;
+const APP_LANG_KEY = 'nomina-auditor-lang';
+function appLang() {
+  if (!APP_LANG_ON) return 'es';
+  try { const l = localStorage.getItem(APP_LANG_KEY); if (LANGS[l]) return l; } catch {}
+  const n = String((typeof navigator !== 'undefined' && navigator.language) || '').toLowerCase();
+  return n.startsWith('ca') ? 'ca' : n.startsWith('en') ? 'en' : 'es';
+}
+// Nombres de los meses para mostrar. El dato guardado (p.period.month) sigue en español y se compara siempre por
+// MONTHS; en español se muestra tal como está guardado, para que no cambie nada.
+const MONTH_NAMES = {
+  ca: ['Gener', 'Febrer', 'Març', 'Abril', 'Maig', 'Juny', 'Juliol', 'Agost', 'Setembre', 'Octubre', 'Novembre', 'Desembre'],
+  en: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+};
+function monthName(m, lang = appLang()) {
+  const i = typeof m === 'number' ? m : MONTHS.indexOf(normalizeMonth(m));
+  if (lang === 'es' || !MONTH_NAMES[lang] || i < 0 || i > 11) return typeof m === 'number' ? (MONTHS[m] ?? '') : (m ?? '');
+  return MONTH_NAMES[lang][i];
+}
+const I18N = {"es": {"cardTitle": "¿Qué es cada concepto?", "cardNote": "Toca un concepto para ver qué es. Son explicaciones generales: lo que manda es tu convenio y tu contrato.", "unknown": "Sin explicación: {list}. Son conceptos propios de tu empresa: su regla está en tu convenio, tu contrato o un acuerdo de empresa.", "full": "📖 Glosario completo", "lang": "Idioma de las explicaciones", "title": "Glosario", "subtitle": "Qué es cada concepto de una nómina. Son explicaciones generales: lo que manda es tu convenio y tu contrato. La app documenta; no asesora.", "secE": "Lo que cobras (devengos)", "secD": "Lo que te descuentan (deducciones)", "ratesH": "Tipos a cargo del trabajador (Régimen General)", "ratesNote": "Desempleo: contrato indefinido / temporal. Fuente, la orden de cotización de cada año en el BOE: {links}.", "secB": "Bases y totales", "backReport": "Volver a la nómina", "backPanel": "Volver al Panel", "r.cc": "Contingencias comunes", "r.mei": "MEI", "r.des": "Desempleo", "r.fp": "Formación profesional", "rBoth": "{a} con contrato indefinido y {b} con contrato temporal", "rCcMei": "✓ El {p} de tu nómina es contingencias comunes ({cc}) más el MEI ({mei}) de {y}, juntos en la misma línea ({src}).", "rNoPrint": "Tipo oficial de {y}: {off} ({src}). En esta nómina no se leyó el %.", "rOk": "✓ El {p} de tu nómina es el tipo oficial de {y} ({kind}{src}).", "rKindTemp": "contrato temporal; ", "rKindPerm": "contrato indefinido; ", "rDiff": "Tipo oficial de {y}: {off} ({src}). En tu nómina pone {p}: míralo en el papel, puede ser un error de lectura."}, "ca": {"cardTitle": "Què és cada concepte?", "cardNote": "Toca un concepte per veure què és. Són explicacions generals: el que preval és el teu conveni i el teu contracte.", "unknown": "Sense explicació: {list}. Són conceptes propis de la teva empresa: es regeixen pel teu conveni, el teu contracte o un acord d'empresa.", "full": "📖 Glossari complet", "lang": "Idioma de les explicacions", "title": "Glossari", "subtitle": "Què és cada concepte d'una nòmina. Són explicacions generals: el que preval és el teu conveni i el teu contracte. L'app documenta; no assessora.", "secE": "El que cobres (meritacions)", "secD": "El que et descompten (deduccions)", "ratesH": "Tipus a càrrec del treballador (Règim General)", "ratesNote": "Atur: contracte indefinit / temporal. Font: l'ordre de cotització de cada any al BOE: {links}.", "secB": "Bases i totals", "backReport": "Tornar a la nòmina", "backPanel": "Tornar al Tauler", "r.cc": "Contingències comunes", "r.mei": "MEI", "r.des": "Atur", "r.fp": "Formació professional", "rBoth": "{a} amb contracte indefinit i {b} amb contracte temporal", "rCcMei": "✓ El {p} de la teva nòmina és contingències comunes ({cc}) més el MEI ({mei}) del {y}, junts a la mateixa línia ({src}).", "rNoPrint": "Tipus oficial del {y}: {off} ({src}). En aquesta nòmina no es va llegir el %.", "rOk": "✓ El {p} de la teva nòmina és el tipus oficial del {y} ({kind}{src}).", "rKindTemp": "contracte temporal; ", "rKindPerm": "contracte indefinit; ", "rDiff": "Tipus oficial del {y}: {off} ({src}). A la teva nòmina posa {p}: mira-ho al paper, pot ser un error de lectura."}, "en": {"cardTitle": "What does each item mean?", "cardNote": "Tap an item to see what it is. These are general explanations: what applies is your collective agreement and your contract.", "unknown": "No explanation: {list}. These are items specific to your company: the rule is in your collective agreement, your contract or a company agreement.", "full": "📖 Full glossary", "lang": "Language of the explanations", "title": "Glossary", "subtitle": "What each item on a Spanish payslip (nómina) means. These are general explanations: what applies is your collective agreement and your contract. The app documents; it does not give advice.", "secE": "What you are paid (devengos)", "secD": "What is deducted (deducciones)", "ratesH": "Employee's contribution rates (General Social Security Scheme)", "ratesNote": "Unemployment: permanent / temporary contract. Source: each year's contribution order in the BOE (Spain's official gazette): {links}.", "secB": "Bases and totals", "backReport": "Back to the payslip", "backPanel": "Back to the Panel", "r.cc": "Common contingencies", "r.mei": "MEI", "r.des": "Unemployment", "r.fp": "Vocational training", "rBoth": "{a} with a permanent contract and {b} with a temporary contract", "rCcMei": "✓ The {p} on your payslip is common contingencies ({cc}) plus the MEI ({mei}) for {y}, together on the same line ({src}).", "rNoPrint": "Official rate for {y}: {off} ({src}). The % was not read on this payslip.", "rOk": "✓ The {p} on your payslip is the official rate for {y} ({kind}{src}).", "rKindTemp": "temporary contract; ", "rKindPerm": "permanent contract; ", "rDiff": "Official rate for {y}: {off} ({src}). Your payslip shows {p}: check it on the paper, it may be a reading error."}};
 // Glosario en català e inglés: [título, explicación] por id. El español es el de GLOSSARY.
 const GLOSSARY_TR = {"ca": {"salario": ["Salari base", "La part fixa del sou que marca el conveni per a la teva categoria, per dia o per mes. Sobre aquesta part es calculen molts plusos."], "convenio": ["Plus conveni", "Complement fix que el conveni dona a totes les persones d'una categoria. Quan puja el conveni, en puja l'import."], "antiguedad": ["Antiguitat", "Complement pels anys a l'empresa (triennis, quinquennis…). Quant i cada quant ho diu el conveni; alguns el tenen congelat."], "prorrata": ["Prorrata de pagues extraordinàries", "Les pagues extraordinàries repartides entre els dotze mesos. Si la cobres així, després no hi ha paga extraordinària a part (o només la part que no es reparteix)."], "extra": ["Paga extraordinària", "Per llei n'hi ha almenys dues l'any, i una és per Nadal (art. 31 de l'Estatut dels treballadors). El seu import el fixa el conveni."], "hextra": ["Hores extraordinàries", "Hores per sobre de la teva jornada. Es paguen com digui el conveni o el contracte, o es compensen amb descans; com a màxim 80 l'any (art. 35 de l'Estatut)."], "nocturnidad": ["Nocturnitat", "Plus per treballar de nit (de 22:00 a 6:00). El fixa el conveni, llevat que el salari del lloc ja s'hagi fixat per ser nocturn (art. 36 de l'Estatut)."], "festivos": ["Festius i diumenges", "Pagament per treballar un festiu o un diumenge, si el conveni ho preveu. De vegades es compensa amb un dia lliure en lloc de diners."], "variable": ["Incentius i variable", "Paga variable: objectius, productivitat, comissions. Es regeix pel teu contracte, el conveni o un acord d'empresa; la nòmina sol portar només el total, sense desglossar."], "gastos": ["Transport, dietes i quilometratge", "Compensacions per despeses. Les dietes i el quilometratge, dins d'uns límits, no paguen IRPF ni Seguretat Social; el plus de transport del conveni, en canvi, cotitza com la resta del sou."], "especie": ["Salari en espècie", "Alguna cosa que et donen en lloc de diners (habitatge, cotxe, menjar…). Compta com a sou per a l'IRPF i la Seguretat Social; per això sol sortir una altra vegada a les deduccions."], "cc": ["Contingències comunes", "La teva part de la cotització a la Seguretat Social per malaltia, accident no laboral, jubilació… Es calcula sobre la base de contingències comunes. L'empresa abona a part la seva quota, molt més gran, que no surt del teu sou."], "mei": ["MEI (Mecanisme d'Equitat Intergeneracional)", "Una cotització extra per al fons de les pensions, sobre la mateixa base que les contingències comunes. Puja una mica cada any."], "desempleo": ["Atur (desocupació)", "La teva part de la cotització per atur. És una mica més alta amb un contracte temporal que amb un d'indefinit. Es calcula sobre la base de contingències professionals."], "fp": ["Formació professional", "La teva part de la cotització per a la formació dels treballadors. Es calcula sobre la base de contingències professionals."], "hextra-cot": ["Cotització de les hores extraordinàries", "La cotització de les hores extraordinàries. El 2026, la teva part és el 2 % si són per força major i el 4,70 % la resta (Orden PJC/297/2026)."], "solidaridad": ["Cotització de solidaritat", "Cotització addicional, des del 2025, només per a la part del sou que passa de la base màxima de cotització. Si no cobres tant, no et surt."], "irpf": ["IRPF", "Retenció a compte de l'impost sobre la renda. No és l'impost final: a la declaració de la renda s'ajusta i et tornen o pagues la diferència. El % depèn del teu sou i de la teva situació familiar."], "anticipo": ["Bestreta", "Diners que ja vas cobrar abans i que ara es descompten."], "especie-d": ["Descompte del salari en espècie", "Com que el salari en espècie no el cobres en diners, se suma a dalt (per calcular impostos i cotització) i es resta aquí."], "embargo": ["Embargament", "Retenció ordenada per un jutjat o una administració. La llei posa límits a la part del sou que es pot embargar."], "base-cc": ["Base de contingències comunes", "La xifra sobre la qual es calculen les contingències comunes i el MEI: el sou del mes més la prorrata de les pagues extraordinàries, sense les hores extraordinàries. Té un mínim i un màxim cada any."], "base-at": ["Base de contingències professionals (AT/MP)", "Com l'anterior, més les hores extraordinàries. Sobre aquesta es calculen l'atur i la formació professional (i el que paga l'empresa per accidents de treball)."], "base-irpf": ["Base de l'IRPF", "El que cobres aquest mes i paga IRPF. No inclou la prorrata de les pagues extraordinàries que només se suma per cotitzar (quan les cobres a part, per exemple al juny i al desembre) ni el que està exempt."], "bruto": ["Total meritat (brut)", "La suma de tot el que et paguen aquest mes, abans dels descomptes."], "deducir": ["Total a deduir", "La suma de tots els descomptes: Seguretat Social, IRPF, bestretes…"], "liquido": ["Líquid a percebre", "El que t'arriba al banc: total meritat menys total a deduir."]}, "en": {"salario": ["Base salary (salario base)", "The fixed part of your pay set by the collective agreement for your job category, per day or per month. Many bonuses are calculated on top of it."], "convenio": ["Agreement bonus (plus convenio)", "A fixed supplement that the collective agreement gives to everyone in a job category. When the agreement rates go up, this amount goes up too."], "antiguedad": ["Seniority (antigüedad)", "A supplement for your years at the company (every three years, every five years…). How much and how often is set by the collective agreement; some have frozen it."], "prorrata": ["Prorated extra payments (prorrata)", "The extra payments spread across the twelve months. If you are paid this way, there is no separate extra payment later (or only the part that is not spread out)."], "extra": ["Extra payment (paga extra)", "By law there are at least two a year, and one is at Christmas (art. 31 of the Workers' Statute, Estatuto de los Trabajadores). The amount is set by the collective agreement."], "hextra": ["Overtime (horas extra)", "Hours beyond your working schedule. They are paid as the collective agreement or your contract says, or compensated with time off; at most 80 a year (art. 35 of the Workers' Statute)."], "nocturnidad": ["Night work (nocturnidad)", "A bonus for working at night (10 pm to 6 am). It is set by the collective agreement, unless the job's pay was already set for being a night job (art. 36 of the Workers' Statute)."], "festivos": ["Public holidays and Sundays (festivos)", "Pay for working on a public holiday or a Sunday, if the collective agreement provides for it. Sometimes it is compensated with a day off instead of money."], "variable": ["Incentives and variable pay (incentivos)", "Variable pay: targets, productivity, commissions. The rule is in your contract, the collective agreement or a company agreement; the payslip usually shows only the total, without a breakdown."], "gastos": ["Transport, allowances and mileage (dietas, kilometraje)", "Expense compensation. Daily allowances and mileage, within certain limits, are free of income tax withholding (IRPF) and Social Security; the agreement's transport bonus, however, is subject to Social Security contributions like the rest of your pay."], "especie": ["Pay in kind (salario en especie)", "Something you receive instead of money (housing, a car, meals…). It counts as pay for income tax (IRPF) and Social Security; that is why it usually appears again among the deductions."], "cc": ["Common contingencies (contingencias comunes)", "Your share of Social Security contributions for illness, non-work accidents, retirement… It is calculated on the common contingencies base. The company pays its own, much larger share separately; it does not come out of your pay."], "mei": ["MEI (Intergenerational Equity Mechanism)", "An extra contribution to the pension fund, on the same base as common contingencies. It goes up a little every year."], "desempleo": ["Unemployment (desempleo)", "Your share of the unemployment contribution. It is a bit higher with a temporary contract than with a permanent one. It is calculated on the professional contingencies base."], "fp": ["Vocational training (formación profesional)", "Your share of the contribution for workers' training. It is calculated on the professional contingencies base."], "hextra-cot": ["Overtime contribution (cotización de horas extra)", "The Social Security contribution on overtime. In 2026, your share is 2 % for overtime due to force majeure and 4,70 % for the rest (Orden PJC/297/2026)."], "solidaridad": ["Solidarity contribution (cotización de solidaridad)", "An additional contribution, since 2025, only on the part of your pay above the maximum contribution base. If you do not earn that much, it does not apply to you."], "irpf": ["IRPF (income tax withholding)", "An advance withholding of Spanish personal income tax. It is not the final tax: it is settled in the annual tax return (declaración de la renta), where you get a refund or pay the difference. The % depends on your pay and your family situation."], "anticipo": ["Advance (anticipo)", "Money you were already paid earlier that is now deducted."], "especie-d": ["Pay-in-kind deduction (descuento del salario en especie)", "Since you do not receive pay in kind as money, it is added above (to calculate tax and contributions) and subtracted here."], "embargo": ["Wage garnishment (embargo)", "A withholding ordered by a court or a public authority. The law limits how much of your pay can be taken."], "base-cc": ["Common contingencies base (base de contingencias comunes)", "The amount on which common contingencies and the MEI are calculated: the month's pay plus the prorated extra payments, without overtime. It has a minimum and a maximum each year."], "base-at": ["Professional contingencies base (base AT/EP)", "Like the previous one, plus overtime. Unemployment and vocational training are calculated on it (and what the company pays for work accidents)."], "base-irpf": ["IRPF base (base del IRPF)", "What you are paid this month that is subject to income tax withholding. It does not include the share of extra payments that is added only for Social Security (when you receive them separately, for example in June and December), or exempt amounts."], "bruto": ["Gross pay (total devengado)", "The sum of everything you are paid this month, before deductions."], "deducir": ["Total deductions (total a deducir)", "The sum of all deductions: Social Security, IRPF, advances…"], "liquido": ["Net pay (líquido a percibir)", "What reaches your bank account: gross pay minus total deductions."]}};
 function glossLang() {
@@ -3691,7 +3711,7 @@ Object.assign(I18N.ca, {
   "askPages": "Les teves nòmines solen ocupar dues pàgines? Així la propera vegada s'ajuntaran de dues en dues sense gastar lectures de més.",
   "askPagesYes": "Sí, de dues en dues",
   "askPagesNo": "No, només aquesta vegada",
-  "pagesSaved": "Fet: als propers PDF les pàgines s'ajuntaran de dues en dues. Ho pots canviar a «Datos».",
+  "pagesSaved": "Fet: als propers PDF les pàgines s'ajuntaran de dues en dues. Ho pots canviar a «Dades».",
   "resplit1": "🔀 Un parell de pàgines no era una nòmina de dues pàgines: s'ha tornat a dividir i cada pàgina es llegeix per separat.",
   "resplitN": "🔀 {n} parells de pàgines no eren nòmines de dues pàgines: s'han tornat a dividir i cada pàgina es llegeix per separat.",
   "qrTitle": "📱 Tens la clau a l'ordinador i vols fer servir l'app al mòbil?",
@@ -3758,7 +3778,7 @@ Object.assign(I18N.en, {
   "askPages": "Do your payslips usually take two pages? Then next time they will be joined two by two without using extra readings.",
   "askPagesYes": "Yes, two by two",
   "askPagesNo": "No, just this once",
-  "pagesSaved": "Done: in the next PDFs the pages will be joined two by two. You can change it in «Datos».",
+  "pagesSaved": "Done: in the next PDFs the pages will be joined two by two. You can change it in «Data».",
   "resplit1": "🔀 A pair of pages was not a two-page payslip: it has been split again and each page is read on its own.",
   "resplitN": "🔀 {n} pairs of pages were not two-page payslips: they have been split again and each page is read on its own.",
   "qrTitle": "📱 Do you have the key on your computer and want to use the app on your phone?",
@@ -3870,8 +3890,8 @@ Object.assign(I18N.ca, {
   "fest.cardPrev": "+{k} d'abans",
   "fest.late": "El festiu de data {d} fa {m} mesos que no surt a les teves nòmines.",   // v2.19.6: sense «del {d}» (l'1, l'11)
   "fest.lateOld": "Els festius pendents d'abans fa {m} mesos que no surten a les teves nòmines.",
-  "fest.lateFix": "Si no el vas treballar, desmarca'l a Datos → Festius.",
-  "fest.extra": "T'han pagat {k} festius més dels que tens apuntats des de la data {d}. Tenies festius pendents d'abans? Posa'ls a Datos → Festius.",
+  "fest.lateFix": "Si no el vas treballar, desmarca'l a Dades → Festius.",
+  "fest.extra": "T'han pagat {k} festius més dels que tens apuntats des de la data {d}. Tenies festius pendents d'abans? Posa'ls a Dades → Festius.",
   "fest.order": "La nòmina no diu a quin festiu correspon cada pagament: es compten per ordre, primer el més antic.",
   "fest.nocal": "Encara no tinc el calendari oficial del {y}: afegeix els teus festius a mà.",
   "fest.nounits": "Hi ha {k} pagaments de festius sense unitats: no es poden comptar. Revisa la columna d'unitats d'aquestes nòmines.",
@@ -3887,7 +3907,7 @@ Object.assign(I18N.ca, {
   "fest.noteCT": "A la Val d'Aran els festius són uns altres: si hi treballes, desmarca els que no tens i afegeix els teus com a festes locals.",
   "fest.save": "Desa",
   "fest.saved": "Desat",
-  "fest.noRegion": "Tria la teva comunitat a Datos → Festius per comptar els festius oficials.",
+  "fest.noRegion": "Tria la teva comunitat a Dades → Festius per comptar els festius oficials.",
   "fest.seeDetail": "Mostra'n el detall",
   "fest.paidIn": "cobrat a la nòmina ({m})",
   "fest.pending": "pendent",
@@ -3919,8 +3939,8 @@ Object.assign(I18N.en, {
   "fest.cardPrev": "+{k} from before",
   "fest.late": "The holiday of {d} has not appeared in your payslips for {m} months.",
   "fest.lateOld": "The holidays pending from before have not appeared in your payslips for {m} months.",
-  "fest.lateFix": "If you did not work it, untick it in Datos → Public holidays.",
-  "fest.extra": "You have been paid for {k} more holidays than you have recorded since {d}. Did you have holidays pending from before? Add them in Datos → Public holidays.",
+  "fest.lateFix": "If you did not work it, untick it in Data → Public holidays.",
+  "fest.extra": "You have been paid for {k} more holidays than you have recorded since {d}. Did you have holidays pending from before? Add them in Data → Public holidays.",
   "fest.order": "Payslips do not say which holiday each payment is for: they are counted in order, oldest first.",
   "fest.nocal": "I don't have the official {y} calendar yet: add your holidays by hand.",
   "fest.nounits": "There are {k} holiday payments without units: they can't be counted. Check the units column in those payslips.",
@@ -3936,7 +3956,7 @@ Object.assign(I18N.en, {
   "fest.noteCT": "The Val d'Aran has different holidays: if you work there, untick the ones you don't have and add yours as local holidays.",
   "fest.save": "Save",
   "fest.saved": "Saved",
-  "fest.noRegion": "Choose your region in Datos → Public holidays to count the official holidays.",
+  "fest.noRegion": "Choose your region in Data → Public holidays to count the official holidays.",
   "fest.seeDetail": "See details",
   "fest.paidIn": "paid in the {m} payslip",
   "fest.pending": "pending",
@@ -3991,7 +4011,7 @@ Object.assign(I18N.ca, {
   "stored.extra": "paga extra ({m})",
   "stored.aside": "A part:",
   "stored.none": "cap",
-  "stored.upload": "Puja-les a «Subir».",
+  "stored.upload": "Puja-les a «Pujar».",
   "stored.noYear": "Sense any:",
   "stored.legend": "Verd: complet · Ambre: falten nòmines · Blau: nòmines a part (Paga extra, Atrasos, Beneficios) · 📎: amb document original"
 });
@@ -4007,7 +4027,7 @@ Object.assign(I18N.en, {
   "stored.extra": "extra pay (paga extra) for {m}",
   "stored.aside": "Separate:",
   "stored.none": "none",
-  "stored.upload": "Upload them in «Subir».",
+  "stored.upload": "Upload them in «Upload».",
   "stored.noYear": "No year:",
   "stored.legend": "Green: complete · Amber: payslips missing · Blue: separate payslips (Paga extra, Atrasos, Beneficios) · 📎: with original document"
 });
@@ -4107,7 +4127,7 @@ Object.assign(I18N.ca, {
   "rep.lawyerText": "El text per a l'advocat es copia des de cada nòmina: obre-la i prem «📋 Copiar para Abogado». Aquestes són les del {year}:",
   "rep.copy": "Copia",
   "dash.dueMonth": "Puja la nòmina corresponent a {month}",
-  "dash.dueHint": "És l'última que ja hauries d'haver cobrat. Si és d'un altre mes, «Subir» també l'accepta.",
+  "dash.dueHint": "És l'última que ja hauries d'haver cobrat. Si és d'un altre mes, «Pujar» també l'accepta.",
   "dash.dueBtn": "Puja →"
 });
 Object.assign(I18N.en, {
@@ -4119,7 +4139,7 @@ Object.assign(I18N.en, {
   "rep.complete": "Is the year complete?",
   "rep.completeOk": "✓ No payslip from {year} is missing.",
   "rep.completeGaps": "Missing from {year}: {list}.",
-  "rep.seeAnnual": "See the details in Anual",
+  "rep.seeAnnual": "See the details in Annual",
   "rep.hacienda": "Compare with the Tax Agency (Hacienda)",
   "rep.haciendaText": "Compare what your payslips for the year add up to with what your employer reported to the Tax Agency (the tax data for your income tax return).",
   "rep.open": "Open",
@@ -4136,7 +4156,7 @@ Object.assign(I18N.en, {
   "rep.lawyerText": "The text for the lawyer is copied from each payslip: open it and tap «📋 Copiar para Abogado». These are the ones from {year}:",
   "rep.copy": "Copy",
   "dash.dueMonth": "Upload the payslip for {month}",
-  "dash.dueHint": "It is the latest one you should already have been paid. If it is for another month, Subir accepts it too.",
+  "dash.dueHint": "It is the latest one you should already have been paid. If it is for another month, «Upload» accepts it too.",
   "dash.dueBtn": "Upload →"
 });
 // v2.19.2: devengos frente a la remuneración total, y total bruto no impreso. El català, pendiente de revisión.
@@ -4231,7 +4251,7 @@ Object.assign(I18N.ca, {
 });
 Object.assign(I18N.en, {
   "bank.what": "If you turn it on, every saved payslip shows a card where you enter what was paid into your bank, and the app compares it to the cent with the net pay (Líquido). It checks that the app read the payslip correctly and that you were paid what it says. It is optional and what you enter is stored only on this device.",
-  "bank.offKeeps": "Even if you turn it off, what is already entered still shows on its payslip and in the yearly view (Anual).",
+  "bank.offKeeps": "Even if you turn it off, what is already entered still shows on its payslip and in Annual.",
   "bank.toggle": "Show “Received in the bank (Cobrado)” on every payslip",
   "bank.on": "On",
   "bank.off": "Off",
@@ -4645,8 +4665,270 @@ Object.assign(I18N.en, {
   "mt.noRegion": "Without the region, the app cannot know which public holidays apply to you.",
   "mt.toData": "Keep track of the holidays you work →"
 });
+// v2.26.0: idioma de la app, tanda 1 (barra, Panel y HTML fijo de Subir y Datos)
+Object.assign(I18N.es, {
+  "nav.panel": "Panel",
+  "nav.upload": "Subir",
+  "nav.annual": "Anual",
+  "nav.data": "Datos",
+  "nav.install": "Instalar",
+  "nav.trayTitle": "Nóminas en la bandeja",
+  "nav.installTitle": "Instalar en dispositivo",
+  "key.label": "🔑 Gemini API Key",
+  "key.none": "Sin Key",
+  "key.ok": "✓ Configurada",
+  "key.hide": "Ocultar",
+  "key.change": "Cambiar",
+  "key.placeholder": "Pega aquí tu clave (o el enlace que te pasaron)",
+  "key.eye": "Mostrar u ocultar la clave",
+  "key.helpHtml": "¿No tienes clave? Pídesela a quien te pasó la app, o <a href=\"https://github.com/Asesorian/nomina-auditor#-api-key-de-gemini-gratis-o-de-pago\" target=\"_blank\" rel=\"noopener\">créala tú (guía) →</a>",
+  "off.bannerHtml": "<strong>Sin conexión.</strong> Puedes consultar, corregir y exportar tus nóminas. Para procesar una nómina nueva hace falta internet.",
+  "dash.title": "Panel de Control",
+  "dash.glossBtn": "📖 ¿Qué es cada concepto de la nómina? Glosario",
+  "dash.gross": "Total Bruto",
+  "dash.net": "Total Neto",
+  "dash.irpf": "Ret. IRPF",
+  "dash.ss": "S.S. Obrero",
+  "dash.sub1": "1 nómina procesada en {year}",
+  "dash.subN": "{n} nóminas procesadas en {year}",
+  "dash.subSplit": " ({m} mensuales + {x} extra/atrasos)",
+  "dash.empty": "No hay nóminas procesadas en {year}",
+  "dash.firstBtn": "Subir primera nómina",
+  "dash.tableTitle": "Nóminas Procesadas",
+  "dash.bad1": "1 nómina no cuadra",
+  "dash.badN": "{n} nóminas no cuadran",
+  "dash.badHtml": "Gemini leyó mal alguna línea y los totales de IRPF y S.S. de arriba pueden estar mal. Ábrela con <strong>Ver</strong> y pulsa <strong>✏ Corregir datos</strong> o <strong>🔁 Releer con Gemini</strong>.",
+  "dash.colPeriod": "Periodo",
+  "dash.colGross": "Bruto",
+  "dash.colNet": "Neto",
+  "dash.colIrpf": "IRPF %",
+  "dash.colActions": "Acciones",
+  "dash.clip": "Documento original guardado",
+  "dash.view": "Ver",
+  "dash.irpfNoteHtml": "* % de IRPF calculado porque no venía en la nómina. N/L: no se ha podido sacar. Puedes corregir cualquiera de los dos en <strong>Ver → Corregir %</strong>.",
+  "dash.clipLegend": "📎 = documento original guardado.",
+  "dash.clipNone": "Todavía no hay ninguno guardado en este año",
+  "dash.clipMiss1": "A 1 nómina le falta",
+  "dash.clipMissN": "A {n} nóminas les falta",
+  "dash.clipWhereHtml": ": puedes adjuntarlo en <strong>Ver → Adjuntar original</strong>.",
+  "dash.delQ": "¿Eliminar la nómina {name}?",
+  "dash.delDoc": "\n\nTambién se borrará su documento original de este dispositivo.",
+  "dash.badTitle": "Las cuentas no cuadran: {list}",
+  "up.title": "Subir Nómina",
+  "up.sub": "Haz una foto de tu nómina o elige los archivos (puedes elegir un año entero): la IA extrae los datos y tú los revisas",
+  "up.batchTitle": "Bandeja de nóminas",
+  "up.batchSub": "Se leen solas; tú las revisas y confirmas una a una con el papel delante",
+  "up.drop": "Haz una foto de tu nómina o elige los archivos",
+  "up.hint": "Foto (JPG, PNG, HEIC…) o PDF · Puedes elegir varias a la vez: se leen solas y luego las revisas una a una · En el ordenador también puedes arrastrarlas aquí · El documento se guarda junto a la nómina, solo en este dispositivo",
+  "up.alt": "Nómina",
+  "up.process": "✓ Procesar con Gemini IA",
+  "up.cancel": "Cancelar",
+  "data.title": "Gestión de Datos",
+  "data.sub": "Copias de seguridad, exportación y restauración de tus nóminas",
+  "data.autoTitle": "Backup Automático",
+  "data.autoP1Html": "Si lo activas, cada vez que guardes o corrijas una nómina se descarga un archivo con los datos (sin las fotos ni los PDF) <code style=\"background:var(--bg2);padding:2px 6px;border-radius:4px;font-size:11px\">nominas-backup-FECHA.json</code> en tu carpeta de <strong>Descargas</strong>.",
+  "data.autoP2Html": "Viene <strong>desactivado</strong> para no llenarte Descargas de copias. En su lugar, cuando tengas cambios sin copia de seguridad, el <strong>Panel te avisa</strong> para que descargues el <strong>backup completo</strong> (datos y nóminas) y lo guardes en Drive.",
+  "data.autoToggle": "Backup automático al guardar cada nómina",
+  "data.offTitle": "📲 Modo sin conexión",
+  "data.offTextHtml": "La app guarda una copia de sí misma para abrirse sin internet. Con conexión descarga siempre la última versión. Si alguna vez ves una versión antigua, fuerza la actualización: <strong>tus nóminas y tu API key no se borran</strong>.",
+  "data.offBtn": "🔄 Forzar actualización de la app",
+  "data.offOn": "Activo",
+  "data.offPending": "Se activa al reabrir",
+  "data.offNeedNet": "Necesitas conexión para descargar la última versión de la app.",
+  "data.offConfirm": "Se descargará de nuevo la última versión de la app.\n\nTus nóminas y tu API key NO se borran.",
+  "data.expTitle": "Exportar datos",
+  "data.expText": "Solo los datos de tus nóminas, en un archivo JSON ligero. Es el mismo que el backup automático.",
+  "data.expBtnHtml": "💾 Exportar datos (<span id=\"exportCount\">0</span> nóminas)",
+  "data.fullTitle": "Backup completo",
+  "data.fullTextHtml": "Datos <strong>y documentos originales</strong> en un ZIP ordenado por año. Guárdalo en Drive o donde quieras: sirve para restaurarlo todo en otro dispositivo. En Chrome (Android y ordenador) eliges dónde guardarlo, Drive incluido; en iPhone y iPad, con «Guardar en…» (iCloud Drive o Drive); en los demás navegadores se descarga.",
+  "data.restTitle": "Restaurar datos",
+  "data.restText": "Importa un backup de datos (.json) o un backup completo (.zip, con documentos)",
+  "data.importBtn": "📂 Importar backup",
+  "data.dropHtml": "O arrastra aquí un archivo <code style=\"background:var(--bg2);padding:2px 6px;border-radius:4px\">nominas-backup-*.json</code> o <code style=\"background:var(--bg2);padding:2px 6px;border-radius:4px\">.zip</code> para restaurar",
+  "data.statsTitle": "📊 Estado de los Datos",
+  "data.dangerTitle": "⚠ Zona Peligrosa",
+  "data.dangerText": "Eliminar todas las nóminas y sus documentos originales de este dispositivo. Esta acción no se puede deshacer.",
+  "data.dangerBtn": "🗑 Borrar todos los datos",
+  "qr.title": "📱 Escanea desde el móvil",
+  "qr.desc": "Abre la cámara y apunta al QR. La app se abrirá con la key ya configurada.",
+  "qr.close": "Cerrar"
+});
+Object.assign(I18N.ca, {
+  "nav.panel": "Tauler",
+  "nav.upload": "Pujar",
+  "nav.annual": "Anual",
+  "nav.data": "Dades",
+  "nav.install": "Instal·la",
+  "nav.trayTitle": "Nòmines a la safata",
+  "nav.installTitle": "Instal·lar al dispositiu",
+  "key.label": "🔑 Clau de Gemini (API key)",
+  "key.none": "Sense clau",
+  "key.ok": "✓ Configurada",
+  "key.hide": "Amaga",
+  "key.change": "Canvia",
+  "key.placeholder": "Enganxa aquí la teva clau (o l'enllaç que et van passar)",
+  "key.eye": "Mostra o amaga la clau",
+  "key.helpHtml": "No tens clau? Demana-la a qui et va passar l'app, o <a href=\"https://github.com/Asesorian/nomina-auditor#-api-key-de-gemini-gratis-o-de-pago\" target=\"_blank\" rel=\"noopener\">crea-la tu (guia, en castellà) →</a>",
+  "off.bannerHtml": "<strong>Sense connexió.</strong> Pots consultar, corregir i exportar les teves nòmines. Per processar una nòmina nova cal internet.",
+  "dash.title": "Tauler de control",
+  "dash.glossBtn": "📖 Què és cada concepte de la nòmina? Glossari",
+  "dash.gross": "Total brut",
+  "dash.net": "Total net",
+  "dash.irpf": "Ret. IRPF",
+  "dash.ss": "S.S. treballador",
+  "dash.sub1": "1 nòmina processada el {year}",
+  "dash.subN": "{n} nòmines processades el {year}",
+  "dash.subSplit": " ({m} mensuals + {x} extres/endarreriments)",
+  "dash.empty": "No hi ha nòmines processades del {year}",
+  "dash.firstBtn": "Puja la primera nòmina",
+  "dash.tableTitle": "Nòmines processades",
+  "dash.bad1": "1 nòmina no quadra",
+  "dash.badN": "{n} nòmines no quadren",
+  "dash.badHtml": "Gemini va llegir malament alguna línia i els totals d'IRPF i S.S. de dalt poden estar malament. Obre-la amb <strong>Mostra</strong> i prem <strong>✏ Corregir datos</strong> o <strong>🔁 Releer con Gemini</strong>.",
+  "dash.colPeriod": "Període",
+  "dash.colGross": "Brut",
+  "dash.colNet": "Net",
+  "dash.colIrpf": "IRPF %",
+  "dash.colActions": "Accions",
+  "dash.clip": "Document original desat",
+  "dash.view": "Mostra",
+  "dash.irpfNoteHtml": "* % d'IRPF calculat perquè no venia a la nòmina. N/L: no s'ha pogut treure. Pots corregir qualsevol dels dos a <strong>Mostra → Corregir %</strong>.",
+  "dash.clipLegend": "📎 = document original desat.",
+  "dash.clipNone": "Encara no n'hi ha cap de desat aquest any",
+  "dash.clipMiss1": "A 1 nòmina li falta",
+  "dash.clipMissN": "A {n} nòmines els falta",
+  "dash.clipWhereHtml": ": el pots adjuntar a <strong>Mostra → Adjuntar original</strong>.",
+  "dash.delQ": "Vols eliminar la nòmina {name}?",
+  "dash.delDoc": "\n\nTambé s'esborrarà el seu document original d'aquest dispositiu.",
+  "dash.badTitle": "Els comptes no quadren: {list}",
+  "up.title": "Pujar nòmina",
+  "up.sub": "Fes una foto de la teva nòmina o tria els arxius (pots triar un any sencer): la IA n'extreu les dades i tu les revises",
+  "up.batchTitle": "Safata de nòmines",
+  "up.batchSub": "Es llegeixen soles; tu les revises i les confirmes una a una amb el paper al davant",
+  "up.drop": "Fes una foto de la teva nòmina o tria els arxius",
+  "up.hint": "Foto (JPG, PNG, HEIC…) o PDF · Pots triar-ne diverses alhora: es llegeixen soles i després les revises una a una · A l'ordinador també les pots arrossegar aquí · El document es desa amb la nòmina, només en aquest dispositiu",
+  "up.alt": "Nòmina",
+  "up.process": "✓ Processa amb Gemini IA",
+  "up.cancel": "Cancel·la",
+  "data.title": "Gestió de dades",
+  "data.sub": "Còpies de seguretat, exportació i restauració de les teves nòmines",
+  "data.autoTitle": "Còpia automàtica",
+  "data.autoP1Html": "Si ho actives, cada vegada que desis o corregeixis una nòmina es baixa un arxiu amb les dades (sense les fotos ni els PDF) <code style=\"background:var(--bg2);padding:2px 6px;border-radius:4px;font-size:11px\">nominas-backup-FECHA.json</code> a la teva carpeta de <strong>Baixades</strong>.",
+  "data.autoP2Html": "Ve <strong>desactivada</strong> per no omplir-te Baixades de còpies. En lloc d'això, quan tinguis canvis sense còpia de seguretat, el <strong>Tauler t'avisa</strong> perquè baixis la <strong>còpia completa</strong> (dades i nòmines) i la desis a Drive.",
+  "data.autoToggle": "Còpia automàtica en desar cada nòmina",
+  "data.offTitle": "📲 Mode sense connexió",
+  "data.offTextHtml": "L'app desa una còpia de si mateixa per obrir-se sense internet. Amb connexió baixa sempre l'última versió. Si algun cop veus una versió antiga, força l'actualització: <strong>les teves nòmines i la teva clau no s'esborren</strong>.",
+  "data.offBtn": "🔄 Força l'actualització de l'app",
+  "data.offOn": "Actiu",
+  "data.offPending": "S'activa en tornar a obrir",
+  "data.offNeedNet": "Necessites connexió per baixar l'última versió de l'app.",
+  "data.offConfirm": "Es tornarà a baixar l'última versió de l'app.\n\nLes teves nòmines i la teva clau NO s'esborren.",
+  "data.expTitle": "Exportar dades",
+  "data.expText": "Només les dades de les teves nòmines, en un arxiu JSON lleuger. És el mateix que la còpia automàtica.",
+  "data.expBtnHtml": "💾 Exporta les dades (<span id=\"exportCount\">0</span> nòmines)",
+  "data.fullTitle": "Còpia completa",
+  "data.fullTextHtml": "Dades <strong>i documents originals</strong> en un ZIP ordenat per any. Desa'l a Drive o on vulguis: serveix per restaurar-ho tot en un altre dispositiu. A Chrome (Android i ordinador) tries on desar-lo, Drive inclòs; a l'iPhone i l'iPad, amb «Desa a…» (iCloud Drive o Drive); als altres navegadors es baixa.",
+  "data.restTitle": "Restaurar dades",
+  "data.restText": "Importa una còpia de dades (.json) o una còpia completa (.zip, amb documents)",
+  "data.importBtn": "📂 Importa una còpia",
+  "data.dropHtml": "O arrossega aquí un arxiu <code style=\"background:var(--bg2);padding:2px 6px;border-radius:4px\">nominas-backup-*.json</code> o <code style=\"background:var(--bg2);padding:2px 6px;border-radius:4px\">.zip</code> per restaurar-lo",
+  "data.statsTitle": "📊 Estat de les dades",
+  "data.dangerTitle": "⚠ Zona perillosa",
+  "data.dangerText": "Elimina totes les nòmines i els seus documents originals d'aquest dispositiu. Aquesta acció no es pot desfer.",
+  "data.dangerBtn": "🗑 Esborra totes les dades",
+  "qr.title": "📱 Escaneja des del mòbil",
+  "qr.desc": "Obre la càmera i apunta al QR. L'app s'obrirà amb la clau ja configurada.",
+  "qr.close": "Tanca"
+});
+Object.assign(I18N.en, {
+  "nav.panel": "Panel",
+  "nav.upload": "Upload",
+  "nav.annual": "Annual",
+  "nav.data": "Data",
+  "nav.install": "Install",
+  "nav.trayTitle": "Payslips in the tray",
+  "nav.installTitle": "Install on this device",
+  "key.label": "🔑 Gemini API key",
+  "key.none": "No key",
+  "key.ok": "✓ Set up",
+  "key.hide": "Hide",
+  "key.change": "Change",
+  "key.placeholder": "Paste your key here (or the link you were given)",
+  "key.eye": "Show or hide the key",
+  "key.helpHtml": "No key? Ask whoever gave you the app, or <a href=\"https://github.com/Asesorian/nomina-auditor#-api-key-de-gemini-gratis-o-de-pago\" target=\"_blank\" rel=\"noopener\">create one yourself (guide, in Spanish) →</a>",
+  "off.bannerHtml": "<strong>Offline.</strong> You can view, correct and export your payslips. You need internet to process a new payslip.",
+  "dash.title": "Dashboard",
+  "dash.glossBtn": "📖 What does each payslip item mean? Glossary",
+  "dash.gross": "Gross total",
+  "dash.net": "Net total",
+  "dash.irpf": "IRPF withheld",
+  "dash.ss": "Employee S.S.",
+  "dash.sub1": "1 payslip processed in {year}",
+  "dash.subN": "{n} payslips processed in {year}",
+  "dash.subSplit": " ({m} monthly + {x} extra/back pay)",
+  "dash.empty": "No payslips processed in {year}",
+  "dash.firstBtn": "Upload your first payslip",
+  "dash.tableTitle": "Processed payslips",
+  "dash.bad1": "1 payslip does not add up",
+  "dash.badN": "{n} payslips do not add up",
+  "dash.badHtml": "Gemini misread a line and the IRPF and S.S. totals above may be wrong. Open it with <strong>View</strong> and tap <strong>✏ Corregir datos</strong> (correct data) or <strong>🔁 Releer con Gemini</strong> (read again).",
+  "dash.colPeriod": "Period",
+  "dash.colGross": "Gross",
+  "dash.colNet": "Net",
+  "dash.colIrpf": "IRPF %",
+  "dash.colActions": "Actions",
+  "dash.clip": "Original document saved",
+  "dash.view": "View",
+  "dash.irpfNoteHtml": "* IRPF % calculated because it was not on the payslip. N/L: it could not be worked out. You can correct either in <strong>View → Corregir %</strong>.",
+  "dash.clipLegend": "📎 = original document saved.",
+  "dash.clipNone": "None saved for this year yet",
+  "dash.clipMiss1": "1 payslip is missing it",
+  "dash.clipMissN": "{n} payslips are missing it",
+  "dash.clipWhereHtml": ": you can attach it in <strong>View → Adjuntar original</strong> (attach original).",
+  "dash.delQ": "Delete the payslip {name}?",
+  "dash.delDoc": "\n\nIts original document will also be deleted from this device.",
+  "dash.badTitle": "The figures do not add up: {list}",
+  "up.title": "Upload payslip",
+  "up.sub": "Take a photo of your payslip or choose the files (you can choose a whole year): the AI extracts the data and you check it",
+  "up.batchTitle": "Payslip tray",
+  "up.batchSub": "They are read automatically; you check and confirm them one by one with the paper in front of you",
+  "up.drop": "Take a photo of your payslip or choose the files",
+  "up.hint": "Photo (JPG, PNG, HEIC…) or PDF · You can choose several at once: they are read automatically and then you check them one by one · On a computer you can also drag them here · The document is saved with the payslip, only on this device",
+  "up.alt": "Payslip",
+  "up.process": "✓ Process with Gemini AI",
+  "up.cancel": "Cancel",
+  "data.title": "Data management",
+  "data.sub": "Backups, export and restore of your payslips",
+  "data.autoTitle": "Automatic backup",
+  "data.autoP1Html": "If you turn it on, every time you save or correct a payslip a file with the data (without the photos or PDFs) <code style=\"background:var(--bg2);padding:2px 6px;border-radius:4px;font-size:11px\">nominas-backup-FECHA.json</code> is downloaded to your <strong>Downloads</strong> folder.",
+  "data.autoP2Html": "It comes <strong>turned off</strong> so your Downloads folder does not fill up with copies. Instead, when you have changes without a backup, the <strong>Panel tells you</strong> so you can download the <strong>full backup</strong> (data and payslips) and save it to Drive.",
+  "data.autoToggle": "Automatic backup when saving each payslip",
+  "data.offTitle": "📲 Offline mode",
+  "data.offTextHtml": "The app keeps a copy of itself so it opens without internet. When online it always downloads the latest version. If you ever see an old version, force the update: <strong>your payslips and your API key are not deleted</strong>.",
+  "data.offBtn": "🔄 Force app update",
+  "data.offOn": "On",
+  "data.offPending": "Turns on when reopened",
+  "data.offNeedNet": "You need a connection to download the latest version of the app.",
+  "data.offConfirm": "The latest version of the app will be downloaded again.\n\nYour payslips and your API key are NOT deleted.",
+  "data.expTitle": "Export data",
+  "data.expText": "Only the data of your payslips, in a light JSON file. It is the same as the automatic backup.",
+  "data.expBtnHtml": "💾 Export data (<span id=\"exportCount\">0</span> payslips)",
+  "data.fullTitle": "Full backup",
+  "data.fullTextHtml": "Data <strong>and original documents</strong> in a ZIP sorted by year. Save it to Drive or wherever you like: it lets you restore everything on another device. In Chrome (Android and computer) you choose where to save it, Drive included; on iPhone and iPad, with «Save to…» (iCloud Drive or Drive); in other browsers it is downloaded.",
+  "data.restTitle": "Restore data",
+  "data.restText": "Import a data backup (.json) or a full backup (.zip, with documents)",
+  "data.importBtn": "📂 Import backup",
+  "data.dropHtml": "Or drag a <code style=\"background:var(--bg2);padding:2px 6px;border-radius:4px\">nominas-backup-*.json</code> or <code style=\"background:var(--bg2);padding:2px 6px;border-radius:4px\">.zip</code> file here to restore it",
+  "data.statsTitle": "📊 Data status",
+  "data.dangerTitle": "⚠ Danger zone",
+  "data.dangerText": "Delete all payslips and their original documents from this device. This cannot be undone.",
+  "data.dangerBtn": "🗑 Delete all data",
+  "qr.title": "📱 Scan from your phone",
+  "qr.desc": "Open the camera and point it at the QR code. The app will open with the key already set up.",
+  "qr.close": "Close"
+});
 // Como tr(), para textos con marcado: las variables se escapan; {html: '…'} pasa un trozo ya escapado (otro trHtml).
-function trHtml(key, vars = {}, lang = 'es') {
+function trHtml(key, vars = {}, lang = appLang()) {
   const t = (I18N[lang] && I18N[lang][key]) ?? I18N.es[key] ?? key;
   return t.replace(/\{(\w+)\}/g, (m, k) => {
     if (!(k in vars)) return m;
@@ -4654,11 +4936,17 @@ function trHtml(key, vars = {}, lang = 'es') {
     return v && typeof v === 'object' && 'html' in v ? v.html : esc(String(v ?? ''));
   });
 }
-// Textos fijos del HTML con data-tr="clave": se escriben con tr() al arrancar (v2.13.1)
-function trStatic(root = document) {
-  root.querySelectorAll('[data-tr]').forEach(el => { el.textContent = tr(el.getAttribute('data-tr')); });
+// Textos fijos del HTML con data-tr="clave": se escriben con tr() al arrancar (v2.13.1). v2.26.0: también
+// data-tr-html (textos con marcado: son de la app, no llevan datos del usuario) y los atributos title, placeholder,
+// aria-label y alt (data-tr-title="clave"…). En el HTML se deja el texto en español: es el mismo que I18N.es (lo
+// comprueba test_idioma.py), así que en español no cambia nada aunque trStatic no llegara a ejecutarse.
+const TR_ATTRS = ['title', 'placeholder', 'aria-label', 'alt'];
+function trStatic(root = document, lang = appLang()) {
+  root.querySelectorAll('[data-tr]').forEach(el => { el.textContent = tr(el.getAttribute('data-tr'), {}, lang); });
+  root.querySelectorAll('[data-tr-html]').forEach(el => { el.innerHTML = tr(el.getAttribute('data-tr-html'), {}, lang); });
+  TR_ATTRS.forEach(a => root.querySelectorAll(`[data-tr-${a}]`).forEach(el => el.setAttribute(a, tr(el.getAttribute(`data-tr-${a}`), {}, lang))));
 }
-function tr(key, vars = {}, lang = 'es') {
+function tr(key, vars = {}, lang = appLang()) {
   const t = (I18N[lang] && I18N[lang][key]) ?? I18N.es[key] ?? key;
   return t.replace(/\{(\w+)\}/g, (m, k) => vars[k] ?? m);
 }
@@ -5833,8 +6121,8 @@ function renderDashboard() {
   renderFestivosCard();   // v2.17.0
 
   const nExtra = fp.filter(p => payTypeOf(p) !== 'ordinaria').length;
-  document.getElementById('dashSubtitle').textContent = `${fp.length} nómina${fp.length !== 1 ? 's' : ''} procesada${fp.length !== 1 ? 's' : ''} en ${currentYear}` +
-    (nExtra ? ` (${fp.length - nExtra} mensuales + ${nExtra} extra/atrasos)` : '');
+  document.getElementById('dashSubtitle').textContent = tr(fp.length === 1 ? 'dash.sub1' : 'dash.subN', { n: fp.length, year: currentYear }) +
+    (nExtra ? tr('dash.subSplit', { m: fp.length - nExtra, x: nExtra }) : '');
 
   const totals = calcTotals(fp);
   document.getElementById('statBruto').textContent = fmt(totals.bruto) + ' €';
@@ -5846,8 +6134,8 @@ function renderDashboard() {
     document.getElementById('dashTable').innerHTML = `
       <div class="empty">
         <div class="empty-icon">📋</div>
-        <p style="color:var(--text-dim)">No hay nóminas procesadas en ${esc(currentYear)}</p>
-        <button class="btn btn-primary" style="margin-top:16px" onclick="showView('upload')">Subir primera nómina</button>
+        <p style="color:var(--text-dim)">${esc(tr('dash.empty', { year: currentYear }))}</p>
+        <button class="btn btn-primary" style="margin-top:16px" onclick="showView('upload')">${esc(tr('dash.firstBtn'))}</button>
       </div>`;
     return;
   }
@@ -5855,37 +6143,36 @@ function renderDashboard() {
   const missingDocs = fp.filter(p => !hasOriginal(p)).length;
   const flagged = fp.filter(p => checkErrors(p).length);
   document.getElementById('dashTable').innerHTML = `
-    <h3 style="margin:0 0 16px;font-size:14px;color:var(--accent)">Nóminas Procesadas</h3>
-    ${flagged.length ? `<div class="alert alert-error" id="dashCheckAlert"><div><b>⚠ ${flagged.length === 1 ? '1 nómina no cuadra' : `${flagged.length} nóminas no cuadran`}: ${esc(flagged.map(p => payName(p)).join(', '))}</b>
-      Gemini leyó mal alguna línea y los totales de IRPF y S.S. de arriba pueden estar mal. Ábrela con <strong>Ver</strong> y pulsa <strong>✏ Corregir datos</strong> o <strong>🔁 Releer con Gemini</strong>.</div></div>` : ''}
+    <h3 style="margin:0 0 16px;font-size:14px;color:var(--accent)">${esc(tr('dash.tableTitle'))}</h3>
+    ${flagged.length ? `<div class="alert alert-error" id="dashCheckAlert"><div><b>⚠ ${esc(flagged.length === 1 ? tr('dash.bad1') : tr('dash.badN', { n: flagged.length }))}: ${esc(flagged.map(p => payName(p)).join(', '))}</b>
+      ${tr('dash.badHtml')}</div></div>` : ''}
     <table>
-      <thead><tr><th>Periodo</th><th class="r">Bruto</th><th class="r">Neto</th><th class="r">IRPF %</th><th style="text-align:center">Acciones</th></tr></thead>
+      <thead><tr><th>${esc(tr('dash.colPeriod'))}</th><th class="r">${esc(tr('dash.colGross'))}</th><th class="r">${esc(tr('dash.colNet'))}</th><th class="r">${esc(tr('dash.colIrpf'))}</th><th style="text-align:center">${esc(tr('dash.colActions'))}</th></tr></thead>
       <tbody>
         ${fp.map(p => `<tr class="clickable" ondblclick="showReport(payrolls.find(x=>x.id===${jsArg(p.id)}))">
-          <td>${esc(p.period?.month)} ${esc(p.period?.year)}${hasOriginal(p) ? '<span class="clip" title="Documento original guardado">📎</span>' : ''}${checkFlag(p)}${typeBadge(p)}</td>
+          <td>${esc(monthName(p.period?.month))} ${esc(p.period?.year)}${hasOriginal(p) ? `<span class="clip" title="${escAttr(tr('dash.clip'))}">📎</span>` : ''}${checkFlag(p)}${typeBadge(p)}</td>
           <td class="r">${fmt(p.totals?.grossTotal)} €</td>
           <td class="r">${fmt(p.totals?.netPay)} €</td>
           <td class="r">${irpfCell(p)}</td>
           <td style="text-align:center">
-            <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showReport(payrolls.find(x=>x.id===${jsArg(p.id)}))">Ver</button>
+            <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showReport(payrolls.find(x=>x.id===${jsArg(p.id)}))">${esc(tr('dash.view'))}</button>
             <button class="btn btn-danger" onclick="event.stopPropagation();deletePayroll(${jsArg(p.id)})">🗑</button>
           </td>
         </tr>`).join('')}
       </tbody>
     </table>
     ${fp.some(p => irpfCell(p).endsWith('*') || irpfCell(p) === 'N/L') ? `<div style="font-size:11px;color:var(--text-muted);margin-top:10px;line-height:1.5">
-      * % de IRPF calculado porque no venía en la nómina. N/L: no se ha podido sacar. Puedes corregir cualquiera de los dos en <strong>Ver → Corregir %</strong>.
+      ${tr('dash.irpfNoteHtml')}
     </div>` : ''}
     ${missingDocs ? `<div style="font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.5">
-      📎 = documento original guardado. ${missingDocs === fp.length
-        ? 'Todavía no hay ninguno guardado en este año'
-        : `${missingDocs === 1 ? 'A 1 nómina le falta' : `A ${missingDocs} nóminas les falta`}`}: puedes adjuntarlo en <strong>Ver → Adjuntar original</strong>.
+      ${esc(tr('dash.clipLegend'))} ${esc(missingDocs === fp.length ? tr('dash.clipNone')
+        : missingDocs === 1 ? tr('dash.clipMiss1') : tr('dash.clipMissN', { n: missingDocs }))}${tr('dash.clipWhereHtml')}
     </div>` : ''}`;
 }
 
 async function deletePayroll(id) {
   const p = payrolls.find(x => x.id === id);
-  if (!confirm(`¿Eliminar la nómina ${p ? payName(p) : ''}?${hasOriginal(p) ? '\n\nTambién se borrará su documento original de este dispositivo.' : ''}`)) return;
+  if (!confirm(tr('dash.delQ', { name: p ? payName(p) : '' }) + (hasOriginal(p) ? tr('dash.delDoc') : ''))) return;
   if (p?.original) await discardOriginal(p.original);
   payrolls = payrolls.filter(x => x.id !== id);
   saveData();
@@ -5895,7 +6182,7 @@ async function deletePayroll(id) {
 // Marca ⚠ junto al mes si las cuentas de esa nómina no cuadran
 function checkFlag(p) {
   const e = checkErrors(p);
-  return e.length ? `<span class="chk-flag" title="${escAttr('Las cuentas no cuadran: ' + e.map(x => x.text).join(' · '))}">⚠</span>` : '';
+  return e.length ? `<span class="chk-flag" title="${escAttr(tr('dash.badTitle', { list: e.map(x => x.text).join(' · ') }))}">⚠</span>` : '';
 }
 
 // ═══════════ ANNUAL REPORT (FASE 3) ═══════════
@@ -8299,7 +8586,7 @@ function dismissBackupReminder() {
 function toggleAutoBackup(enabled) {
   localStorage.setItem('nomina-auditor-autobackup', enabled ? 'true' : 'false');
   const st = document.getElementById('autoBackupStatus');
-  if (st) { st.textContent = enabled ? 'Activado' : 'Desactivado'; st.className = 'status ' + (enabled ? 'ok' : 'no'); }
+  if (st) { st.textContent = tr(enabled ? 'bank.on' : 'bank.off'); st.className = 'status ' + (enabled ? 'ok' : 'no'); }
 }
 
 // v2.11.1: día y hora, los dos en hora local. Antes el día salía en UTC y, entre medianoche y la 1:00 (2:00 en verano),
@@ -8796,7 +9083,7 @@ function renderBackupView() {
   const st = document.getElementById('autoBackupStatus');
   if (st) {
     const enabled = isAutoBackupEnabled();
-    st.textContent = enabled ? 'Activado' : 'Desactivado';
+    st.textContent = tr(enabled ? 'bank.on' : 'bank.off');
     st.className = 'status ' + (enabled ? 'ok' : 'no');
   }
 
@@ -8888,13 +9175,13 @@ function renderOfflineStatus() {
   if (!card || !st) return;
   if (!SW_SUPPORTED) { card.classList.add('hidden'); return; }
   const active = !!navigator.serviceWorker.controller;
-  st.textContent = active ? 'Activo' : 'Se activa al reabrir';
+  st.textContent = tr(active ? 'data.offOn' : 'data.offPending');
   st.className = 'status ' + (active ? 'ok' : 'pending');
 }
 
 async function forceAppUpdate() {
-  if (!navigator.onLine) { alert('Necesitas conexión para descargar la última versión de la app.'); return; }
-  if (!confirm('Se descargará de nuevo la última versión de la app.\n\nTus nóminas y tu API key NO se borran.')) return;
+  if (!navigator.onLine) { alert(tr('data.offNeedNet')); return; }
+  if (!confirm(tr('data.offConfirm'))) return;
   try {
     const reg = SW_SUPPORTED ? await navigator.serviceWorker.getRegistration() : null;
     if (reg) await reg.update().catch(() => {});
