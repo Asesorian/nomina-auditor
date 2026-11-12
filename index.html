@@ -467,6 +467,15 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 .wel-body .doc-actions { margin-top:8px; }
 .wel-body .wel-bad { color:var(--warning); }
 .wel-later { display:flex; justify-content:flex-end; margin-top:10px; }
+/* v2.25.0: «Mi trabajo» (docs/TECNICO.md §58) */
+.mt-card h3 { margin:0 0 8px; font-size:14px; color:var(--accent); }
+.mt-card p { color:var(--text-dim); font-size:12px; line-height:1.6; margin:0 0 10px; overflow-wrap:anywhere; }
+.mt-row { display:flex; flex-direction:column; gap:4px; margin-bottom:10px; font-size:12px; color:var(--text); }
+.mt-row input, .mt-row select { width:100%; max-width:360px; box-sizing:border-box; background:var(--bg2); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:6px 8px; font-size:13px; }
+.mt-note { font-size:11px; color:var(--text-dim); line-height:1.5; overflow-wrap:anywhere; }
+.mt-note.prop { color:var(--info); }
+.mt-fest { font-size:12px; line-height:1.6; color:var(--text); margin-top:8px; overflow-wrap:anywhere; }
+.mt-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:4px; }
 </style>
 <!-- Librerías externas con huella SRI: si cdnjs sirviera otro archivo, el navegador no lo ejecuta -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
@@ -479,7 +488,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.24.0</span>
+    <span class="logo-badge">Forense v2.25.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -537,6 +546,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="year-pills" id="yearPills"></div>
 
   <div id="welcomeCard"></div>
+  <div id="mtDash"></div>
   <div id="batchReminder"></div>
   <div id="dueReminder"></div>
   <div id="backupReminder"></div>
@@ -594,6 +604,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 
 <!-- ═══════════ REPORT VIEW ═══════════ -->
 <main id="view-report" class="hidden">
+  <div id="mtReport"></div>
   <div id="reportContent"></div>
 </main>
 
@@ -728,6 +739,9 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 
   <!-- Import result -->
   <div id="importResult"></div>
+
+  <!-- v2.25.0: «Mi trabajo» -->
+  <div class="card" id="mtCfgCard" style="margin-bottom:14px"></div>
 
   <!-- v2.17.0: saldo de festivos -->
   <div class="card" id="festCfgCard" style="margin-bottom:14px"></div>
@@ -2781,6 +2795,7 @@ async function doSave(payroll) {
   savingPayroll = true;
   try {
     const replaced = payrolls.find(p => p.id === payroll.id);
+    const wasEmpty = !payrolls.length;   // v2.25.0: la primera nómina abre «Mi trabajo»
     delete payroll.original;
     let docWarning = '';
     const bItem = batchReviewUid ? batch.items.find(x => x.uid === batchReviewUid) : null;
@@ -2801,6 +2816,7 @@ async function doSave(payroll) {
     payrolls.push(payroll);
     sortPayrolls();
     saveData();
+    if (wasEmpty) mtStartPrompt();
     if (isAutoBackupEnabled()) autoBackup();
     if (bItem) {
       await removeBatchItem(bItem, { keepDoc: payroll.original?.key === bItem.docKey });
@@ -4571,6 +4587,61 @@ Object.assign(I18N.en, {
   "wel.uploadBtn": "📎 Upload my first payslip",
   "wel.later": "Not now"
 });
+// v2.25.0: «Mi trabajo» (docs/TECNICO.md §58). Català revisado (12-11; la nota de la propuesta y la ayuda de la categoría, corregidas en los tres idiomas).
+Object.assign(I18N.es, {
+  "mt.title": "💼 Mi trabajo",
+  "mt.intro": "Confirma estos datos de tu trabajo y la app te enseña los festivos que te tocan. Se guardan solo en tu dispositivo.",
+  "mt.introCfg": "Tu categoría y dónde está tu centro de trabajo. Con la comunidad (y en Cataluña, el municipio) la app sabe qué festivos te tocan; son los mismos datos que los de la tarjeta de festivos.",
+  "mt.cat": "Categoría",
+  "mt.catHelp": "La que sale en tu nómina. Cámbiala si no se ha leído bien.",
+  "mt.region": "Comunidad autónoma de tu centro de trabajo",
+  "mt.regionProposed": "Propuesta por el código de cuenta de cotización (CCC) de tu nómina. Compruébala: la cuenta y tu centro de trabajo pueden ser de provincias distintas.",
+  "mt.muniHelp": "Escribe y elige de la lista: así salen tus 2 fiestas locales.",
+  "mt.save": "Guardar",
+  "mt.later": "Ahora no",
+  "mt.saved": "Guardado.",
+  "mt.fest": "Festivos de {y} ({place}): {list}.",
+  "mt.festLocal": "Fiestas locales: {list}.",
+  "mt.noCal": "La app todavía no tiene el calendario de festivos de {y}.",
+  "mt.noRegion": "Sin la comunidad, la app no puede saber qué festivos te tocan.",
+  "mt.toData": "Llevar la cuenta de los festivos trabajados →"
+});
+Object.assign(I18N.ca, {
+  "mt.title": "💼 La meva feina",
+  "mt.intro": "Confirma aquestes dades de la teva feina i l'app t'ensenya els festius que et toquen. Es desen només al teu dispositiu.",
+  "mt.introCfg": "La teva categoria i on és el teu centre de treball. Amb la comunitat (i a Catalunya, el municipi) l'app sap quins festius et toquen; són les mateixes dades que les de la targeta de festius.",
+  "mt.cat": "Categoria",
+  "mt.catHelp": "La que surt a la teva nòmina. Canvia-la si no s'ha llegit bé.",
+  "mt.region": "Comunitat autònoma del teu centre de treball",
+  "mt.regionProposed": "Proposada pel codi de compte de cotització (CCC) de la teva nòmina. Comprova-la: el compte i el teu centre de treball poden ser de províncies diferents.",
+  "mt.muniHelp": "Escriu i tria de la llista: així surten les teves 2 festes locals.",
+  "mt.save": "Desa",
+  "mt.later": "Ara no",
+  "mt.saved": "Desat.",
+  "mt.fest": "Festius del {y} ({place}): {list}.",
+  "mt.festLocal": "Festes locals: {list}.",
+  "mt.noCal": "L'app encara no té el calendari de festius del {y}.",
+  "mt.noRegion": "Sense la comunitat, l'app no pot saber quins festius et toquen.",
+  "mt.toData": "Porta el compte dels festius treballats →"
+});
+Object.assign(I18N.en, {
+  "mt.title": "💼 My job",
+  "mt.intro": "Confirm these details about your job and the app shows you the public holidays that apply to you. They are stored only on your device.",
+  "mt.introCfg": "Your job category and where your workplace is. With the region (and, in Catalonia, the municipality) the app knows which public holidays apply to you; they are the same details as in the holidays card.",
+  "mt.cat": "Job category (categoría)",
+  "mt.catHelp": "The one on your payslip. Change it if it was not read correctly.",
+  "mt.region": "Autonomous community (region) of your workplace",
+  "mt.regionProposed": "Suggested from the Social Security contribution account code (CCC) on your payslip. Check it: the account and your workplace may be in different provinces.",
+  "mt.muniHelp": "Type and pick from the list: that brings up your 2 local holidays.",
+  "mt.save": "Save",
+  "mt.later": "Not now",
+  "mt.saved": "Saved.",
+  "mt.fest": "Public holidays in {y} ({place}): {list}.",
+  "mt.festLocal": "Local holidays: {list}.",
+  "mt.noCal": "The app does not have the {y} public holiday calendar yet.",
+  "mt.noRegion": "Without the region, the app cannot know which public holidays apply to you.",
+  "mt.toData": "Keep track of the holidays you work →"
+});
 // Como tr(), para textos con marcado: las variables se escapan; {html: '…'} pasa un trozo ya escapado (otro trHtml).
 function trHtml(key, vars = {}, lang = 'es') {
   const t = (I18N[lang] && I18N[lang][key]) ?? I18N.es[key] ?? key;
@@ -4759,6 +4830,7 @@ function renderGlossary() {
 // ═══════════ MONTHLY REPORT (FASE 2) ═══════════
 function showReport(p) {
   showView('report');
+  renderMtPrompt('mtReport');   // v2.25.0
   // re-activate report in nav (not a real nav item, reuse dashboard)
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
 
@@ -5617,6 +5689,127 @@ function welcomeGoKey() {
   if (inp) inp.focus();
 }
 
+// ═══════════ v2.25.0: «MI TRABAJO» (docs/TECNICO.md §58) ═══════════
+// Al guardar la primera nómina, una tarjeta para CONFIRMAR, casi sin escribir: la categoría (la leída de la nómina), la
+// comunidad del centro de trabajo (propuesta por la provincia del CCC, nunca guardada sola) y, en Cataluña, el municipio.
+// A cambio, en el momento: los festivos del año que le tocan. Se guarda en el mismo sitio que la configuración de festivos
+// (festCfg: region, municipio y categoria), así que viaja en el backup y se borra con «Borrar todos los datos». En Datos, siempre.
+const MT_KEY = 'nomina-auditor-mitrabajo';   // 'pending' tras la primera nómina; 'done' al guardar o «Ahora no»
+// Provincia de la cuenta de cotización (2 primeras cifras del CCC, códigos del INE) → comunidad autónoma
+const CCC_PROV_REGION = { '01': 'PV', '02': 'CM', '03': 'VC', '04': 'AN', '05': 'CL', '06': 'EX', '07': 'IB', '08': 'CT', '09': 'CL',
+  '10': 'EX', '11': 'AN', '12': 'VC', '13': 'CM', '14': 'AN', '15': 'GA', '16': 'CM', '17': 'CT', '18': 'AN', '19': 'CM', '20': 'PV',
+  '21': 'AN', '22': 'AR', '23': 'AN', '24': 'CL', '25': 'CT', '26': 'RI', '27': 'GA', '28': 'MD', '29': 'AN', '30': 'MC', '31': 'NC',
+  '32': 'GA', '33': 'AS', '34': 'CL', '35': 'CN', '36': 'GA', '37': 'CL', '38': 'CN', '39': 'CB', '40': 'CL', '41': 'AN', '42': 'CL',
+  '43': 'CT', '44': 'AR', '45': 'CM', '46': 'VC', '47': 'CL', '48': 'PV', '49': 'CL', '50': 'AR', '51': 'CE', '52': 'ML' };
+// Comunidad propuesta por un CCC (11 cifras, sin contar espacios ni barras). null si no se puede leer.
+function regionFromCCC(ccc) {
+  const d = String(ccc ?? '').replace(/\D/g, '');
+  return d.length === 11 ? CCC_PROV_REGION[d.slice(0, 2)] || null : null;
+}
+// Lo que propone la nómina más reciente: la categoría y la comunidad del CCC (la primera nómina que tenga cada dato)
+function mtProposal() {
+  const list = [...payrolls].sort((a, b) => (monthIndex(b) || 0) - (monthIndex(a) || 0));
+  const cat = list.map(p => String(p.employment?.category || '').trim()).find(Boolean) || '';
+  const region = list.map(p => regionFromCCC(p.company?.ccc)).find(Boolean) || '';
+  return { categoria: cat.slice(0, 80), region };
+}
+function mtPending() { try { return localStorage.getItem(MT_KEY) === 'pending' && payrolls.length > 0; } catch { return false; } }
+function mtStartPrompt() { try { if (!localStorage.getItem(MT_KEY)) localStorage.setItem(MT_KEY, 'pending'); } catch {} }
+// Lo que se enseña en el formulario: lo guardado y, si falta, lo propuesto (marcado como propuesta)
+function mtInitial() {
+  const pr = mtProposal();
+  return { categoria: festCfg.categoria ?? pr.categoria, region: festCfg.region || pr.region,
+    municipio: festCfg.municipio || '', proposedRegion: !festCfg.region && !!pr.region };
+}
+const mtDM = md => `${md.slice(3, 5)}-${md.slice(0, 2)}`;   // MM-DD → DD-MM
+// Los festivos del año que tocan con esa configuración (lo que se da a cambio)
+function mtFestHtml(c) {
+  if (!c.region) return `<div class="mt-fest">ℹ️ ${esc(tr('mt.noRegion'))}</div>`;
+  const y = appToday().getFullYear();
+  const cal = FESTIVOS[y]?.[c.region];
+  if (!cal) return `<div class="mt-fest">ℹ️ ${esc(tr('mt.noCal', { y }))}</div>`;
+  const place = FEST_REGION_NAMES[c.region] + (c.region === 'CT' && c.municipio ? ` · ${c.municipio}` : '');
+  const loc = c.locales?.[y] || festMuniLocales(c, y)?.dates || [];
+  return `<div class="mt-fest">🎌 ${esc(tr('mt.fest', { y, place, list: cal.split(' ').map(mtDM).join(', ') }))}` +
+    (loc.length ? `<br>${esc(tr('mt.festLocal', { list: loc.map(mtDM).join(', ') }))}` : '') + '</div>';
+}
+function mtFieldsHtml(cid, c) {
+  const muni = c.region !== 'CT' ? '' : `<label class="mt-row">${esc(tr('fest.muni'))}
+      <input class="mt-muni" list="${cid}-munis" autocomplete="off" value="${escAttr(c.municipio || '')}">
+      <span class="mt-note">${esc(c.municipio && !festMuniKnown(c.municipio) ? tr('fest.muniUnknown', { m: c.municipio }) : tr('mt.muniHelp'))}</span></label>
+      <datalist id="${cid}-munis">${festMuniNames().map(n => `<option value="${escAttr(n)}">`).join('')}</datalist>`;
+  return `<label class="mt-row">${esc(tr('mt.cat'))}
+      <input class="mt-cat" autocomplete="off" maxlength="80" value="${escAttr(c.categoria || '')}">
+      <span class="mt-note">${esc(tr('mt.catHelp'))}</span></label>
+    <label class="mt-row">${esc(tr('mt.region'))}
+      <select class="mt-region" onchange="mtFieldsRefresh('${cid}')"><option value=""></option>${FEST_REGIONS.map(r => `<option value="${r}" ${c.region === r ? 'selected' : ''}>${esc(FEST_REGION_NAMES[r])}</option>`).join('')}</select>
+      ${c.proposedRegion ? `<span class="mt-note prop">💡 ${esc(tr('mt.regionProposed'))}</span>` : ''}</label>
+    ${muni}`;
+}
+function mtDraft(cid) {
+  const box = document.getElementById(cid);
+  const v = sel => box?.querySelector(sel)?.value ?? '';
+  return { categoria: v('.mt-cat').trim(), region: v('.mt-region'), municipio: box?.querySelector('.mt-muni') ? v('.mt-muni').trim() : festCfg.municipio || '' };
+}
+// Al cambiar la comunidad se redibujan solo los campos (sale o se va el municipio), nunca los botones: si no, pulsar
+// Guardar justo después movería el botón antes del clic (como el municipio de los festivos, 04-11)
+function mtFieldsRefresh(cid) {
+  const f = document.getElementById(cid)?.querySelector('.mt-fields');
+  if (!f) return;
+  const d = mtDraft(cid);
+  f.innerHTML = mtFieldsHtml(cid, { ...d, proposedRegion: false });
+}
+function mtSave(cid) {
+  const d = mtDraft(cid);
+  const c = sanitizeFestivosCfg({ ...festCfg, categoria: d.categoria, region: d.region, municipio: d.municipio });
+  if (!d.categoria) delete c.categoria;
+  if (!d.region) delete c.region;
+  if (!d.municipio) delete c.municipio;
+  festCfg = c;
+  saveFestivosCfg();
+  try { localStorage.setItem(MT_KEY, 'done'); } catch {}
+  mtJustSaved = cid;
+  ['mtDash', 'mtReport'].forEach(id => renderMtPrompt(id));
+  renderMtConfig();
+  renderFestivosConfig();
+  renderFestivosCard();
+}
+let mtJustSaved = null;   // la tarjeta donde se acaba de guardar: enseña el «✓ Guardado» y los festivos una vez
+function mtLater() {
+  try { localStorage.setItem(MT_KEY, 'done'); } catch {}
+  ['mtDash', 'mtReport'].forEach(id => renderMtPrompt(id));
+}
+// La tarjeta que pregunta (Panel y nómina recién guardada): solo mientras está pendiente, y una vez el «✓ Guardado»
+function renderMtPrompt(cid) {
+  const el = document.getElementById(cid);
+  if (!el) return;
+  if (mtJustSaved === cid) {
+    mtJustSaved = null;
+    el.innerHTML = `<div class="card card-highlight mt-card"><h3>${esc(tr('mt.title'))}</h3>
+      <div style="color:var(--success);font-size:13px">✓ ${esc(tr('mt.saved'))}</div>${mtFestHtml(festCfg)}
+      <div class="mt-actions" style="margin-top:10px"><button class="btn btn-secondary btn-sm" type="button" onclick="showView('backup')">${esc(tr('mt.toData'))}</button></div></div>`;
+    return;
+  }
+  if (!mtPending()) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="card card-highlight mt-card" role="region" aria-label="${escAttr(tr('mt.title'))}"><h3>${esc(tr('mt.title'))}</h3>
+    <p>${esc(tr('mt.intro'))}</p>
+    <div class="mt-fields">${mtFieldsHtml(cid, mtInitial())}</div>
+    <div class="mt-actions"><button class="btn btn-primary btn-sm" type="button" onclick="mtSave('${cid}')">${esc(tr('mt.save'))}</button>
+      <button class="btn btn-secondary btn-sm" type="button" onclick="mtLater()">${esc(tr('mt.later'))}</button></div></div>`;
+}
+// En Datos, siempre (para cambiarlo después)
+function renderMtConfig() {
+  const el = document.getElementById('mtCfgCard');
+  if (!el) return;
+  const saved = mtJustSaved === 'mtCfgCard';
+  if (saved) mtJustSaved = null;
+  el.innerHTML = `<div class="mt-card"><h3>${esc(tr('mt.title'))}</h3><p>${esc(tr('mt.introCfg'))}</p>
+    <div class="mt-fields">${mtFieldsHtml('mtCfgCard', mtInitial())}</div>
+    <div class="mt-actions"><button class="btn btn-primary btn-sm" type="button" onclick="mtSave('mtCfgCard')">${esc(tr('mt.save'))}</button>
+      ${saved ? `<span style="font-size:12px;color:var(--success)">✓ ${esc(tr('mt.saved'))}</span>` : ''}</div>
+    ${festCfg.region ? mtFestHtml(festCfg) : ''}</div>`;
+}
+
 function renderDashboard() {
   const years = [...new Set(payrolls.map(p => p.period?.year))].filter(Boolean).sort();
   if (!years.includes(currentYear)) years.push(currentYear);
@@ -5628,6 +5821,7 @@ function renderDashboard() {
 
   const fp = payrolls.filter(p => p.period?.year === currentYear);
   renderWelcome();        // v2.24.0
+  renderMtPrompt('mtDash');   // v2.25.0
   renderBatchReminder();
   renderDueReminder();    // v2.20.0
   renderBackupReminder();
@@ -6308,6 +6502,10 @@ function sanitizeFestivosCfg(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
   if (FEST_REGIONS.includes(raw.region)) out.region = raw.region;
   if (typeof raw.desde === 'string' && FEST_DATE_RE.test(raw.desde)) out.desde = raw.desde;
+  if (typeof raw.categoria === 'string') {   // v2.25.0: «Mi trabajo», la categoría (texto libre; la propone la nómina)
+    const k = raw.categoria.replace(/[\x00-\x1f]/g, '').trim().slice(0, 80);
+    if (k) out.categoria = k;
+  }
   if (typeof raw.municipio === 'string') {   // v2.18.0: «Mi trabajo», municipio del centro de trabajo (texto; se busca en la lista)
     const m = raw.municipio.replace(/[\x00-\x1f]/g, '').trim().slice(0, 100);
     if (m) out.municipio = m;
@@ -6515,6 +6713,7 @@ function saveFestivosForm() {
   festCfg = festFormDraft();
   saveFestivosCfg();
   renderFestivosConfig();
+  renderMtConfig();   // v2.25.0: comunidad y municipio son los mismos datos
   const ok = document.getElementById('festSaved'); if (ok) ok.textContent = '✓ ' + tr('fest.saved');
   renderDashboard();
 }
@@ -8492,7 +8691,7 @@ async function clearAllData() {
   saveFestivosCfg();
   basesSS = {};           // v2.23.0
   saveBasesSS();
-  try { localStorage.removeItem(WELCOME_KEY); } catch {}   // v2.24.0: el dispositivo vuelve a estar como nuevo
+  try { localStorage.removeItem(WELCOME_KEY); localStorage.removeItem(MT_KEY); } catch {}   // v2.24.0 / v2.25.0: el dispositivo vuelve a estar como nuevo
   batch = emptyBatch();
   batchPause = null;
   saveBatch();
@@ -8575,6 +8774,7 @@ function storedYearsHtml() {
 function renderBackupView() {
   renderOfflineStatus();
   renderFestivosConfig();   // v2.17.0
+  renderMtConfig();         // v2.25.0
   renderBankSetting();      // v2.22.0
   // Update export count
   const countEl = document.getElementById('exportCount');
