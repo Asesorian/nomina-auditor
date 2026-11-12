@@ -455,6 +455,18 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 .rep-text { white-space:pre-wrap; font-family:inherit; font-size:12px; line-height:1.5; background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:10px; margin:6px 0 8px; overflow-wrap:anywhere; }
 .rep-to { font-size:12px; font-weight:700; color:var(--text); margin-top:10px; }
 .rep-list { display:flex; flex-wrap:wrap; gap:6px; }
+/* v2.24.0: primera apertura (docs/TECNICO.md §57) */
+.wel-card h3 { margin:0 0 8px; font-size:15px; color:var(--accent); }
+.wel-card p { color:var(--text-dim); font-size:13px; line-height:1.6; margin:0 0 8px; overflow-wrap:anywhere; }
+.wel-card .wel-priv { color:var(--text); }
+.wel-steps { list-style:none; margin:12px 0 4px; padding:0; display:flex; flex-direction:column; gap:10px; }
+.wel-step { display:flex; gap:10px; align-items:flex-start; padding:10px 12px; border:1px solid var(--border); border-radius:8px; background:var(--bg2); }
+.wel-num { flex:0 0 auto; width:22px; height:22px; border-radius:50%; border:1px solid var(--accent-dim); color:var(--accent); font-size:12px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+.wel-step.done .wel-num { background:var(--success); border-color:var(--success); color:#0f1117; }
+.wel-body { flex:1 1 auto; min-width:0; font-size:13px; line-height:1.5; color:var(--text); overflow-wrap:anywhere; }
+.wel-body .doc-actions { margin-top:8px; }
+.wel-body .wel-bad { color:var(--warning); }
+.wel-later { display:flex; justify-content:flex-end; margin-top:10px; }
 </style>
 <!-- Librerías externas con huella SRI: si cdnjs sirviera otro archivo, el navegador no lo ejecuta -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
@@ -467,7 +479,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.23.2</span>
+    <span class="logo-badge">Forense v2.24.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -524,6 +536,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
 
   <div class="year-pills" id="yearPills"></div>
 
+  <div id="welcomeCard"></div>
   <div id="batchReminder"></div>
   <div id="dueReminder"></div>
   <div id="backupReminder"></div>
@@ -1030,6 +1043,7 @@ function updateApiStatus(key) {
   else if (key && key.length > 10) { el.textContent = '✓ Configurada'; el.className = 'status ok'; el.title = ''; }
   else { el.textContent = 'Sin Key'; el.className = 'status no'; el.title = ''; }
   renderApiBar();
+  renderWelcome();   // v2.24.0: el paso de la clave de la bienvenida se marca solo
 }
 
 // ═══════════ DOCUMENTOS ORIGINALES ═══════════
@@ -4520,6 +4534,43 @@ Object.assign(I18N.en, {
   "ss.openPay": "See the {month} payslip",
   "ss.how": "The common contingencies base of the monthly payslips (without the extra payments or separate payslips) is compared with the one in the report. Differences of up to 1 € are shown with ≈. It is for guidance only: the app documents, it does not advise."
 });
+// v2.24.0: primera apertura (docs/TECNICO.md §57). Català revisado (12-11): botones en imperativo, como el resto.
+Object.assign(I18N.es, {
+  "wel.title": "👋 Primeros pasos en Nómina Auditor",
+  "wel.what": "Lee tus nóminas, comprueba sus cuentas y te avisa de lo que no cuadra. La lectura la hace la IA; las cuentas, la app; y tú revisas antes de guardar.",
+  "wel.privacy": "Las nóminas y sus documentos se guardan solo en tu dispositivo; solo la lectura inicial pasa por la IA de Google.",
+  "wel.keyTodo": "Pon tu clave de Gemini: pega en la barra 🔑 de arriba la clave o el enlace que te pasaron.",
+  "wel.keyOdd": "Lo que hay en la barra 🔑 no parece una clave: revísalo arriba.",
+  "wel.keyBtn": "🔑 Ir a la clave",
+  "wel.keyDone": "Clave de Gemini puesta.",
+  "wel.upload": "Sube tu primera nómina: una foto o el PDF. La IA la lee y tú la revisas antes de guardarla.",
+  "wel.uploadBtn": "📎 Subir mi primera nómina",
+  "wel.later": "Ahora no"
+});
+Object.assign(I18N.ca, {
+  "wel.title": "👋 Primers passos a Nómina Auditor",
+  "wel.what": "Llegeix les teves nòmines, en comprova els comptes i t'avisa del que no quadra. La lectura la fa la IA; els comptes, l'app; i tu ho revises abans de desar.",
+  "wel.privacy": "Les nòmines i els seus documents es desen només al teu dispositiu; només la lectura inicial passa per la IA de Google.",
+  "wel.keyTodo": "Posa-hi la teva clau de Gemini: enganxa a la barra 🔑 de dalt la clau o l'enllaç que et van passar.",
+  "wel.keyOdd": "El que hi ha a la barra 🔑 no sembla una clau: revisa-ho a dalt.",
+  "wel.keyBtn": "🔑 Ves a la clau",
+  "wel.keyDone": "Clau de Gemini posada.",
+  "wel.upload": "Puja la teva primera nòmina: una foto o el PDF. La IA la llegeix i tu la revises abans de desar-la.",
+  "wel.uploadBtn": "📎 Puja la meva primera nòmina",
+  "wel.later": "Ara no"
+});
+Object.assign(I18N.en, {
+  "wel.title": "👋 Getting started with Nómina Auditor",
+  "wel.what": "It reads your payslips (nóminas), checks their sums and warns you about anything that does not add up. The AI reads; the app does the sums; and you review before saving.",
+  "wel.privacy": "Payslips and their documents are stored only on your device; only the initial reading goes through Google's AI.",
+  "wel.keyTodo": "Add your Gemini key: paste the key, or the link you were sent, in the 🔑 bar above.",
+  "wel.keyOdd": "What is in the 🔑 bar does not look like a key: check it above.",
+  "wel.keyBtn": "🔑 Go to the key",
+  "wel.keyDone": "Gemini key added.",
+  "wel.upload": "Upload your first payslip: a photo or the PDF. The AI reads it and you review it before saving.",
+  "wel.uploadBtn": "📎 Upload my first payslip",
+  "wel.later": "Not now"
+});
 // Como tr(), para textos con marcado: las variables se escapan; {html: '…'} pasa un trozo ya escapado (otro trHtml).
 function trHtml(key, vars = {}, lang = 'es') {
   const t = (I18N[lang] && I18N[lang][key]) ?? I18N.es[key] ?? key;
@@ -5522,6 +5573,50 @@ async function copyToClipboard(text, btn) {
 }
 
 // ═══════════ DASHBOARD ═══════════
+// ═══════════ v2.24.0: PRIMERA APERTURA (docs/TECNICO.md §57) ═══════════
+// Una tarjeta arriba del Panel, solo con la app vacía (sin nóminas y sin nada en la bandeja) y hasta pulsar «Ahora no».
+// Quien ya tiene nóminas no la ve nunca. La clave se pone en la barra de siempre: aquí solo se dice si ya está.
+const WELCOME_KEY = 'nomina-auditor-welcome-done';
+function welcomeDone() { try { return localStorage.getItem(WELCOME_KEY) === '1'; } catch { return false; } }
+function showsWelcome() { return !payrolls.length && !(batch && batch.items && batch.items.length) && !welcomeDone(); }
+function renderWelcome() {
+  const el = document.getElementById('welcomeCard');
+  if (!el) return;
+  if (!showsWelcome()) { el.innerHTML = ''; el._welHtml = ''; return; }
+  const k = getApiKey(), keyOk = hasApiKey() && !keyLooksOdd(k), keyOdd = !!k && keyLooksOdd(k);
+  const step = (n, done, body) => `<li class="wel-step${done ? ' done' : ''}"><span class="wel-num" aria-hidden="true">${done ? '✓' : n}</span><div class="wel-body">${body}</div></li>`;
+  const keyBody = keyOk ? esc(tr('wel.keyDone'))
+    : `${keyOdd ? `<span class="wel-bad">${esc(tr('wel.keyOdd'))}</span>` : esc(tr('wel.keyTodo'))}
+      <div class="doc-actions"><button class="btn btn-secondary btn-sm" type="button" onclick="welcomeGoKey()">${esc(tr('wel.keyBtn'))}</button></div>`;
+  const html = `<div class="card card-highlight wel-card" role="region" aria-label="${esc(tr('wel.title'))}">
+    <h3>${esc(tr('wel.title'))}</h3>
+    <p>${esc(tr('wel.what'))}</p>
+    <p class="wel-priv">🔒 ${esc(tr('wel.privacy'))}</p>
+    <ol class="wel-steps">
+      ${step(1, keyOk, keyBody)}
+      ${step(2, false, `${esc(tr('wel.upload'))}<div class="doc-actions"><button class="btn btn-primary btn-sm" type="button" onclick="showView('upload')">${esc(tr('wel.uploadBtn'))}</button></div>`)}
+    </ol>
+    <div class="wel-later"><button class="btn btn-secondary btn-sm" type="button" onclick="dismissWelcome()">${esc(tr('wel.later'))}</button></div>
+  </div>`;
+  // Sin cambios, no se redibuja: al salir de la casilla de la clave (pulsando un botón de la tarjeta) se vuelve a
+  // pintar y, si se redibujara, el botón cambiaría bajo el dedo y el clic se perdería (pasó el 04-11 con el municipio).
+  if (el._welHtml === html) return;
+  el._welHtml = html;
+  el.innerHTML = html;
+}
+function dismissWelcome() {
+  try { localStorage.setItem(WELCOME_KEY, '1'); } catch {}
+  renderWelcome();
+}
+// La barra de la clave, desplegada y con el cursor en la casilla
+function welcomeGoKey() {
+  showApiBar();
+  const bar = document.getElementById('apiBar');
+  if (bar) bar.scrollIntoView({ block: 'start' });
+  const inp = document.getElementById('apiKeyInput');
+  if (inp) inp.focus();
+}
+
 function renderDashboard() {
   const years = [...new Set(payrolls.map(p => p.period?.year))].filter(Boolean).sort();
   if (!years.includes(currentYear)) years.push(currentYear);
@@ -5532,6 +5627,7 @@ function renderDashboard() {
   ).join('');
 
   const fp = payrolls.filter(p => p.period?.year === currentYear);
+  renderWelcome();        // v2.24.0
   renderBatchReminder();
   renderDueReminder();    // v2.20.0
   renderBackupReminder();
@@ -8396,6 +8492,7 @@ async function clearAllData() {
   saveFestivosCfg();
   basesSS = {};           // v2.23.0
   saveBasesSS();
+  try { localStorage.removeItem(WELCOME_KEY); } catch {}   // v2.24.0: el dispositivo vuelve a estar como nuevo
   batch = emptyBatch();
   batchPause = null;
   saveBatch();

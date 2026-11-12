@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.23.2-blue)
+![Version](https://img.shields.io/badge/version-2.24.0-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,10 +31,11 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.23.2)
+## 🆕 Novedades (v2.3 – v2.24.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
+| 👋 **Primeros pasos (v2.24.0)** | La primera vez que abres la app (sin nóminas), una tarjeta en el Panel te dice qué hace, dónde quedan tus datos y lo que falta para empezar: poner la clave de Gemini y subir tu primera nómina. Si llegaste con el enlace que te pasaron, la clave ya sale puesta. «Ahora no» la quita para siempre | Panel |
 | 🏛️ **Comparar con la Seguridad Social (v2.23.0)** | Subes el PDF del **informe de bases de cotización** de Import@ss y la app compara, mes a mes, la base de cotización de tus nóminas con la que tiene la Seguridad Social. Si la Seguridad Social tiene **menos**, te avisa y te dice qué mirar en la nómina (afecta al paro y a la jubilación); si tiene **más**, te explica por qué suele pasar; y te dice qué meses tiene ella de los que **no tienes nómina**. Lo lee la app, **sin IA**, y solo guarda las bases de tu empresa en los años de tus nóminas. | Informes → Comparar con la Seguridad Social |
 | 🔘 **«Cobrado en el banco», opcional (v2.22.0)** | La tarjeta para apuntar lo cobrado ya no sale en todas las nóminas: **la activas tú**, en **Informes** o en **Datos**, donde se explica qué hace y para qué sirve. Lo que ya tengas anotado se sigue viendo siempre, y si ya la usabas sigue activada | Informes · Datos |
 | 🏦 **Cobrado en el banco (v2.21.0)** | En cada nómina guardada puedes apuntar lo que te ingresaron (en uno o varios ingresos, con fecha si quieres) y la app lo compara **al céntimo** con el líquido. Si no coincide, te dice la diferencia y dónde mirar: el Líquido de la nómina (puede ser un error de lectura) o el ingreso. En el Anual, cuántas has anotado y cuáles no coinciden. Es opcional, solo informa y se queda en tu dispositivo. | Abre una nómina guardada → **🏦 Cobrado en el banco** |
@@ -718,6 +719,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.24.0 (Noviembre 2026)
+- **Primeros pasos:** con la app vacía (sin nóminas ni nada en la bandeja), una tarjeta arriba del Panel explica qué hace la app y dónde quedan los datos (solo en el dispositivo; la lectura inicial pasa por la IA de Google) y da los dos pasos para empezar: la clave de Gemini (se pone en la barra de siempre y el paso se marca solo; con el enlace de un probador ya sale hecho) y subir la primera nómina. «Ahora no» la quita para siempre; «Borrar todos los datos» la vuelve a sacar. Textos en los tres idiomas. **Pruebas:** `test_bienvenida.py` (nueva).
 
 ### v2.23.2 (Noviembre 2026)
 - **«Comparar con la Seguridad Social», más fácil de leer en el móvil:** cifras y cabeceras centradas; la última columna pasa a ser **«Diferencia»**, en una sola línea: ℹ y la cifra en azul cuando la Seguridad Social tiene más base, ⚠ en naranja cuando tiene menos (el texto entero, al pasar el ratón; la explicación, en la nota de abajo). En el móvil, el € va una vez en la cabecera. Con más de 3 meses, la nota dice «en N meses (los marcados en la tabla)» en vez de enumerarlos. **Pruebas:** `test_bases_ss.py`, punto 5 (una línea por mes a 390 y 320 px).
