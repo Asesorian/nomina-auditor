@@ -491,7 +491,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.27.0</span>
+    <span class="logo-badge">Forense v2.28.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -2008,23 +2008,15 @@ function readInfoHtml() {
   if (!i) return '';
   let t = '';
   if (i.manual) {
-    t = i.worse ? '🔁 La nueva lectura cuadraba peor que la que ya tenías: se mantiene la anterior.'
-      : i.okNow ? '🔁 Nueva lectura de Gemini: ahora las cuentas cuadran. Revísala igualmente con el documento.'
-      : '🔁 Nueva lectura de Gemini: sigue sin cuadrar. Corrige a mano los valores marcados mirando el documento.';
+    t = tr(i.worse ? 'rv.ri.worse' : i.okNow ? 'rv.ri.manualOk' : 'rv.ri.manualBad');
   } else if (i.reads === 2 && i.pdfOnly) {
-    t = i.chosen === 2
-      ? (i.okNow ? '🔁 Alguna cifra de la primera lectura no estaba en el texto del PDF. Se ha leído otra vez y en la segunda están todas. Revísala igualmente.'
-                 : '🔁 Alguna cifra de la primera lectura no estaba en el texto del PDF. La segunda va mejor, pero sigue habiendo alguna: mírala en el documento.')
-      : '🔁 Alguna cifra no está en el texto del PDF y Gemini la ha leído dos veces sin mejorar (se muestra la primera). Mira en el documento las cifras marcadas.';
+    t = tr(i.chosen === 2 ? (i.okNow ? 'rv.ri.pdfOk' : 'rv.ri.pdfBetter') : 'rv.ri.pdfSame');
   } else if (i.retryFailed && i.pdfOnly) {
-    t = '⚠ Alguna cifra no está en el texto del PDF y no se ha podido hacer la segunda lectura. Mira en el documento las cifras marcadas.';
+    t = tr('rv.ri.pdfNoRetry');
   } else if (i.reads === 2) {
-    t = i.chosen === 2
-      ? (i.okNow ? '🔁 La primera lectura de Gemini no cuadraba. Se ha leído otra vez y la segunda sí cuadra. Revísala igualmente.'
-                 : '🔁 La primera lectura no cuadraba. La segunda cuadra mejor, pero sigue habiendo descuadres: corrígelos mirando el documento.')
-      : '🔁 Gemini la ha leído dos veces y ninguna lectura cuadra (se muestra la que cuadra mejor). Corrige a mano los valores marcados mirando el documento.';
+    t = tr(i.chosen === 2 ? (i.okNow ? 'rv.ri.sumsOk' : 'rv.ri.sumsBetter') : 'rv.ri.sumsSame');
   } else if (i.retryFailed) {
-    t = '⚠ La lectura no cuadra y no se ha podido hacer la segunda lectura. Puedes pulsar «Releer con Gemini» o corregirla a mano.';
+    t = tr('rv.ri.noRetry');
   }
   return t ? `<div class="read-info">${esc(t)}</div>` : '';
 }
@@ -2078,6 +2070,7 @@ function alignLines(cur, alt) {
   return { pairs, missing: alt.map((_, j) => j).filter(j => !usedA.has(j)), extra: cur.map((_, i) => i).filter(i => !usedC.has(i)) };
 }
 
+// v2.28.0: la etiqueta que se ve sale de tr('rv.d.' + path); la de aquí queda como referencia
 const DIFF_FIELDS = [
   ['totals.grossTotal', 'Total bruto'], ['totals.totalDeductions', 'Total a deducir'], ['totals.netPay', 'Líquido'],
   ['bases.totalRemuneration', 'Remuneración total'], ['bases.extraPayProrata', 'Prorrata pagas extras'],
@@ -2108,9 +2101,9 @@ function readDiffs(d) {
     const { pairs, missing, extra } = alignLines(cur, oth);
     const values = [];
     for (const [i, j] of pairs) {
-      const name = `«${String(cur[i].concept || oth[j].concept || cur[i].code || `línea ${i + 1}`)}»`;
+      const name = `«${String(cur[i].concept || oth[j].concept || cur[i].code || tr('rv.lineN', { n: i + 1 }))}»`;
       value(values, `${side}.${i}.amount`, cur[i].amount, oth[j].amount, name, 'amount');
-      if (side === 'earnings') value(values, `${side}.${i}.price`, cur[i].price, oth[j].price, `${name} (precio)`, 'price');
+      if (side === 'earnings') value(values, `${side}.${i}.price`, cur[i].price, oth[j].price, name + tr('rv.price'), 'price');
     }
     per[side] = { cur, oth, pairs, values,
       // una línea a 0 € no cambia nada; las que ya has quitado o pasado de lado, tampoco
@@ -2144,7 +2137,8 @@ function readDiffs(d) {
   }
   out.push(...sides);
   const calculated = s => s && s !== 'manual';
-  for (const [path, label] of DIFF_FIELDS) {
+  for (const [path] of DIFF_FIELDS) {
+    const label = tr('rv.d.' + path);
     // El % de IRPF que deduce la app (no leído) no es una lectura: no se compara
     if (path === 'bases.irpfPercentage' && (calculated(d.bases?.irpfSource) || calculated(alt.bases?.irpfSource))) continue;
     if (path === 'totals.grossTotal' && (d.totals?.grossSource || alt.totals?.grossSource)) continue;   // v2.19.2: la suma de la app
@@ -2202,39 +2196,46 @@ let readDiffList = [];   // lo último que se ha pintado: los botones van por su
 function readDiffHtml(diffs, actions) {
   readDiffList = diffs;
   if (!diffs.length) return '';
-  const other = readInfo?.altName || 'la otra lectura';
+  const other = altNameText(readInfo?.altName);
   const Other = other.charAt(0).toUpperCase() + other.slice(1);
   const MAX = 12;
   const lineName = l => `«${l.concept || l.code || '?'}» (${fmt(l.amount)} €)`;
   const items = diffs.slice(0, MAX).map((x, i) => {
     let t, btn = '';
     if (x.kind === 'value') {
-      t = `${x.label}: ahora ${fmtDiffVal(x.cur, x.unit)} · ${other}: ${fmtDiffVal(x.other, x.unit)}`;
-      btn = `Usar ${fmtDiffVal(x.other, x.unit)}`;
+      t = tr('rv.dValue', { label: x.label, cur: fmtDiffVal(x.cur, x.unit), other, alt: fmtDiffVal(x.other, x.unit) });
+      btn = tr('rv.use', { v: fmtDiffVal(x.other, x.unit) });
     } else if (x.kind === 'missing') {
-      t = `${Other} tiene una línea que aquí falta: ${lineName(x.line)}`;
-      btn = '＋ Añadir esta línea';
+      t = tr('rv.dMissing', { Other, line: lineName(x.line) });
+      btn = tr('rv.addThis');
     } else if (x.kind === 'side') {
-      t = `${lineName(x.line)}: aquí está en ${SIDE_NAME[x.from]} y ${other} la pone en ${SIDE_NAME[x.to]}`;
-      btn = `⇄ Pasar a ${SIDE_NAME[x.to]}`;
+      t = tr('rv.dSide', { line: lineName(x.line), from: sideName(x.from), other, to: sideName(x.to) });
+      btn = tr('rv.moveTo', { to: sideName(x.to) });
     } else {
-      t = `${lineName(x.line)}: ${other} no tiene esta línea`;
+      t = tr('rv.dExtra', { line: lineName(x.line), other });
     }
     // mousedown sin acción: si hay un campo abierto, no se cierra antes de tiempo y el toque no se pierde
     return `<li>${esc(t)}${actions && btn ? ` <button class="link-btn" onmousedown="event.preventDefault()" onclick="useReadDiff(${i})">${esc(btn)}</button>` : ''}</li>`;
-  }).join('') + (diffs.length > MAX ? `<li>… y ${diffs.length - MAX} más.</li>` : '');
+  }).join('') + (diffs.length > MAX ? `<li>${esc(tr('rv.more', { n: diffs.length - MAX }))}</li>` : '');
   const n = diffs.length;
-  const where = `${n} punto${n > 1 ? 's' : ''}${diffs.some(x => x.kind === 'value') ? ' (marcados con ≠)' : ''}`;
+  const where = tr(n > 1 ? 'rv.whereN' : 'rv.where1', { n }) + (diffs.some(x => x.kind === 'value') ? tr('rv.whereMarked') : '');
   // v2.8.8: la otra lectura nunca cuadraba mejor que la que ves (por eso no se eligió). Con una nómina real,
   // «Usar» sin mirar el papel habría empeorado casi todas las cifras.
-  const warn = `${Other} ${readInfo?.altWorse ? 'cuadraba peor' : 'no cuadraba mejor'}: usa sus cifras solo si lo confirma el papel.`;
+  const warn = tr(readInfo?.altWorse ? 'rv.altWorse' : 'rv.altNotBetter', { Other });
   if (actions) return `<div class="read-diff" id="readDiff">
-      <div class="read-diff-title">≠ Las dos lecturas de Gemini no coinciden en ${esc(where)}</div>
-      <div>Mira en el documento cuál es la buena. Si es la de ${esc(other)}, pulsa «Usar»; si no es ninguna de las dos, toca el valor y corrígelo (deja de marcarse con ≠).</div>
+      <div class="read-diff-title">${esc(tr('rv.diffTitle', { where }))}</div>
+      <div>${esc(tr('rv.diffHelp', { other }))}</div>
       <div class="read-diff-warn">⚠ ${esc(warn)}</div>
       <ul>${items}</ul>
     </div>`;
-  return `<details class="read-diff" id="readDiff"><summary>≠ ${esc(Other)} daba otras cifras en ${esc(where)}. La que ves cuadra: compruébalas igualmente con el papel.</summary><ul>${items}</ul></details>`;
+  return `<details class="read-diff" id="readDiff"><summary>${esc(tr('rv.diffOk', { Other, where }))}</summary><ul>${items}</ul></details>`;
+}
+
+// v2.28.0: readInfo.altName se guarda en español (también en la bandeja); se muestra en el idioma de la app
+const ALT_NAME_KEY = { 'la primera lectura': 'first', 'la segunda lectura': 'second', 'la versión anterior': 'prev', 'la nueva lectura': 'new' };
+function altNameText(name) {
+  if (!name) return tr('rv.alt.other');
+  return ALT_NAME_KEY[name] ? tr('rv.alt.' + ALT_NAME_KEY[name]) : name;
 }
 
 function useReadDiff(i) {
@@ -2278,7 +2279,7 @@ function sideMoveButtons(c) {
   return mv.lines.map(i => {
     const l = extractedData[mv.from]?.[i];
     if (!l) return '';
-    const label = one ? `⇄ Pasar a ${SIDE_NAME[mv.to]}` : `⇄ Pasar «${shortText(l.concept || l.code || '?', 28)}» a ${SIDE_NAME[mv.to]}`;
+    const label = one ? tr('rv.moveTo', { to: sideName(mv.to) }) : tr('rv.moveNamed', { name: shortText(l.concept || l.code || '?', 28), to: sideName(mv.to) });
     return ` <button class="link-btn" onmousedown="event.preventDefault()" onclick="moveLine(${jsArg(mv.from)}, ${i})">${esc(label)}</button>`;
   }).join('');
 }
@@ -2292,24 +2293,24 @@ function renderChecks(d, checks, diffs = []) {
   const real = realChecks(checks), rounds = checks.filter(softCheck);   // v2.8.13 (v2.14.1: y las informativas)
   const errs = real.filter(c => c.level === 'err'), warns = real.filter(c => c.level === 'warn');
   const state = errs.length ? 'bad' : warns.length ? 'meh' : 'good';
-  const title = errs.length ? `✗ Las cuentas no cuadran (${errs.length} error${errs.length > 1 ? 'es' : ''}${warns.length ? ` y ${warns.length} aviso${warns.length > 1 ? 's' : ''}` : ''})`
-    : warns.length ? `⚠ Las sumas cuadran, pero hay ${warns.length} cosa${warns.length > 1 ? 's' : ''} que mirar`
-    : '✓ Las cuentas cuadran';
+  const title = errs.length ? tr('rv.titleBad', { what: tr(errs.length > 1 ? 'rv.errN' : 'rv.err1', { n: errs.length }) + (warns.length ? tr(warns.length > 1 ? 'rv.andWarnN' : 'rv.andWarn1', { n: warns.length }) : '') })
+    : warns.length ? tr(warns.length > 1 ? 'rv.titleMehN' : 'rv.titleMeh1', { n: warns.length })
+    : tr('rv.titleGood');
   const doc = docAvailable();
   return `
     <div class="card checks-card ${state}" id="checksCard">
-      <h3 style="margin:0 0 10px;font-size:13px;color:var(--accent)">COMPROBACIÓN DE LAS CUENTAS</h3>
+      <h3 style="margin:0 0 10px;font-size:13px;color:var(--accent)">${esc(tr('rv.checksTitle'))}</h3>
       ${readInfoHtml()}
       ${docSealHtml(d)}
       <div class="chk-title ${state}">${esc(title)}</div>
       ${real.length ? real.map(c => `<div class="chk ${c.level}">${chkIcon(c.level)} <span>${esc(c.text)}${sideMoveButtons(c)}</span></div>`).join('')
-        : `<div class="chk ok">Devengos = bruto · deducciones = total a deducir · bruto − deducciones = líquido · IRPF y cotizaciones = base × %.</div>`}
+        : `<div class="chk ok">${esc(tr('rv.allOk'))}</div>`}
       ${rounds.map(c => `<div class="chk ${c.level}">${chkIcon(c.level)} <span>${esc(c.text)}</span></div>`).join('')}
-      ${real.length ? `<div class="chk-hint">Los valores marcados ${errs.length ? 'en rojo' : 'en ámbar'} son los sospechosos. Compáralos con el documento y toca el valor para corregirlo. La app no cambia ninguna cifra por su cuenta.</div>` : ''}
+      ${real.length ? `<div class="chk-hint">${esc(tr(errs.length ? 'rv.hintErr' : 'rv.hintWarn'))}</div>` : ''}
       ${readDiffHtml(diffs, real.length > 0)}
       ${doc ? `<div class="doc-actions">
-        <button class="btn btn-secondary btn-sm" onclick="viewCurrentDocument()">👁 Ver documento</button>
-        ${real.length ? `<button class="btn btn-secondary btn-sm" id="rereadBtn" onclick="rereadCurrent(this)">🔁 Releer con Gemini</button>` : ''}
+        <button class="btn btn-secondary btn-sm" onclick="viewCurrentDocument()">${esc(tr('rv.viewDoc'))}</button>
+        ${real.length ? `<button class="btn btn-secondary btn-sm" id="rereadBtn" onclick="rereadCurrent(this)">${esc(tr('rv.reread'))}</button>` : ''}
       </div>` : ''}
     </div>`;
 }
@@ -2332,17 +2333,17 @@ function renderVerification() {
   const fl = path => (flags[path] ? ' flag-' + flags[path] : '') + (diffPaths.has(path) ? ' flag-diff' : '');
   const editing = editingId ? payrolls.find(p => p.id === editingId) : null;
   const adminFields = [
-    ['Empresa','company.name'],['CIF','company.cif'],['CCC','company.ccc'],
-    ['Trabajador','worker.name'],['NAF','worker.naf'],['DNI','worker.dni'],
-    ['Categoría','employment.category'],['Antigüedad','employment.seniority'],
-    ['Contrato','employment.contractCode'],['Grupo Cot.','employment.cotizationGroup'],
-    ['Mes','period.month'],['Año','period.year'],['Días','period.days']
+    [tr('rv.f.company'),'company.name'],['CIF','company.cif'],['CCC','company.ccc'],
+    [tr('rv.f.worker'),'worker.name'],['NAF','worker.naf'],['DNI','worker.dni'],
+    [tr('rv.f.category'),'employment.category'],[tr('rv.f.seniority'),'employment.seniority'],
+    [tr('rv.f.contract'),'employment.contractCode'],[tr('rv.f.group'),'employment.cotizationGroup'],
+    [tr('rv.f.month'),'period.month'],[tr('rv.f.year'),'period.year'],[tr('rv.f.days'),'period.days']
   ];
   const hasPrice = side => (d[side] || []).some(l => Number.isFinite(num(l.price)));
   const lineTable = (side, totalLabel, totalPath, totalClass) => {
     const showPrice = hasPrice(side);
     return `<table class="lines">
-        <thead><tr><th>Cód.</th><th>Concepto</th><th class="r">Uds.</th>${showPrice ? '<th class="r">Precio</th>' : ''}<th class="r">Importe</th></tr></thead>
+        <thead><tr><th>${esc(tr('rv.col.code'))}</th><th>${esc(tr('rv.col.concept'))}</th><th class="r">${esc(tr('rv.col.units'))}</th>${showPrice ? `<th class="r">${esc(tr('rv.col.price'))}</th>` : ''}<th class="r">${esc(tr('rv.col.amount'))}</th></tr></thead>
         <tbody>
           ${(d[side]||[]).map((e,i) => `<tr>
             <td class="c-code" style="width:60px"><span class="editable${fl(`${side}.${i}.code`)}" onclick="editField(this,'${side}.${i}.code')">${esc(lineCode(e)||'-')}</span></td>
@@ -2358,27 +2359,27 @@ function renderVerification() {
         </tbody>
       </table>
       <div class="line-tools">
-        <button class="link-btn" onclick="addLine('${side}')">＋ Añadir línea</button>
-        ${(d[side]||[]).length ? `<button class="link-btn" onclick="removeLine('${side}')">－ Quitar una línea…</button>
-        <button class="link-btn" onclick="moveLineAsk('${side}')">⇄ Pasar una línea a ${SIDE_NAME[otherSide(side)]}…</button>` : ''}
+        <button class="link-btn" onclick="addLine('${side}')">${esc(tr('rv.addLine'))}</button>
+        ${(d[side]||[]).length ? `<button class="link-btn" onclick="removeLine('${side}')">${esc(tr('rv.removeLine'))}</button>
+        <button class="link-btn" onclick="moveLineAsk('${side}')">${esc(tr('rv.moveLine', { to: sideName(otherSide(side)) }))}</button>` : ''}
       </div>`;
   };
 
   let html = `
     ${batchReviewUid ? batchNavHtml(d) : ''}
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap">
-      <span class="phase-badge phase-1">FASE 1</span>
-      <span style="color:var(--text-dim);font-size:13px">Verificación Visual — Haz clic en cualquier valor para corregirlo</span>
+      <span class="phase-badge phase-1">${esc(tr('rv.phase'))}</span>
+      <span style="color:var(--text-dim);font-size:13px">${esc(tr('rv.phaseHint'))}</span>
     </div>
 
-    ${editing ? `<div class="edit-banner">✏ Estás corrigiendo la nómina guardada de <strong>${esc(payName(editing))}</strong>. Los cambios no se guardan hasta que pulses «Guardar cambios».</div>` : ''}
+    ${editing ? `<div class="edit-banner">${trHtml('rv.editingHtml', { name: payName(editing) })}</div>` : ''}
 
     ${renderChecks(d, checks, diffs)}
 
     ${renderTypeCard(d)}
 
     <div class="card">
-      <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">ZONA 1 — Datos Administrativos</h3>
+      <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">${esc(tr('rv.zone1'))}</h3>
       <table class="kv">
         <tbody>
           ${adminFields.map(([label, path]) => {
@@ -2386,7 +2387,7 @@ function renderVerification() {
             // v2.15.0: el mes y el año sin leer, en rojo (sin ellos no se puede guardar)
             const bad = (path === 'period.month' && !normalizeMonth(val)) || (path === 'period.year' && !/^\d{4}$/.test(String(val ?? '').trim()));
             return `<tr>
-              <td class="dim" style="width:140px">${label}</td>
+              <td class="dim" style="width:140px">${esc(label)}</td>
               <td><span class="editable${bad ? ' flag-err' : ''}" onclick="editField(this,'${path}',${path==='period.days'?'true':'false'})">${esc(val ?? 'N/L')}</span></td>
             </tr>`;
           }).join('')}
@@ -2395,59 +2396,59 @@ function renderVerification() {
     </div>
 
     <div class="card">
-      <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">ZONA 2 — Conceptos Retributivos (Devengos)</h3>
-      ${lineTable('earnings', 'TOTAL BRUTO', 'totals.grossTotal', 'total-row')}
+      <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">${esc(tr('rv.zone2'))}</h3>
+      ${lineTable('earnings', esc(tr('rv.totalGross')), 'totals.grossTotal', 'total-row')}
       ${d.totals?.grossSource === 'sum' ? `<div style="font-size:11px;color:var(--warning);margin-top:8px">ℹ ${esc(tr('grossSum'))}</div>` : ''}
     </div>
 
     <div class="card">
-      <h3 style="margin:0 0 12px;font-size:13px;color:var(--danger)">Deducciones</h3>
-      ${lineTable('deductions', 'TOTAL DEDUCIR', 'totals.totalDeductions', 'total-row-danger')}
+      <h3 style="margin:0 0 12px;font-size:13px;color:var(--danger)">${esc(tr('rv.zoneDed'))}</h3>
+      ${lineTable('deductions', esc(tr('rv.totalDed')), 'totals.totalDeductions', 'total-row-danger')}
     </div>
 
     <div class="card">
-      <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">ZONA 3 — Bases de Cotización</h3>
+      <h3 style="margin:0 0 12px;font-size:13px;color:var(--accent)">${esc(tr('rv.zone3'))}</h3>
       <table class="kv">
         <tbody>
           ${[
-            ['Remuneración Total','bases.totalRemuneration'],
-            ['Prorrata Pagas Extras','bases.extraPayProrata'],
-            ['Base C.C.','bases.baseCC'],
-            ['Base A.T.','bases.baseAT'],
-            ['Base IRPF','bases.baseIRPF'],
+            [tr('rv.b.rem'),'bases.totalRemuneration'],
+            [tr('rv.b.pro'),'bases.extraPayProrata'],
+            [tr('rv.d.bases.baseCC'),'bases.baseCC'],
+            [tr('rv.d.bases.baseAT'),'bases.baseAT'],
+            [tr('rv.d.bases.baseIRPF'),'bases.baseIRPF'],
             ['% IRPF','bases.irpfPercentage'],
           ].map(([label,path]) => `<tr>
-            <td class="dim" style="width:200px">${label}</td>
+            <td class="dim" style="width:200px">${esc(label)}</td>
             <td class="r"><span class="editable${fl(path)}" onclick="editField(this,'${path}',true)">${fmt(getNestedVal(d,path))}</span></td>
           </tr>`).join('')}
         </tbody>
       </table>
-      ${d.bases?.irpfSource && d.bases.irpfSource !== 'manual' ? `<div style="font-size:11px;color:var(--warning);margin-top:8px">ℹ El % IRPF no venía en las bases: ${esc(IRPF_SOURCE_TEXT[d.bases.irpfSource] || '')}. Compruébalo con el papel.</div>` : ''}
+      ${d.bases?.irpfSource && d.bases.irpfSource !== 'manual' ? `<div style="font-size:11px;color:var(--warning);margin-top:8px">${esc(tr('rv.irpfNote', { how: IRPF_SOURCE_TEXT[d.bases.irpfSource] || '' }))}</div>` : ''}
       ${renderValidation(d)}
     </div>
 
     <div class="card card-highlight">
       <div class="liquido-box">
-        <span class="liquido-label">LÍQUIDO A PERCIBIR</span>
+        <span class="liquido-label">${esc(tr('rv.net'))}</span>
         <span class="liquido-value"><span class="editable${fl('totals.netPay')}" onclick="editField(this,'totals.netPay',true)">${fmt(d.totals?.netPay)}</span> €</span>
       </div>
     </div>
 
     ${imageBase64 && !editing ? `<label class="keep-original">
       <input type="checkbox" ${keepOriginal ? 'checked' : ''} onchange="keepOriginal=this.checked;syncBatchReview()">
-      <span>📎 Guardar también el documento original (${imageMediaType === 'application/pdf' ? 'PDF' : 'foto'}) junto a esta nómina. Se queda solo en este dispositivo.</span>
+      <span>${esc(tr('rv.keepOrig', { kind: imageMediaType === 'application/pdf' ? 'PDF' : tr('rv.photo') }))}</span>
     </label>` : ''}
 
     `;
   const actions = `
       ${editing
-        ? `<button class="btn btn-secondary" onclick="cancelEdit()">Cancelar</button>
-           <button class="btn btn-primary" onclick="confirmAndSave()">✓ Guardar cambios</button>`
+        ? `<button class="btn btn-secondary" onclick="cancelEdit()">${esc(tr('rv.cancel'))}</button>
+           <button class="btn btn-primary" onclick="confirmAndSave()">${esc(tr('rv.saveChanges'))}</button>`
         : batchReviewUid
-        ? `<button class="btn btn-secondary" onclick="discardBatchItem()">Descartar</button>
-           <button class="btn btn-primary" id="batchConfirmBtn" onclick="confirmAndSave()">${batchNextUid() ? '✓ Confirmar y siguiente' : '✓ Confirmar y guardar'}</button>`
-        : `<button class="btn btn-secondary" onclick="clearUpload()">Descartar</button>
-           <button class="btn btn-primary" onclick="confirmAndSave()">✓ Confirmar y Guardar</button>`}`;
+        ? `<button class="btn btn-secondary" onclick="discardBatchItem()">${esc(tr('rv.discard'))}</button>
+           <button class="btn btn-primary" id="batchConfirmBtn" onclick="confirmAndSave()">${esc(tr(batchNextUid() ? 'rv.confirmNext' : 'rv.confirmLast'))}</button>`
+        : `<button class="btn btn-secondary" onclick="clearUpload()">${esc(tr('rv.discard'))}</button>
+           <button class="btn btn-primary" onclick="confirmAndSave()">${esc(tr('rv.confirmSave'))}</button>`}`;
 
   document.getElementById('verifyContent').innerHTML = html;
   const bar = document.getElementById('verifyActions');
@@ -2479,29 +2480,31 @@ function renderValidation(d) {
 // Añadir, quitar o pasar líneas en la revisión (cuando Gemini se deja una fila, se inventa una o la pone en el
 // lado equivocado)
 const SIDE_NAME = { earnings: 'devengos', deductions: 'deducciones' };
+// v2.28.0: el nombre del lado en el idioma de la app (SIDE_NAME sigue en español para los avisos de checkPayroll)
+function sideName(side) { return SIDE_NAME[side] ? tr('rv.side.' + side) : ''; }
 function otherSide(side) { return side === 'earnings' ? 'deductions' : 'earnings'; }
 
 function addLine(side) {
   if (!extractedData) return;
   extractedData[side] = extractedData[side] || [];
-  extractedData[side].push({ code: '', concept: side === 'earnings' ? 'Nuevo devengo' : 'Nueva deducción', units: '', amount: 0 });
+  extractedData[side].push({ code: '', concept: tr(side === 'earnings' ? 'rv.newEarning' : 'rv.newDeduction'), units: '', amount: 0 });
   renderVerification();
 }
 
 // Pide el número de una línea de la lista. Devuelve su posición (desde 0), o null si se cancela o no es válido.
 function askLineNumber(lines, question) {
   const list = lines.map((l, i) => `${i + 1}. ${l.code ? '[' + l.code + '] ' : ''}${l.concept || ''}: ${fmt(l.amount)} €`).join('\n');
-  const v = prompt(`${question} Escribe su número:\n\n${list}`, '');
+  const v = prompt(tr('rv.askNum', { q: question, list }), '');
   if (v === null || v.trim() === '') return null;
   const n = parseInt(v, 10);
-  if (!(n >= 1 && n <= lines.length)) { alert(`"${v}" no es un número de línea válido.`); return null; }
+  if (!(n >= 1 && n <= lines.length)) { alert(tr('rv.badNum', { v })); return null; }
   return n - 1;
 }
 
 function removeLine(side) {
   const lines = extractedData?.[side] || [];
   if (!lines.length) return;
-  const k = askLineNumber(lines, '¿Qué línea quieres quitar?');
+  const k = askLineNumber(lines, tr('rv.askRemove'));
   if (k === null) return;
   forgetAltPartner(side, k);
   lines.splice(k, 1);
@@ -2523,7 +2526,7 @@ function moveToAmount(side, i, col) {
 function moveLineAsk(side) {
   const lines = extractedData?.[side] || [];
   if (!lines.length) return;
-  const k = askLineNumber(lines, `¿Qué línea quieres pasar de ${SIDE_NAME[side]} a ${SIDE_NAME[otherSide(side)]}?`);
+  const k = askLineNumber(lines, tr('rv.askMove', { from: sideName(side), to: sideName(otherSide(side)) }));
   if (k !== null) moveLine(side, k);
 }
 
@@ -2589,14 +2592,14 @@ async function currentDocument() {
 // 🔁 Releer con Gemini: nueva lectura indicando qué no cuadra. Se queda con ella solo si cuadra igual o mejor.
 async function rereadCurrent(btn) {
   if (!extractedData) return;
-  if (!navigator.onLine) { alert('Sin conexión: para releer la nómina hace falta internet.'); return; }
+  if (!navigator.onLine) { alert(tr('rv.offline')); return; }
   const doc = await currentDocument().catch(() => null);
-  if (!doc) { alert('No hay documento con el que releer esta nómina.'); return; }
+  if (!doc) { alert(tr('rv.noDoc')); return; }
   const before = extractedData;
   const prevDet = typeDetection;
   // El tipo se respeta si es el de una guardada o si lo eligió la persona a mano
   const keepType = !!(editingId || prevDet?.manual);
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner light"></span> Releyendo… <span id="processStatus" style="font-weight:400;opacity:0.7"></span>'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spinner light"></span> ${esc(tr('rv.rereading'))} <span id="processStatus" style="font-weight:400;opacity:0.7"></span>`; }
   try {
     const issues = realChecks(checkPayroll(before));
     const fresh = await callGemini(doc.base64, doc.type, issues.length ? feedbackFor(before) : '');
@@ -2619,7 +2622,7 @@ async function rereadCurrent(btn) {
   } catch (e) {
     if (batchErrorKind(e) === 'key') showApiBar();
     alert(e.message || e);
-    if (btn && btn.isConnected) { btn.disabled = false; btn.innerHTML = '🔁 Releer con Gemini'; }
+    if (btn && btn.isConnected) { btn.disabled = false; btn.textContent = tr('rv.reread'); }
   }
 }
 
@@ -3732,7 +3735,7 @@ Object.assign(I18N.ca, {
   "dupBonus": "🎯 És una paga de beneficis o bonus → desa-la a part",
   "dupBonusOther": "És una altra paga de beneficis o bonus → desa-la a part",
   "upInfoPending": "Si al paper aquesta línia no té import, és informativa: sortirà en gris quan quadrin les sumes. Corregeix primer la resta.",
-  "moveToAmount": "⇄ Passa {amount} a «Importe»",
+  "moveToAmount": "⇄ Passa {amount} a «Import»",
   "ssViaRem": "Amb la remuneració + prorrata ({base} €) sí que quadra: revisa «Base C.C.», pot ser la base d'atur/AT (la que inclou les hores extraordinàries).",
   "bccOvertime": "La diferència ({ot} €) és just el que sumen les hores extraordinàries: sembla que «Base C.C.» té la base d'atur/AT. La de contingències comunes seria {base} €.",
   "irpfImplicit": "Amb aquest import i aquesta base, el % seria {rate}; amb aquest import i aquest %, la base seria {base} €. Comprova-ho al paper.",
@@ -3799,7 +3802,7 @@ Object.assign(I18N.en, {
   "dupBonus": "🎯 It's a paga de beneficios or bonus → save it separately",
   "dupBonusOther": "It's a different paga de beneficios or bonus → save it separately",
   "upInfoPending": "If this line has no amount on the paper, it is informational: it will turn grey as soon as the totals add up. Fix the rest first.",
-  "moveToAmount": "⇄ Move {amount} to the Importe (amount) column",
+  "moveToAmount": "⇄ Move {amount} to the Amount column",
   "ssViaRem": "With remuneration + prorrata ({base} €) it does add up: check «Base C.C.», it may be the unemployment/AT base (the one that includes overtime).",
   "bccOvertime": "The difference ({ot} €) is exactly what the overtime adds up to: «Base C.C.» seems to hold the unemployment/AT base. The common-contingencies one would be {base} €.",
   "irpfImplicit": "With that amount and that base, the % would be {rate}; with that amount and that %, the base would be {base} €. Check it on the paper.",
@@ -4780,7 +4783,7 @@ Object.assign(I18N.ca, {
   "dash.tableTitle": "Nòmines processades",
   "dash.bad1": "1 nòmina no quadra",
   "dash.badN": "{n} nòmines no quadren",
-  "dash.badHtml": "Gemini va llegir malament alguna línia i els totals d'IRPF i S.S. de dalt poden estar malament. Obre-la amb <strong>Mostra</strong> i prem <strong>✏ Corregir datos</strong> o <strong>🔁 Releer con Gemini</strong>.",
+  "dash.badHtml": "Gemini va llegir malament alguna línia i els totals d'IRPF i S.S. de dalt poden estar malament. Obre-la amb <strong>Mostra</strong> i prem <strong>✏ Corregir datos</strong> o <strong>🔁 Torna a llegir amb Gemini</strong>.",
   "dash.colPeriod": "Període",
   "dash.colGross": "Brut",
   "dash.colNet": "Net",
@@ -4867,7 +4870,7 @@ Object.assign(I18N.en, {
   "dash.tableTitle": "Processed payslips",
   "dash.bad1": "1 payslip does not add up",
   "dash.badN": "{n} payslips do not add up",
-  "dash.badHtml": "Gemini misread a line and the IRPF and S.S. totals above may be wrong. Open it with <strong>View</strong> and tap <strong>✏ Corregir datos</strong> (correct data) or <strong>🔁 Releer con Gemini</strong> (read again).",
+  "dash.badHtml": "Gemini misread a line and the IRPF and S.S. totals above may be wrong. Open it with <strong>View</strong> and tap <strong>✏ Corregir datos</strong> (correct data) or <strong>🔁 Read again with Gemini</strong>.",
   "dash.colPeriod": "Period",
   "dash.colGross": "Gross",
   "dash.colNet": "Net",
@@ -5283,6 +5286,334 @@ Object.assign(I18N.en, {
   "batch.navUnread": " · {n} not read yet",
   "batch.back": "← Back to the tray",
   "batch.discardAsk": "Discard this payslip?\n\nIt will not be saved and its document is deleted from this device."
+});
+// v2.28.0: idioma de la app, tanda 3a (la revisión de la lectura)
+Object.assign(I18N.es, {
+  "rv.ri.worse": "🔁 La nueva lectura cuadraba peor que la que ya tenías: se mantiene la anterior.",
+  "rv.ri.manualOk": "🔁 Nueva lectura de Gemini: ahora las cuentas cuadran. Revísala igualmente con el documento.",
+  "rv.ri.manualBad": "🔁 Nueva lectura de Gemini: sigue sin cuadrar. Corrige a mano los valores marcados mirando el documento.",
+  "rv.ri.pdfOk": "🔁 Alguna cifra de la primera lectura no estaba en el texto del PDF. Se ha leído otra vez y en la segunda están todas. Revísala igualmente.",
+  "rv.ri.pdfBetter": "🔁 Alguna cifra de la primera lectura no estaba en el texto del PDF. La segunda va mejor, pero sigue habiendo alguna: mírala en el documento.",
+  "rv.ri.pdfSame": "🔁 Alguna cifra no está en el texto del PDF y Gemini la ha leído dos veces sin mejorar (se muestra la primera). Mira en el documento las cifras marcadas.",
+  "rv.ri.pdfNoRetry": "⚠ Alguna cifra no está en el texto del PDF y no se ha podido hacer la segunda lectura. Mira en el documento las cifras marcadas.",
+  "rv.ri.sumsOk": "🔁 La primera lectura de Gemini no cuadraba. Se ha leído otra vez y la segunda sí cuadra. Revísala igualmente.",
+  "rv.ri.sumsBetter": "🔁 La primera lectura no cuadraba. La segunda cuadra mejor, pero sigue habiendo descuadres: corrígelos mirando el documento.",
+  "rv.ri.sumsSame": "🔁 Gemini la ha leído dos veces y ninguna lectura cuadra (se muestra la que cuadra mejor). Corrige a mano los valores marcados mirando el documento.",
+  "rv.ri.noRetry": "⚠ La lectura no cuadra y no se ha podido hacer la segunda lectura. Puedes pulsar «Releer con Gemini» o corregirla a mano.",
+  "rv.alt.first": "la primera lectura",
+  "rv.alt.second": "la segunda lectura",
+  "rv.alt.prev": "la versión anterior",
+  "rv.alt.new": "la nueva lectura",
+  "rv.alt.other": "la otra lectura",
+  "rv.d.totals.grossTotal": "Total bruto",
+  "rv.d.totals.totalDeductions": "Total a deducir",
+  "rv.d.totals.netPay": "Líquido",
+  "rv.d.bases.totalRemuneration": "Remuneración total",
+  "rv.d.bases.extraPayProrata": "Prorrata pagas extras",
+  "rv.d.bases.baseCC": "Base C.C.",
+  "rv.d.bases.baseAT": "Base A.T.",
+  "rv.d.bases.baseIRPF": "Base IRPF",
+  "rv.d.bases.irpfPercentage": "% IRPF",
+  "rv.lineN": "línea {n}",
+  "rv.price": " (precio)",
+  "rv.dValue": "{label}: ahora {cur} · {other}: {alt}",
+  "rv.use": "Usar {v}",
+  "rv.dMissing": "{Other} tiene una línea que aquí falta: {line}",
+  "rv.addThis": "＋ Añadir esta línea",
+  "rv.dSide": "{line}: aquí está en {from} y {other} la pone en {to}",
+  "rv.moveTo": "⇄ Pasar a {to}",
+  "rv.dExtra": "{line}: {other} no tiene esta línea",
+  "rv.more": "… y {n} más.",
+  "rv.where1": "1 punto",
+  "rv.whereN": "{n} puntos",
+  "rv.whereMarked": " (marcados con ≠)",
+  "rv.altWorse": "{Other} cuadraba peor: usa sus cifras solo si lo confirma el papel.",
+  "rv.altNotBetter": "{Other} no cuadraba mejor: usa sus cifras solo si lo confirma el papel.",
+  "rv.diffTitle": "≠ Las dos lecturas de Gemini no coinciden en {where}",
+  "rv.diffHelp": "Mira en el documento cuál es la buena. Si es la de {other}, pulsa «Usar»; si no es ninguna de las dos, toca el valor y corrígelo (deja de marcarse con ≠).",
+  "rv.diffOk": "≠ {Other} daba otras cifras en {where}. La que ves cuadra: compruébalas igualmente con el papel.",
+  "rv.moveNamed": "⇄ Pasar «{name}» a {to}",
+  "rv.checksTitle": "COMPROBACIÓN DE LAS CUENTAS",
+  "rv.err1": "1 error",
+  "rv.errN": "{n} errores",
+  "rv.andWarn1": " y 1 aviso",
+  "rv.andWarnN": " y {n} avisos",
+  "rv.titleBad": "✗ Las cuentas no cuadran ({what})",
+  "rv.titleMeh1": "⚠ Las sumas cuadran, pero hay 1 cosa que mirar",
+  "rv.titleMehN": "⚠ Las sumas cuadran, pero hay {n} cosas que mirar",
+  "rv.titleGood": "✓ Las cuentas cuadran",
+  "rv.allOk": "Devengos = bruto · deducciones = total a deducir · bruto − deducciones = líquido · IRPF y cotizaciones = base × %.",
+  "rv.hintErr": "Los valores marcados en rojo son los sospechosos. Compáralos con el documento y toca el valor para corregirlo. La app no cambia ninguna cifra por su cuenta.",
+  "rv.hintWarn": "Los valores marcados en ámbar son los sospechosos. Compáralos con el documento y toca el valor para corregirlo. La app no cambia ninguna cifra por su cuenta.",
+  "rv.viewDoc": "👁 Ver documento",
+  "rv.reread": "🔁 Releer con Gemini",
+  "rv.rereading": "Releyendo…",
+  "rv.offline": "Sin conexión: para releer la nómina hace falta internet.",
+  "rv.noDoc": "No hay documento con el que releer esta nómina.",
+  "rv.phase": "FASE 1",
+  "rv.phaseHint": "Verificación Visual — Haz clic en cualquier valor para corregirlo",
+  "rv.editingHtml": "✏ Estás corrigiendo la nómina guardada de <strong>{name}</strong>. Los cambios no se guardan hasta que pulses «Guardar cambios».",
+  "rv.zone1": "ZONA 1 — Datos Administrativos",
+  "rv.zone2": "ZONA 2 — Conceptos Retributivos (Devengos)",
+  "rv.zoneDed": "Deducciones",
+  "rv.zone3": "ZONA 3 — Bases de Cotización",
+  "rv.f.company": "Empresa",
+  "rv.f.worker": "Trabajador",
+  "rv.f.category": "Categoría",
+  "rv.f.seniority": "Antigüedad",
+  "rv.f.contract": "Contrato",
+  "rv.f.group": "Grupo Cot.",
+  "rv.f.month": "Mes",
+  "rv.f.year": "Año",
+  "rv.f.days": "Días",
+  "rv.col.code": "Cód.",
+  "rv.col.concept": "Concepto",
+  "rv.col.units": "Uds.",
+  "rv.col.price": "Precio",
+  "rv.col.amount": "Importe",
+  "rv.totalGross": "TOTAL BRUTO",
+  "rv.totalDed": "TOTAL DEDUCIR",
+  "rv.b.rem": "Remuneración Total",
+  "rv.b.pro": "Prorrata Pagas Extras",
+  "rv.irpfNote": "ℹ El % IRPF no venía en las bases: {how}. Compruébalo con el papel.",
+  "rv.net": "LÍQUIDO A PERCIBIR",
+  "rv.keepOrig": "📎 Guardar también el documento original ({kind}) junto a esta nómina. Se queda solo en este dispositivo.",
+  "rv.photo": "foto",
+  "rv.cancel": "Cancelar",
+  "rv.saveChanges": "✓ Guardar cambios",
+  "rv.discard": "Descartar",
+  "rv.confirmNext": "✓ Confirmar y siguiente",
+  "rv.confirmLast": "✓ Confirmar y guardar",
+  "rv.confirmSave": "✓ Confirmar y Guardar",
+  "rv.side.earnings": "devengos",
+  "rv.side.deductions": "deducciones",
+  "rv.addLine": "＋ Añadir línea",
+  "rv.removeLine": "－ Quitar una línea…",
+  "rv.moveLine": "⇄ Pasar una línea a {to}…",
+  "rv.newEarning": "Nuevo devengo",
+  "rv.newDeduction": "Nueva deducción",
+  "rv.askNum": "{q} Escribe su número:\n\n{list}",
+  "rv.badNum": "\"{v}\" no es un número de línea válido.",
+  "rv.askRemove": "¿Qué línea quieres quitar?",
+  "rv.askMove": "¿Qué línea quieres pasar de {from} a {to}?"
+});
+Object.assign(I18N.ca, {
+  "rv.ri.worse": "🔁 La lectura nova quadrava pitjor que la que ja tenies: es manté l'anterior.",
+  "rv.ri.manualOk": "🔁 Lectura nova de Gemini: ara els comptes quadren. Revisa-la igualment amb el document.",
+  "rv.ri.manualBad": "🔁 Lectura nova de Gemini: continua sense quadrar. Corregeix a mà els valors marcats mirant el document.",
+  "rv.ri.pdfOk": "🔁 Alguna xifra de la primera lectura no era al text del PDF. S'ha tornat a llegir i a la segona hi són totes. Revisa-la igualment.",
+  "rv.ri.pdfBetter": "🔁 Alguna xifra de la primera lectura no era al text del PDF. La segona va millor, però encara n'hi ha alguna: mira-la al document.",
+  "rv.ri.pdfSame": "🔁 Alguna xifra no és al text del PDF i Gemini l'ha llegida dues vegades sense millorar (es mostra la primera). Mira al document les xifres marcades.",
+  "rv.ri.pdfNoRetry": "⚠ Alguna xifra no és al text del PDF i no s'ha pogut fer la segona lectura. Mira al document les xifres marcades.",
+  "rv.ri.sumsOk": "🔁 La primera lectura de Gemini no quadrava. S'ha tornat a llegir i la segona sí que quadra. Revisa-la igualment.",
+  "rv.ri.sumsBetter": "🔁 La primera lectura no quadrava. La segona quadra millor, però encara hi ha desquadraments: corregeix-los mirant el document.",
+  "rv.ri.sumsSame": "🔁 Gemini l'ha llegida dues vegades i cap lectura no quadra (es mostra la que quadra millor). Corregeix a mà els valors marcats mirant el document.",
+  "rv.ri.noRetry": "⚠ La lectura no quadra i no s'ha pogut fer la segona lectura. Pots prémer «Torna a llegir amb Gemini» o corregir-la a mà.",
+  "rv.alt.first": "la primera lectura",
+  "rv.alt.second": "la segona lectura",
+  "rv.alt.prev": "la versió anterior",
+  "rv.alt.new": "la lectura nova",
+  "rv.alt.other": "l'altra lectura",
+  "rv.d.totals.grossTotal": "Total brut",
+  "rv.d.totals.totalDeductions": "Total a deduir",
+  "rv.d.totals.netPay": "Líquid",
+  "rv.d.bases.totalRemuneration": "Remuneració total",
+  "rv.d.bases.extraPayProrata": "Prorrata de pagues extres",
+  "rv.d.bases.baseCC": "Base C.C.",
+  "rv.d.bases.baseAT": "Base A.T.",
+  "rv.d.bases.baseIRPF": "Base IRPF",
+  "rv.d.bases.irpfPercentage": "% IRPF",
+  "rv.lineN": "línia {n}",
+  "rv.price": " (preu)",
+  "rv.dValue": "{label}: ara {cur} · {other}: {alt}",
+  "rv.use": "Fes servir {v}",
+  "rv.dMissing": "{Other} té una línia que aquí falta: {line}",
+  "rv.addThis": "＋ Afegeix aquesta línia",
+  "rv.dSide": "{line}: aquí és a {from} i {other} la posa a {to}",
+  "rv.moveTo": "⇄ Passa a {to}",
+  "rv.dExtra": "{line}: {other} no té aquesta línia",
+  "rv.more": "… i {n} més.",
+  "rv.where1": "1 punt",
+  "rv.whereN": "{n} punts",
+  "rv.whereMarked": " (marcats amb ≠)",
+  "rv.altWorse": "{Other} quadrava pitjor: fes servir les seves xifres només si ho confirma el paper.",
+  "rv.altNotBetter": "{Other} no quadrava millor: fes servir les seves xifres només si ho confirma el paper.",
+  "rv.diffTitle": "≠ Les dues lectures de Gemini no coincideixen en {where}",
+  "rv.diffHelp": "Mira al document quina és la bona. Si és la de {other}, prem «Fes servir»; si no és cap de les dues, toca el valor i corregeix-lo (deixa d'estar marcat amb ≠).",
+  "rv.diffOk": "≠ {Other} donava altres xifres en {where}. La que veus quadra: comprova-les igualment amb el paper.",
+  "rv.moveNamed": "⇄ Passa «{name}» a {to}",
+  "rv.checksTitle": "COMPROVACIÓ DELS COMPTES",
+  "rv.err1": "1 error",
+  "rv.errN": "{n} errors",
+  "rv.andWarn1": " i 1 avís",
+  "rv.andWarnN": " i {n} avisos",
+  "rv.titleBad": "✗ Els comptes no quadren ({what})",
+  "rv.titleMeh1": "⚠ Les sumes quadren, però hi ha 1 cosa per mirar",
+  "rv.titleMehN": "⚠ Les sumes quadren, però hi ha {n} coses per mirar",
+  "rv.titleGood": "✓ Els comptes quadren",
+  "rv.allOk": "Meritacions = brut · deduccions = total a deduir · brut − deduccions = líquid · IRPF i cotitzacions = base × %.",
+  "rv.hintErr": "Els valors marcats en vermell són els sospitosos. Compara'ls amb el document i toca el valor per corregir-lo. L'app no canvia cap xifra pel seu compte.",
+  "rv.hintWarn": "Els valors marcats en ambre són els sospitosos. Compara'ls amb el document i toca el valor per corregir-lo. L'app no canvia cap xifra pel seu compte.",
+  "rv.viewDoc": "👁 Mostra el document",
+  "rv.reread": "🔁 Torna a llegir amb Gemini",
+  "rv.rereading": "Tornant a llegir…",
+  "rv.offline": "Sense connexió: per tornar a llegir la nòmina cal internet.",
+  "rv.noDoc": "No hi ha cap document amb què tornar a llegir aquesta nòmina.",
+  "rv.phase": "FASE 1",
+  "rv.phaseHint": "Verificació visual — Fes clic a qualsevol valor per corregir-lo",
+  "rv.editingHtml": "✏ Estàs corregint la nòmina desada: <strong>{name}</strong>. Els canvis no es desen fins que no premis «Desa els canvis».",
+  "rv.zone1": "ZONA 1 — Dades administratives",
+  "rv.zone2": "ZONA 2 — Conceptes retributius (meritacions)",
+  "rv.zoneDed": "Deduccions",
+  "rv.zone3": "ZONA 3 — Bases de cotització",
+  "rv.f.company": "Empresa",
+  "rv.f.worker": "Treballador",
+  "rv.f.category": "Categoria",
+  "rv.f.seniority": "Antiguitat",
+  "rv.f.contract": "Contracte",
+  "rv.f.group": "Grup cot.",
+  "rv.f.month": "Mes",
+  "rv.f.year": "Any",
+  "rv.f.days": "Dies",
+  "rv.col.code": "Codi",
+  "rv.col.concept": "Concepte",
+  "rv.col.units": "Unit.",
+  "rv.col.price": "Preu",
+  "rv.col.amount": "Import",
+  "rv.totalGross": "TOTAL BRUT",
+  "rv.totalDed": "TOTAL A DEDUIR",
+  "rv.b.rem": "Remuneració total",
+  "rv.b.pro": "Prorrata de pagues extres",
+  "rv.irpfNote": "ℹ El % IRPF no venia a les bases: {how}. Comprova-ho amb el paper.",
+  "rv.net": "LÍQUID A PERCEBRE",
+  "rv.keepOrig": "📎 Desa també el document original ({kind}) amb aquesta nòmina. Només es queda en aquest dispositiu.",
+  "rv.photo": "foto",
+  "rv.cancel": "Cancel·la",
+  "rv.saveChanges": "✓ Desa els canvis",
+  "rv.discard": "Descarta",
+  "rv.confirmNext": "✓ Confirma i següent",
+  "rv.confirmLast": "✓ Confirma i desa",
+  "rv.confirmSave": "✓ Confirma i desa",
+  "rv.side.earnings": "meritacions",
+  "rv.side.deductions": "deduccions",
+  "rv.addLine": "＋ Afegeix una línia",
+  "rv.removeLine": "－ Treu una línia…",
+  "rv.moveLine": "⇄ Passa una línia a {to}…",
+  "rv.newEarning": "Nova meritació",
+  "rv.newDeduction": "Nova deducció",
+  "rv.askNum": "{q} Escriu-ne el número:\n\n{list}",
+  "rv.badNum": "«{v}» no és un número de línia vàlid.",
+  "rv.askRemove": "Quina línia vols treure?",
+  "rv.askMove": "Quina línia vols passar de {from} a {to}?"
+});
+Object.assign(I18N.en, {
+  "rv.ri.worse": "🔁 The new reading added up worse than the one you had: the previous one is kept.",
+  "rv.ri.manualOk": "🔁 New reading by Gemini: the figures now add up. Check it against the document anyway.",
+  "rv.ri.manualBad": "🔁 New reading by Gemini: it still does not add up. Correct the marked values by hand, looking at the document.",
+  "rv.ri.pdfOk": "🔁 Some figure from the first reading was not in the PDF text. It was read again and the second reading has them all. Check it anyway.",
+  "rv.ri.pdfBetter": "🔁 Some figure from the first reading was not in the PDF text. The second is better, but there is still one: look at it in the document.",
+  "rv.ri.pdfSame": "🔁 Some figure is not in the PDF text and Gemini read it twice without improving (the first is shown). Look at the marked figures in the document.",
+  "rv.ri.pdfNoRetry": "⚠ Some figure is not in the PDF text and the second reading could not be done. Look at the marked figures in the document.",
+  "rv.ri.sumsOk": "🔁 Gemini's first reading did not add up. It was read again and the second one does. Check it anyway.",
+  "rv.ri.sumsBetter": "🔁 The first reading did not add up. The second adds up better, but there are still mismatches: correct them looking at the document.",
+  "rv.ri.sumsSame": "🔁 Gemini read it twice and neither reading adds up (the one that adds up best is shown). Correct the marked values by hand, looking at the document.",
+  "rv.ri.noRetry": "⚠ The reading does not add up and the second reading could not be done. You can press \"Read again with Gemini\" or correct it by hand.",
+  "rv.alt.first": "the first reading",
+  "rv.alt.second": "the second reading",
+  "rv.alt.prev": "the previous version",
+  "rv.alt.new": "the new reading",
+  "rv.alt.other": "the other reading",
+  "rv.d.totals.grossTotal": "Gross total",
+  "rv.d.totals.totalDeductions": "Total deductions",
+  "rv.d.totals.netPay": "Net pay (líquido)",
+  "rv.d.bases.totalRemuneration": "Total pay (remuneración total)",
+  "rv.d.bases.extraPayProrata": "Extra-pay proration (prorrata pagas extras)",
+  "rv.d.bases.baseCC": "Base C.C. (common contingencies)",
+  "rv.d.bases.baseAT": "Base A.T. (workplace accidents)",
+  "rv.d.bases.baseIRPF": "Base IRPF (income tax)",
+  "rv.d.bases.irpfPercentage": "% IRPF",
+  "rv.lineN": "line {n}",
+  "rv.price": " (price)",
+  "rv.dValue": "{label}: now {cur} · {other}: {alt}",
+  "rv.use": "Use {v}",
+  "rv.dMissing": "{Other} has a line that is missing here: {line}",
+  "rv.addThis": "＋ Add this line",
+  "rv.dSide": "{line}: here it is in {from} and {other} puts it in {to}",
+  "rv.moveTo": "⇄ Move to {to}",
+  "rv.dExtra": "{line}: {other} does not have this line",
+  "rv.more": "… and {n} more.",
+  "rv.where1": "1 point",
+  "rv.whereN": "{n} points",
+  "rv.whereMarked": " (marked with ≠)",
+  "rv.altWorse": "{Other} added up worse: use its figures only if the paper confirms them.",
+  "rv.altNotBetter": "{Other} did not add up better: use its figures only if the paper confirms them.",
+  "rv.diffTitle": "≠ Gemini's two readings differ in {where}",
+  "rv.diffHelp": "Look in the document to see which one is right. If it is the one from {other}, press \"Use\"; if it is neither, tap the value and correct it (it stops being marked with ≠).",
+  "rv.diffOk": "≠ {Other} gave different figures in {where}. The one you see adds up: check them against the paper anyway.",
+  "rv.moveNamed": "⇄ Move «{name}» to {to}",
+  "rv.checksTitle": "CHECKING THE FIGURES",
+  "rv.err1": "1 error",
+  "rv.errN": "{n} errors",
+  "rv.andWarn1": " and 1 warning",
+  "rv.andWarnN": " and {n} warnings",
+  "rv.titleBad": "✗ The figures do not add up ({what})",
+  "rv.titleMeh1": "⚠ The sums add up, but there is 1 thing to look at",
+  "rv.titleMehN": "⚠ The sums add up, but there are {n} things to look at",
+  "rv.titleGood": "✓ The figures add up",
+  "rv.allOk": "Earnings (devengos) = gross · deductions = total deductions · gross − deductions = net pay · IRPF and contributions = base × %.",
+  "rv.hintErr": "The values marked in red are the suspicious ones. Compare them with the document and tap the value to correct it. The app never changes a figure on its own.",
+  "rv.hintWarn": "The values marked in amber are the suspicious ones. Compare them with the document and tap the value to correct it. The app never changes a figure on its own.",
+  "rv.viewDoc": "👁 View document",
+  "rv.reread": "🔁 Read again with Gemini",
+  "rv.rereading": "Reading again…",
+  "rv.offline": "Offline: reading the payslip again needs the internet.",
+  "rv.noDoc": "There is no document to read this payslip again with.",
+  "rv.phase": "STEP 1",
+  "rv.phaseHint": "Visual check — Click any value to correct it",
+  "rv.editingHtml": "✏ You are correcting the saved payslip for <strong>{name}</strong>. Changes are not saved until you press \"Save changes\".",
+  "rv.zone1": "ZONE 1 — Administrative data",
+  "rv.zone2": "ZONE 2 — Pay items (devengos)",
+  "rv.zoneDed": "Deductions (deducciones)",
+  "rv.zone3": "ZONE 3 — Contribution bases (bases de cotización)",
+  "rv.f.company": "Company",
+  "rv.f.worker": "Employee",
+  "rv.f.category": "Category",
+  "rv.f.seniority": "Seniority",
+  "rv.f.contract": "Contract",
+  "rv.f.group": "Contribution group",
+  "rv.f.month": "Month",
+  "rv.f.year": "Year",
+  "rv.f.days": "Days",
+  "rv.col.code": "Code",
+  "rv.col.concept": "Item",
+  "rv.col.units": "Units",
+  "rv.col.price": "Price",
+  "rv.col.amount": "Amount",
+  "rv.totalGross": "GROSS TOTAL",
+  "rv.totalDed": "TOTAL DEDUCTIONS",
+  "rv.b.rem": "Total pay (remuneración total)",
+  "rv.b.pro": "Extra-pay proration (prorrata pagas extras)",
+  "rv.irpfNote": "ℹ The % IRPF was not among the bases: {how}. Check it against the paper.",
+  "rv.net": "NET PAY (LÍQUIDO A PERCIBIR)",
+  "rv.keepOrig": "📎 Also keep the original document ({kind}) with this payslip. It stays only on this device.",
+  "rv.photo": "photo",
+  "rv.cancel": "Cancel",
+  "rv.saveChanges": "✓ Save changes",
+  "rv.discard": "Discard",
+  "rv.confirmNext": "✓ Confirm and next",
+  "rv.confirmLast": "✓ Confirm and save",
+  "rv.confirmSave": "✓ Confirm and save",
+  "rv.side.earnings": "earnings (devengos)",
+  "rv.side.deductions": "deductions (deducciones)",
+  "rv.addLine": "＋ Add line",
+  "rv.removeLine": "－ Remove a line…",
+  "rv.moveLine": "⇄ Move a line to {to}…",
+  "rv.newEarning": "New earning",
+  "rv.newDeduction": "New deduction",
+  "rv.askNum": "{q} Type its number:\n\n{list}",
+  "rv.badNum": "\"{v}\" is not a valid line number.",
+  "rv.askRemove": "Which line do you want to remove?",
+  "rv.askMove": "Which line do you want to move from {from} to {to}?"
 });
 // Como tr(), para textos con marcado: las variables se escapan; {html: '…'} pasa un trozo ya escapado (otro trHtml).
 function trHtml(key, vars = {}, lang = appLang()) {

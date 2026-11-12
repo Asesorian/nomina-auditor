@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.27.0-blue)
+![Version](https://img.shields.io/badge/version-2.28.0-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.27.0)
+## 🆕 Novedades (v2.3 – v2.28.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -720,6 +720,9 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.28.0 (Noviembre 2026)
+- **Idioma de la app, tercera tanda (primera mitad):** la pantalla de revisión de la lectura (zonas, columnas, campos, la comprobación de las cuentas, los avisos de cómo se ha leído, las dos lecturas que no coinciden, añadir, quitar y pasar líneas, releer con Gemini y los botones de confirmar) ya tiene sus textos en español, català e inglés. La app **sigue saliendo en español** hasta la última tanda; en español no cambia nada. **Pruebas:** `test_idioma.py`, punto 8.
 
 ### v2.27.0 (Noviembre 2026)
 - **Idioma de la app, segunda tanda:** la bandeja de varias nóminas, el procesado de una nómina (PDF, formato, sin conexión, segunda lectura, tipo de nómina) y los mensajes de error de Gemini ya tienen sus textos en español, català e inglés. La app **sigue saliendo en español** hasta la última tanda; en español solo cambia una frase, que no era correcta con todos los motivos: «Elegido por ti (la detección automática decía: mensual; motivo: …)» en vez de «…, porque …». Los errores de la clave se reconocen por su tipo y no por el texto, para que la bandeja se pare igual en cualquier idioma. **Pruebas:** `test_idioma.py`, punto 7.
