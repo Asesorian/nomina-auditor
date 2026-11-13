@@ -2,7 +2,7 @@
 
 **Extractor y auditor de nóminas españolas con arquitectura híbrida determinista + IA**
 
-![Version](https://img.shields.io/badge/version-2.30.1-blue)
+![Version](https://img.shields.io/badge/version-2.31.0-blue)
 ![License](https://img.shields.io/badge/license-PolyForm_Noncommercial_1.0.0-orange)
 ![Platform](https://img.shields.io/badge/platform-PWA-blueviolet)
 ![Offline](https://img.shields.io/badge/offline-ready-4ade80)
@@ -31,7 +31,7 @@
 
 ---
 
-## 🆕 Novedades (v2.3 – v2.30.1)
+## 🆕 Novedades (v2.3 – v2.31.0)
 
 | | Qué hace | Dónde |
 |---|---|---|
@@ -720,6 +720,10 @@ BASES Y TOTALES
 ---
 
 ## 📋 Changelog
+
+### v2.31.0 (Noviembre 2026)
+- **Primeros pasos, más claro:** la tarjeta de bienvenida empieza por quién hace cada cosa («La IA lee tus nóminas, la app comprueba las cuentas y te avisa de lo que no cuadra»), sin la frase que se podía leer como una orden ni el punto y coma. La privacidad dice exactamente lo que pasa: «Tus nóminas se guardan solo en este dispositivo. Para leerlas, la app las envía a la IA de Google» (antes decía que solo pasaba «la lectura inicial», y la nómina también vuelve a Google en la segunda lectura automática y con «Releer con Gemini»).
+- **Idioma de la app, cuarta tanda (segunda mitad):** el sello «📄 PDF digital: N de N cifras comprobadas…», las etiquetas de los avisos de las cifras que no están en el texto del PDF, «✓ ¡Copiado!» y su aviso si falla, y dos restos de la bandeja (el aviso de las páginas y el error al unir), con `tr()` en español, català e inglés. La app sigue saliendo en español hasta la última tanda, y lo que va a Gemini en la segunda lectura sigue en español. **Pruebas:** `test_idioma.py` punto 12 y `test_bienvenida.py` (la privacidad nueva, sin «inicial» en ningún idioma); en español, el sello, los avisos del PDF, lo que se le dice a Gemini y copiar salen igual que antes.
 
 ### v2.30.1 (Noviembre 2026)
 - **El mes se entiende también en català e inglés:** si escribes «Juliol» o «July» en el campo del mes, o si Gemini lee una nómina en catalán y devuelve «Gener», la app lo reconoce y la guarda con el mes en español, como siempre. Antes solo valían el castellano y el número. **Pruebas:** `test_idioma.py`, punto 11.

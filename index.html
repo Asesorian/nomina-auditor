@@ -491,7 +491,7 @@ table.gl-rates { min-width:0 !important;width:100%;font-size:12px;margin:4px 0 8
   <div class="logo">
     <span class="logo-icon">⚖️</span>
     <span class="logo-text">NÓMINA AUDITOR</span>
-    <span class="logo-badge">Forense v2.30.1</span>
+    <span class="logo-badge">Forense v2.31.0</span>
   </div>
   <nav style="display:flex;gap:4px;align-items:center">
     <button class="nav-btn active" data-view="dashboard" onclick="showView('dashboard')">
@@ -4585,8 +4585,8 @@ Object.assign(I18N.en, {
 // v2.24.0: primera apertura (docs/TECNICO.md §57). Català revisado (12-11): botones en imperativo, como el resto.
 Object.assign(I18N.es, {
   "wel.title": "👋 Primeros pasos en Nómina Auditor",
-  "wel.what": "Lee tus nóminas, comprueba sus cuentas y te avisa de lo que no cuadra. La lectura la hace la IA; las cuentas, la app; y tú revisas antes de guardar.",
-  "wel.privacy": "Las nóminas y sus documentos se guardan solo en tu dispositivo; solo la lectura inicial pasa por la IA de Google.",
+  "wel.what": "La IA lee tus nóminas, la app comprueba las cuentas y te avisa de lo que no cuadra.",
+  "wel.privacy": "Tus nóminas se guardan solo en este dispositivo. Para leerlas, la app las envía a la IA de Google.",
   "wel.keyTodo": "Pon tu clave de Gemini: pega en la barra 🔑 de arriba la clave o el enlace que te pasaron.",
   "wel.keyOdd": "Lo que hay en la barra 🔑 no parece una clave: revísalo arriba.",
   "wel.keyBtn": "🔑 Ir a la clave",
@@ -4597,8 +4597,8 @@ Object.assign(I18N.es, {
 });
 Object.assign(I18N.ca, {
   "wel.title": "👋 Primers passos a Nómina Auditor",
-  "wel.what": "Llegeix les teves nòmines, en comprova els comptes i t'avisa del que no quadra. La lectura la fa la IA; els comptes, l'app; i tu ho revises abans de desar.",
-  "wel.privacy": "Les nòmines i els seus documents es desen només al teu dispositiu; només la lectura inicial passa per la IA de Google.",
+  "wel.what": "La IA llegeix les teves nòmines, l'app en comprova els comptes i t'avisa del que no quadra.",
+  "wel.privacy": "Les teves nòmines es desen només en aquest dispositiu. Per llegir-les, l'app les envia a la IA de Google.",
   "wel.keyTodo": "Posa-hi la teva clau de Gemini: enganxa a la barra 🔑 de dalt la clau o l'enllaç que et van passar.",
   "wel.keyOdd": "El que hi ha a la barra 🔑 no sembla una clau: revisa-ho a dalt.",
   "wel.keyBtn": "🔑 Ves a la clau",
@@ -4609,8 +4609,8 @@ Object.assign(I18N.ca, {
 });
 Object.assign(I18N.en, {
   "wel.title": "👋 Getting started with Nómina Auditor",
-  "wel.what": "It reads your payslips (nóminas), checks their sums and warns you about anything that does not add up. The AI reads; the app does the sums; and you review before saving.",
-  "wel.privacy": "Payslips and their documents are stored only on your device; only the initial reading goes through Google's AI.",
+  "wel.what": "The AI reads your payslips (nóminas). The app checks the sums and warns you about anything that does not add up.",
+  "wel.privacy": "Your payslips are stored only on this device. To read them, the app sends them to Google's AI.",
   "wel.keyTodo": "Add your Gemini key: paste the key, or the link you were sent, in the 🔑 bar above.",
   "wel.keyOdd": "What is in the 🔑 bar does not look like a key: check it above.",
   "wel.keyBtn": "🔑 Go to the key",
@@ -6122,6 +6122,67 @@ Object.assign(I18N.en, {
   "pv.broken": "This PDF could not be shown (it may be damaged).",
   "pv.fallback": "Your payslip is saved anyway. You can view it another way:"
 });
+// v2.31.0: idioma de la app, tanda 4b (el PDF digital, copiar el informe y dos restos de la bandeja)
+Object.assign(I18N.es, {
+  "pdf.sealBad": "📄 PDF digital, pero su texto no se saca bien: las cifras no se han podido comprobar con él.",
+  "pdf.sealAll": "📄 PDF digital: {ok} de {n} cifras comprobadas con el texto del documento, sin IA.",
+  "pdf.sealMiss1": "📄 PDF digital: {ok} de {n} cifras comprobadas con el texto del documento; 1 no está en él.",
+  "pdf.sealMiss": "📄 PDF digital: {ok} de {n} cifras comprobadas con el texto del documento; {m} no están en él.",
+  "pdf.l.grossTotal": "Total devengado",
+  "pdf.l.totalDeductions": "Total a deducir",
+  "pdf.l.netPay": "Líquido a percibir",
+  "pdf.l.totalRemuneration": "Remuneración total",
+  "pdf.l.extraPayProrata": "Prorrata de pagas extra",
+  "pdf.l.baseCC": "Base C.C.",
+  "pdf.l.baseAT": "Base AT/EP",
+  "pdf.l.baseIRPF": "Base IRPF",
+  "pdf.l.irpfPct": "% de IRPF",
+  "pdf.l.units": "{name} (unidades o %)",
+  "pdf.l.price": "{name} (precio)",
+  "pdf.libMissing": "pdf-lib no disponible",
+  "copy.fail": "No se ha podido copiar automáticamente. Selecciona el texto del informe y cópialo a mano.",
+  "copy.done": "✓ ¡Copiado!"
+});
+Object.assign(I18N.ca, {
+  "pdf.sealBad": "📄 PDF digital, però el seu text no s'extreu bé: les xifres no s'hi han pogut comprovar.",
+  "pdf.sealAll": "📄 PDF digital: {ok} de les {n} xifres comprovades amb el text del document, sense IA.",
+  "pdf.sealMiss1": "📄 PDF digital: {ok} de les {n} xifres comprovades amb el text del document; 1 no hi és.",
+  "pdf.sealMiss": "📄 PDF digital: {ok} de les {n} xifres comprovades amb el text del document; {m} no hi són.",
+  "pdf.l.grossTotal": "Total meritat",
+  "pdf.l.totalDeductions": "Total a deduir",
+  "pdf.l.netPay": "Líquid a percebre",
+  "pdf.l.totalRemuneration": "Remuneració total",
+  "pdf.l.extraPayProrata": "Prorrata de pagues extres",
+  "pdf.l.baseCC": "Base C.C.",
+  "pdf.l.baseAT": "Base AT/EP",
+  "pdf.l.baseIRPF": "Base IRPF",
+  "pdf.l.irpfPct": "% d'IRPF",
+  "pdf.l.units": "{name} (unitats o %)",
+  "pdf.l.price": "{name} (preu)",
+  "pdf.libMissing": "pdf-lib no disponible",
+  "copy.fail": "No s'ha pogut copiar automàticament. Selecciona el text de l'informe i copia'l a mà.",
+  "copy.done": "✓ Copiat!"
+});
+Object.assign(I18N.en, {
+  "pdf.sealBad": "📄 Digital PDF, but its text cannot be extracted properly: the figures could not be checked against it.",
+  "pdf.sealAll": "📄 Digital PDF: {ok} of {n} figures checked against the document's text, without AI.",
+  "pdf.sealMiss1": "📄 Digital PDF: {ok} of {n} figures checked against the document's text; 1 is not in it.",
+  "pdf.sealMiss": "📄 Digital PDF: {ok} of {n} figures checked against the document's text; {m} are not in it.",
+  "pdf.l.grossTotal": "Gross pay (total devengado)",
+  "pdf.l.totalDeductions": "Total deductions (total a deducir)",
+  "pdf.l.netPay": "Net pay (líquido a percibir)",
+  "pdf.l.totalRemuneration": "Total pay (remuneración total)",
+  "pdf.l.extraPayProrata": "Extra-pay proration (prorrata de pagas extra)",
+  "pdf.l.baseCC": "Base C.C. (common contingencies)",
+  "pdf.l.baseAT": "Base AT/EP (workplace accidents)",
+  "pdf.l.baseIRPF": "Base IRPF (income tax)",
+  "pdf.l.irpfPct": "IRPF % (income tax)",
+  "pdf.l.units": "{name} (units or %)",
+  "pdf.l.price": "{name} (price)",
+  "pdf.libMissing": "pdf-lib not available",
+  "copy.fail": "Could not copy automatically. Select the report text and copy it by hand.",
+  "copy.done": "✓ Copied!"
+});
 // Como tr(), para textos con marcado: las variables se escapan; {html: '…'} pasa un trozo ya escapado (otro trHtml).
 function trHtml(key, vars = {}, lang = appLang()) {
   const t = (I18N[lang] && I18N[lang][key]) ?? I18N.es[key] ?? key;
@@ -6586,7 +6647,7 @@ function loadPdfLib() {
   if (window.PDFLib?.PDFDocument) return Promise.resolve(window.PDFLib);
   if (!pdfLibPromise) {
     pdfLibPromise = loadScriptOnce(PDFLIB_URL, PDFLIB_SRI).then(() => {
-      if (!window.PDFLib?.PDFDocument) throw new Error('pdf-lib no disponible');
+      if (!window.PDFLib?.PDFDocument) throw new Error(tr('pdf.libMissing'));
       return window.PDFLib;
     });
     pdfLibPromise.catch(() => { pdfLibPromise = null; });
@@ -6702,7 +6763,7 @@ async function joinBatchPages(uidA, uidB) {
   batchJoining = true;
   try {
     const [ra, rb] = await Promise.all([getDoc(a.docKey), getDoc(b.docKey)]);
-    if (!ra || !rb) throw new Error('El documento ya no está en este dispositivo.');
+    if (!ra || !rb) throw new Error(tr('batch.docGone'));
     const merged = await mergePdfs([arrayBufferToB64(ra.data), arrayBufferToB64(rb.data)]);
     const src = { ...a.src, to: b.src.to, auto: false };   // unido a mano: la red de resplitBatchItem no lo deshace
     const name = pageFileName(src.name, src.from, src.to);
@@ -6753,7 +6814,7 @@ function renderPdfPagesCard() {
 }
 function pagesAskHtml() {
   if (batchAskPages === 'saved') return `<div class="alert alert-info" id="pagesAsk"><div style="flex:1">${esc(tr('pagesSaved'))}</div>
-    <button class="icon-btn" aria-label="Cerrar aviso" onclick="batchAskPages=false;renderBatch()">✕</button></div>`;
+    <button class="icon-btn" aria-label="${escAttr(tr('batch.closeNote'))}" onclick="batchAskPages=false;renderBatch()">✕</button></div>`;
   if (!batchAskPages) return '';
   return `<div class="alert alert-info" id="pagesAsk"><div style="flex:1">${esc(tr('askPages'))}
     <div class="doc-actions"><button class="btn btn-primary btn-sm" id="pagesAskYes" onclick="setPdfPages(2, true)">${esc(tr('askPagesYes'))}</button>
@@ -6875,8 +6936,12 @@ function inDocNumbers(nums, v, tol) {
 // (con medio céntimo de margen, por si Gemini redondea un precio de 4 decimales). Las cifras a 0 y «N/L» no cuentan.
 // usable = false si falta más de la mitad de los importes: el texto del PDF no se saca bien (fuentes raras) y no se
 // avisa de nada, para no marcar una nómina bien leída.
-const DOC_TOTAL_LABELS = { grossTotal: 'Total devengado', totalDeductions: 'Total a deducir', netPay: 'Líquido a percibir' };
-const DOC_BASE_LABELS = { totalRemuneration: 'Remuneración total', extraPayProrata: 'Prorrata de pagas extra', baseCC: 'Base C.C.', baseAT: 'Base AT/EP', baseIRPF: 'Base IRPF' };
+// v2.31.0: las etiquetas salen de tr('pdf.l.<campo>') al leerlas (getters): en la segunda lectura, feedbackFor las pide
+// dentro de inLang('es') y a Gemini le llegan en español.
+const DOC_TOTAL_LABELS = { get grossTotal() { return tr('pdf.l.grossTotal'); }, get totalDeductions() { return tr('pdf.l.totalDeductions'); },
+  get netPay() { return tr('pdf.l.netPay'); } };
+const DOC_BASE_LABELS = { get totalRemuneration() { return tr('pdf.l.totalRemuneration'); }, get extraPayProrata() { return tr('pdf.l.extraPayProrata'); },
+  get baseCC() { return tr('pdf.l.baseCC'); }, get baseAT() { return tr('pdf.l.baseAT'); }, get baseIRPF() { return tr('pdf.l.baseIRPF'); } };
 function docNumberCheck(p) {
   const nums = p?.docNumbers;
   if (!Array.isArray(nums) || !nums.length) return null;
@@ -6889,12 +6954,12 @@ function docNumberCheck(p) {
   for (const side of ['earnings', 'deductions']) (Array.isArray(p[side]) ? p[side] : []).forEach((l, i) => {
     const name = `«${l?.concept || l?.code || '?'}»`;
     add(`${side}.${i}.amount`, name, l?.amount, true);
-    add(`${side}.${i}.units`, `${name} (unidades o %)`, l?.units, false);
-    add(`${side}.${i}.price`, `${name} (precio)`, l?.price, false);
+    add(`${side}.${i}.units`, tr('pdf.l.units', { name }), l?.units, false);
+    add(`${side}.${i}.price`, tr('pdf.l.price', { name }), l?.price, false);
   });
   for (const [k, label] of Object.entries(DOC_TOTAL_LABELS)) if (!(k === 'grossTotal' && p.totals?.grossSource)) add(`totals.${k}`, label, p.totals?.[k], true);   // v2.19.2
   for (const [k, label] of Object.entries(DOC_BASE_LABELS)) add(`bases.${k}`, label, p.bases?.[k], true);
-  if (!p.bases?.irpfSource) add('bases.irpfPercentage', '% de IRPF', p.bases?.irpfPercentage, false);   // si lo dedujo la app, no está impreso
+  if (!p.bases?.irpfSource) add('bases.irpfPercentage', tr('pdf.l.irpfPct'), p.bases?.irpfPercentage, false);   // si lo dedujo la app, no está impreso
   const missing = items.filter(it => !inDocNumbers(nums, it.value, it.strong ? 0.005 : 0.0051));
   const strong = items.filter(it => it.strong), strongMiss = missing.filter(it => it.strong);
   const usable = !(strongMiss.length >= 3 && strongMiss.length * 2 > strong.length);
@@ -6911,10 +6976,10 @@ function docMissingStrong(d) {
 function docSealHtml(p) {
   const r = docNumberCheck(p);
   if (!r) return '';
-  if (!r.usable) return `<div class="read-info doc-seal">📄 PDF digital, pero su texto no se saca bien: las cifras no se han podido comprobar con él.</div>`;
+  if (!r.usable) return `<div class="read-info doc-seal">${esc(tr('pdf.sealBad'))}</div>`;
   const miss = r.missing.length;
-  return `<div class="read-info doc-seal">📄 PDF digital: ${r.checked - miss} de ${r.checked} cifras comprobadas con el texto del documento` +
-    (miss ? `; ${miss === 1 ? '1 no está' : `${miss} no están`} en él.` : ', sin IA.') + `</div>`;
+  return `<div class="read-info doc-seal">${esc(tr(miss ? (miss === 1 ? 'pdf.sealMiss1' : 'pdf.sealMiss') : 'pdf.sealAll',
+    { ok: r.checked - miss, n: r.checked, m: miss }))}</div>`;
 }
 
 // Si hay algún PDF guardado, deja el visor descargado en segundo plano para poder usarlo sin conexión
@@ -7119,10 +7184,10 @@ async function copyToClipboard(text, btn) {
     try { ok = document.execCommand('copy'); } catch {}
     document.body.removeChild(ta);
   }
-  if (!ok) { alert('No se ha podido copiar automáticamente. Selecciona el texto del informe y cópialo a mano.'); return; }
+  if (!ok) { alert(tr('copy.fail')); return; }
   if (btn) {
     if (!btn.dataset.label) btn.dataset.label = btn.innerHTML;
-    btn.innerHTML = '✓ ¡Copiado!';
+    btn.innerHTML = esc(tr('copy.done'));
     setTimeout(() => { btn.innerHTML = btn.dataset.label; }, 2000);
   }
 }
